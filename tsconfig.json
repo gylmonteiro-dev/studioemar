@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@studioemar/shared": ["packages/shared/src/index.ts"]
+    }
+  },
+  "include": [],
+  "exclude": ["node_modules", "dist", ".next", "apps/mobile"]
+}

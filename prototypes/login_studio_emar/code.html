@@ -1,0 +1,195 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Studio EMAR - Login</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f9f9f9",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#c9c6c5",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "on-surface": "#1a1c1c",
+                        "surface-variant": "#e2e2e2",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#dfe0e0",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#1c1b1b",
+                        "primary-fixed-dim": "#c9c6c5",
+                        "on-tertiary-container": "#bf7100",
+                        "on-primary": "#ffffff",
+                        "surface-bright": "#f9f9f9",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2f3131",
+                        "on-background": "#1a1c1c",
+                        "on-tertiary-fixed": "#2c1600",
+                        "on-secondary-fixed-variant": "#454747",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffdcbd",
+                        "on-primary-container": "#858383",
+                        "surface-container-high": "#e8e8e8",
+                        "surface-container": "#eeeeee",
+                        "surface": "#f9f9f9",
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "surface-dim": "#dadada",
+                        "outline": "#747878",
+                        "tertiary-fixed-dim": "#ffb86f",
+                        "tertiary-container": "#2c1600",
+                        "outline-variant": "#c4c7c7",
+                        "inverse-on-surface": "#f1f1f1",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#5d5f5f",
+                        "primary": "#000000",
+                        "primary-fixed": "#e5e2e1",
+                        "on-secondary-container": "#616363",
+                        "primary-container": "#1c1b1b",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-container-low": "#f3f3f3",
+                        "secondary-fixed": "#e2e2e2",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#444748",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "tertiary": "#000000",
+                        "surface-tint": "#5f5e5e",
+                        "on-primary-fixed-variant": "#474646"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "48px",
+                        "stack-lg": "48px",
+                        "unit": "8px",
+                        "stack-md": "24px",
+                        "container-max": "1280px",
+                        "stack-sm": "8px",
+                        "gutter": "24px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-lg-mobile": ["Inter"],
+                        "button": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "button": ["16px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "headline-lg": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #F79400 0%, #FF6A1A 100%);
+        }
+
+        .focus-ring-primary:focus-within {
+            outline: none;
+            box-shadow: 0 0 0 2px #F79400;
+            border-color: transparent;
+        }
+        
+        /* Dark mode overrides for specific elements not fully covered by tokens */
+        .dark body {
+            background-color: #050505;
+            color: #ffffff;
+        }
+        .dark .bg-surface-login {
+            background-color: #050505;
+        }
+        .dark .input-field-dark {
+            background-color: #1a1a1a;
+            border-color: #333333;
+            color: #ffffff;
+        }
+        .dark .input-field-dark::placeholder {
+            color: #858383;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background dark bg-surface-login h-screen flex flex-col antialiased">
+<div class="flex-1 flex flex-col md:flex-row h-full">
+<!-- Left Panel: Branding / Photo (Desktop only) -->
+<div class="hidden md:flex md:w-1/2 relative bg-surface-container-highest overflow-hidden">
+<div class="absolute inset-0 bg-primary/20 z-10 mix-blend-multiply"></div>
+<div class="absolute inset-0 bg-cover bg-center z-0 filter grayscale" data-alt="A high-contrast, black and white photograph of an athlete in mid-motion, sprinting intensely in a minimalist, dimly lit indoor track. The lighting is dramatic, highlighting muscle definition and focus, with sharp shadows. The overall aesthetic is gritty, highly engineered, and intensely motivating, embodying high-performance athleticism and precision." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAMtRn4Yp7b7ybzKfcBD7wc_zogLpqPDSaz6QQIxB188KiPxBSxs0jmx39cVVVpCwAhuGHJ2FWBOgECRx8uLy-5j0wRy5PslBAphrT9Ev1zYbdsrfeFYySdFZvT1OuSUJb0ak88gAj1b7H2EiMZMu7F-GovO0UcsWSpFsi2uZlJA1Bo6EjQCoddbqLFQrT41qBBDqGduLOdjGlF9XG2NfQtWyeHn1jZr0pcpi3WkW5qbYaBB6PERbNi')">
+</div>
+<div class="relative z-20 flex flex-col justify-end p-margin-desktop h-full w-full bg-gradient-to-t from-[#050505]/90 to-transparent">
+<div class="font-display-lg text-display-lg tracking-tighter text-on-primary mb-stack-sm">STUDIO EMAR</div>
+<p class="font-body-lg text-body-lg text-primary-fixed max-w-md">Precision. Performance. Power. Elevate your potential with data-driven training methodologies.</p>
+</div>
+</div>
+<!-- Right Panel: Login Form -->
+<div class="flex-1 w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-margin-desktop bg-surface-login">
+<div class="w-full max-w-[400px] flex flex-col gap-stack-lg">
+<!-- Header -->
+<div class="text-center md:text-left flex flex-col gap-stack-sm">
+<div class="flex justify-center mb-stack-md md:hidden"><img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBK2wXp1_9-8aMTC3g67EyYKUfsIaN-WKEEqV0SvFW_Hm5qVdypp98r6bFZLvzt4NH2UN44cfKR1CBBp-L2IoxNElB_kJtqkdrNfwalTzS70MtI45c9nEAoCc-enyVWoD6PODTbHUriFefjMDXrwuUkt2766SaYxuMQFLuyTGXNy3kF25f0s2F1po_senLrB63pvbKtzVkjcVO44FMClgPwsVLPb3D8EWfbDeLiuQuuT5-SyUgPoPaSkPeOQLHIiFHgtg" alt="Studio EMAR Logo" class="h-24 w-auto object-contain"></div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-primary">Bem-vindo ao Studio EMAR</h1>
+<p class="font-body-md text-body-md text-on-primary-container">Acesse sua conta para continuar.</p>
+</div>
+<!-- Form -->
+<form class="flex flex-col gap-stack-md w-full" onsubmit="event.preventDefault();">
+<div class="flex flex-col gap-stack-sm w-full">
+<label class="font-label-caps text-label-caps text-on-primary-fixed-variant uppercase" for="email">E-mail</label>
+<div class="relative focus-ring-primary rounded-lg transition-shadow">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-primary-container" style="font-variation-settings: 'FILL' 0;">mail</span>
+<input class="w-full pl-10 pr-4 py-3 rounded-lg border input-field-dark font-body-md text-body-md transition-colors" id="email" placeholder="seu@email.com" required="" type="email">
+</div>
+</div>
+<div class="flex flex-col gap-stack-sm w-full">
+<div class="flex justify-between items-center w-full">
+<label class="font-label-caps text-label-caps text-on-primary-fixed-variant uppercase" for="password">Senha</label>
+<a class="font-label-caps text-label-caps text-tertiary-fixed-dim hover:text-on-primary transition-colors" href="#">Recuperar senha</a>
+</div>
+<div class="relative focus-ring-primary rounded-lg transition-shadow">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-primary-container" style="font-variation-settings: 'FILL' 0;">lock</span>
+<input class="w-full pl-10 pr-10 py-3 rounded-lg border input-field-dark font-body-md text-body-md transition-colors" id="password" placeholder="••••••••" required="" type="password">
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-on-primary-container hover:text-on-primary transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">visibility</span>
+</button>
+</div>
+</div>
+<button class="w-full mt-unit py-4 rounded-lg bg-gradient-primary text-on-primary font-button text-button shadow-[0_4px_14px_0_rgba(247,148,0,0.2)] hover:shadow-[0_6px_20px_rgba(247,148,0,0.3)] transition-all active:scale-[0.98] flex justify-center items-center gap-2" type="submit">
+                        Entrar
+                        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_forward</span>
+</button>
+</form>
+<!-- Footer Links (Optional) -->
+<div class="text-center mt-stack-md">
+<p class="font-body-md text-body-md text-on-primary-container">Não tem uma conta? <a class="text-tertiary-fixed-dim hover:text-on-primary transition-colors font-button" href="#">Criar conta</a></p>
+</div>
+</div>
+</div>
+</div>
+
+
+</body></html>

@@ -1,0 +1,52 @@
+# dependencies
+node_modules/
+
+# pnpm
+.pnpm-store/
+pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# NestJS
+dist/
+
+# environment
+.env
+.env.local
+.env.production
+.env.development
+
+# logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Prisma
+*.db
+*.db-journal
+
+# temporary
+tmp/
+temp/
+
+# backups
+*.bak
+
+# coverage
+coverage/
+
+# Expo
+.expo/
+
+# build
+build/
+*.tsbuildinfo

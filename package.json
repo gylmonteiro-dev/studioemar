@@ -1,0 +1,17 @@
+{
+  "name": "studioemar",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Sistema de gerenciamento e agendamento do Studio EMAR",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "scripts": {
+    "typecheck:config": "tsc --showConfig -p apps/web/tsconfig.json && tsc --showConfig -p apps/api/tsconfig.json && tsc --showConfig -p packages/shared/tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.3"
+  }
+}

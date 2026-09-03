@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cancelamento - Atenção</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f9f9f9",
+                        "inverse-surface": "#2f3131",
+                        "on-background": "#1a1c1c",
+                        "on-tertiary-fixed": "#2c1600",
+                        "secondary-fixed": "#e2e2e2",
+                        "secondary-container": "#dfe0e0",
+                        "inverse-primary": "#c9c6c5",
+                        "surface-tint": "#5f5e5e",
+                        "tertiary-fixed": "#ffdcbd",
+                        "tertiary": "#000000",
+                        "secondary": "#5d5f5f",
+                        "surface-container-high": "#e8e8e8",
+                        "on-surface": "#1a1c1c",
+                        "surface": "#f9f9f9",
+                        "surface-container-highest": "#e2e2e2",
+                        "on-primary-container": "#858383",
+                        "tertiary-fixed-dim": "#ffb86f",
+                        "error-container": "#ffdad6",
+                        "inverse-on-surface": "#f1f1f1",
+                        "secondary-fixed-dim": "#c6c6c7",
+                        "on-secondary-fixed": "#1a1c1c",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#474646",
+                        "on-secondary-fixed-variant": "#454747",
+                        "on-primary-fixed": "#1c1b1b",
+                        "tertiary-container": "#2c1600",
+                        "on-surface-variant": "#444748",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#f3f3f3",
+                        "surface-bright": "#f9f9f9",
+                        "error": "#ba1a1a",
+                        "primary-container": "#1c1b1b",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#eeeeee",
+                        "outline-variant": "#c4c7c7",
+                        "surface-dim": "#dadada",
+                        "on-tertiary-container": "#bf7100",
+                        "on-secondary-container": "#616363",
+                        "primary-fixed-dim": "#c9c6c5",
+                        "surface-variant": "#e2e2e2",
+                        "on-tertiary-fixed-variant": "#693c00",
+                        "primary-fixed": "#e5e2e1",
+                        "on-error-container": "#93000a",
+                        "primary": "#000000",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#747878"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "container-max": "1280px",
+                        "margin-mobile": "16px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "margin-desktop": "48px",
+                        "stack-sm": "8px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-caps": ["JetBrains Mono"],
+                        "headline-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "button": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "headline-lg": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "800" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "button": ["16px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom styles for elements not covered directly by Tailwind theme config */
+        .cta-gradient {
+            background: linear-gradient(90deg, #F79400 0%, #FF6A1A 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen text-on-background font-body-md antialiased selection:bg-surface-variant selection:text-primary">
+<!-- 
+        Navigation Shell Suppressed: 
+        As per the instructions, this is a transactional/task-focused screen (Cancellation Warning).
+        Therefore, the TopAppBar and BottomNavBar are completely suppressed to focus the user's attention on the critical decision.
+    -->
+<main class="min-h-screen flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop">
+<!-- Centered Focused Card -->
+<div class="w-full max-w-[440px] bg-surface border border-outline-variant/10 rounded-xl p-stack-lg flex flex-col items-center animate-fade-in-up">
+<!-- Warning Icon -->
+<div class="w-16 h-16 rounded-full bg-error-container flex items-center justify-center mb-stack-md">
+<span class="material-symbols-outlined text-[32px] text-error" data-weight="fill" style="font-variation-settings: 'FILL' 1;">
+                    warning
+                </span>
+</div>
+<!-- Title -->
+<h1 class="font-headline-md text-headline-md md:font-headline-lg md:text-headline-lg text-primary text-center mb-stack-sm tracking-tighter">
+                ATENÇÃO
+            </h1>
+<!-- Message -->
+<p class="font-body-md text-body-md text-secondary text-center mb-stack-lg max-w-[320px]">
+                O prazo para cancelamento com direito à reposição terminou. Você pode cancelar sua participação, porém não receberá crédito de reposição.
+            </p>
+<!-- Action Buttons -->
+<div class="w-full flex flex-col gap-stack-sm">
+<!-- Primary Action (Manter treino - Vibrant Orange) -->
+<button class="w-full py-4 rounded-lg font-button text-button text-on-primary cta-gradient flex justify-center items-center transition-transform active:scale-95 shadow-sm">
+                    Manter treino
+                </button>
+<!-- Secondary Action (Cancelar mesmo assim - Outline/Discreet) -->
+<button class="w-full py-4 rounded-lg font-button text-button border border-outline text-primary bg-transparent flex justify-center items-center transition-colors hover:bg-surface-variant active:scale-95">
+                    Cancelar mesmo assim
+                </button>
+</div>
+</div>
+</main>
+<style>
+        /* Simple entry animation for the modal */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</body></html>
