@@ -29,7 +29,7 @@ As interfaces HTML utilizadas como referência estão disponíveis em:
 
 ```
 apps/web          Next.js
-apps/api          NestJS (FASE 1+)
+apps/api          NestJS
 apps/mobile       Expo (FASE 10 — não iniciar)
 packages/shared   tipos e Zod (@studioemar/shared)
 infrastructure    Docker (FASE 8)
@@ -38,8 +38,8 @@ prototypes
 ```
 
 `apps/web` sobe um placeholder. Sem telas de produto.
+`apps/api` responde GET /health. Sem módulos de negócio.
 `@studioemar/shared` é esqueleto (contratos na FASE 1b).
-API entra na próxima tarefa da FASE 1.
 
 ## Como executar
 
@@ -49,9 +49,11 @@ Na raiz do repositório:
 corepack enable
 pnpm install
 pnpm dev:web
+pnpm dev:api
 ```
 
 Web: http://localhost:3000
+API: http://localhost:3001/health
 
 Requer Node.js >= 20 e pnpm >= 9.
 

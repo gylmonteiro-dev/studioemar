@@ -16,7 +16,9 @@
     "format:check": "prettier --check .",
     "build:shared": "pnpm --filter @studioemar/shared build",
     "dev:web": "pnpm --filter web dev",
-    "build:web": "pnpm --filter web build"
+    "build:web": "pnpm --filter web build",
+    "dev:api": "pnpm --filter api start:dev",
+    "build:api": "pnpm --filter api build"
   },
   "devDependencies": {
     "eslint": "^9.17.0",
