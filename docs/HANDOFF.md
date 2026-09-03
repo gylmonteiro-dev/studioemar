@@ -2,47 +2,49 @@
 
 ## Situação atual
 
-FASE 0 concluída e aprovada.
+FASE 0 e FASE 1 concluídas.
 
-FASE 1 em andamento: tarefas 1 a 7 concluídas.
+Fundação do monorepo pronta: web, API stub, shared
+esqueleto, tokens provisórios e primitives.
 
-Monorepo, TypeScript, lint, shared, Next.js, NestJS
-e tokens provisórios (Tailwind v4) existem.
-Ainda não há componentes fundamentais.
+A home de apps/web é um sandbox temporário. Remover
+antes da FASE 2.
+
+apps/mobile está reservada. Sem Expo.
 
 ## Já disponível
 
 - Protótipos HTML em /prototypes
 - Análise da FASE 0 aprovada
 - Decisões ADR-001 a ADR-008
-- apps/web com Inter, JetBrains Mono e tokens
-  (background, foreground, primary, surface, muted,
-  border, accent, success, warning, danger, info, bg-cta)
-- apps/api GET /health
-- @studioemar/shared (esqueleto)
+- apps/web (Next.js + Tailwind + sandbox de primitives)
+- apps/api (GET /health)
+- packages/shared (esqueleto)
+- apps/mobile (README apenas; excluída do pnpm workspace)
 
 ## Próxima atividade
 
-Aguardar autorização para a tarefa 8 da FASE 1:
-componentes fundamentais.
+Aguardar autorização para a FASE 1b — Contrato de
+domínio.
+
+A FASE 1b depende, para crédito e cancelamento, das
+regras PEND-001 a PEND-010.
 
 ## Não fazer ainda
 
-- componentes de produto, domínio em shared;
 - telas dos protótipos;
-- regras de cancelamento ou crédito no código;
+- domínio/Zod sem autorização da 1b;
+- Expo / apps/mobile;
 - Prisma e banco;
 - Docker de produção;
 - alterações na VPS;
 - alterações no Caddy;
-- aplicativo mobile;
 - assumir PEND-001 a PEND-010;
-- gravar paleta oficial em DESIGN_SYSTEM.md
-  (ainda pendente).
+- gravar paleta oficial em DESIGN_SYSTEM.md.
 
 ## Pendências
 
-- autorizar tarefa 8 da FASE 1;
+- autorizar FASE 1b;
 - inserir paleta oficial em DESIGN_SYSTEM.md;
 - validar regras pendentes de negócio (PEND-001 a PEND-010);
 - decidir criar conta / recuperar senha / perfil;

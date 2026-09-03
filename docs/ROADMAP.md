@@ -41,23 +41,26 @@ STATUS: CONCLUÍDA E APROVADA
 
 ## FASE 1 — Fundação
 
-[ ] Criar monorepo (pnpm workspaces)
-[ ] Configurar TypeScript compartilhado
-[ ] Configurar lint e formatação
-[ ] Configurar Next.js em apps/web
-[ ] Configurar NestJS stub em apps/api
-[ ] Criar packages/shared (esqueleto)
-[ ] Configurar Tailwind e Design Tokens
-[ ] Criar componentes fundamentais
-[ ] Reservar pasta apps/mobile
+[x] Criar monorepo (pnpm workspaces)
+[x] Configurar TypeScript compartilhado
+[x] Configurar lint e formatação
+[x] Configurar Next.js em apps/web
+[x] Configurar NestJS stub em apps/api
+[x] Criar packages/shared (esqueleto)
+[x] Configurar Tailwind e Design Tokens
+[x] Criar componentes fundamentais
+[x] Reservar pasta apps/mobile
 
-STATUS: NÃO INICIADA
+STATUS: CONCLUÍDA
 
-Bloqueio parcial: paleta oficial ainda não inserida.
-Usar DESIGN.md como base provisória.
+Tokens usam DESIGN.md como base provisória.
+Paleta oficial em DESIGN_SYSTEM.md continua pendente.
 
-Não inclui ainda: domínio completo, Prisma, auth real,
+Não inclui: domínio completo, Prisma, auth real,
 telas de produto, Docker de produção, VPS.
+
+A home de apps/web é um sandbox temporário e deve
+ser removida antes da FASE 2.
 
 ---
 
