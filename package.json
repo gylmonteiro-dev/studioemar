@@ -9,9 +9,17 @@
     "pnpm": ">=9"
   },
   "scripts": {
-    "typecheck:config": "tsc --showConfig -p apps/web/tsconfig.json && tsc --showConfig -p apps/api/tsconfig.json && tsc --showConfig -p packages/shared/tsconfig.json"
+    "typecheck:config": "tsc --showConfig -p apps/web/tsconfig.json && tsc --showConfig -p apps/api/tsconfig.json && tsc --showConfig -p packages/shared/tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "typescript": "~5.7.3"
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.4.2",
+    "typescript": "~5.7.3",
+    "typescript-eslint": "^8.19.0"
   }
 }

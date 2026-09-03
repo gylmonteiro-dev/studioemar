@@ -1,0 +1,9 @@
+node_modules
+dist
+.next
+coverage
+build
+prototypes
+apps/mobile
+pnpm-lock.yaml
+*.tsbuildinfo
