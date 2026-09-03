@@ -4,11 +4,11 @@
 
 FASE 0 concluída e aprovada.
 
-FASE 1 em andamento: tarefas 1 a 4 concluídas.
+FASE 1 em andamento: tarefas 1 a 5 concluídas.
 
-Monorepo, TypeScript, lint e o esqueleto de
-@studioemar/shared existem. Ainda não há Next.js,
-NestJS, tokens nem componentes.
+Monorepo, TypeScript, lint, @studioemar/shared e
+Next.js (placeholder) existem. Ainda não há NestJS,
+tokens nem componentes.
 
 ## Já disponível
 
@@ -16,19 +16,17 @@ NestJS, tokens nem componentes.
 - Análise da FASE 0 aprovada
 - Decisões ADR-001 a ADR-008
 - package.json raiz com TypeScript, ESLint e Prettier
-- pnpm-workspace.yaml
-- tsconfig.base.json e tsconfigs por workspace
-- eslint.config.mjs e Prettier
-- packages/shared (@studioemar/shared) — export vazio
+- @studioemar/shared (esqueleto)
+- apps/web (Next.js App Router, página "Studio EMAR")
 
 ## Próxima atividade
 
-Aguardar autorização para a tarefa 5 da FASE 1:
-Next.js em apps/web.
+Aguardar autorização para a tarefa 6 da FASE 1:
+NestJS stub em apps/api.
 
 ## Não fazer ainda
 
-- Next.js, NestJS, domínio em shared, tokens;
+- NestJS, domínio em shared, tokens, componentes;
 - telas de produto;
 - regras de cancelamento ou crédito no código;
 - Prisma e banco;
@@ -40,7 +38,7 @@ Next.js em apps/web.
 
 ## Pendências
 
-- autorizar tarefa 5 da FASE 1;
+- autorizar tarefa 6 da FASE 1;
 - inserir paleta oficial em DESIGN_SYSTEM.md;
 - validar regras pendentes de negócio (PEND-001 a PEND-010);
 - decidir criar conta / recuperar senha / perfil;

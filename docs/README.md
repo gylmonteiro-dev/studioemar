@@ -28,7 +28,7 @@ As interfaces HTML utilizadas como referência estão disponíveis em:
 ## Estrutura
 
 ```
-apps/web          Next.js (FASE 1+)
+apps/web          Next.js
 apps/api          NestJS (FASE 1+)
 apps/mobile       Expo (FASE 10 — não iniciar)
 packages/shared   tipos e Zod (@studioemar/shared)
@@ -37,9 +37,9 @@ docs
 prototypes
 ```
 
-`@studioemar/shared` existe como esqueleto. Sem contratos de
-domínio ainda (FASE 1b). Web e API entram nas próximas
-tarefas da FASE 1.
+`apps/web` sobe um placeholder. Sem telas de produto.
+`@studioemar/shared` é esqueleto (contratos na FASE 1b).
+API entra na próxima tarefa da FASE 1.
 
 ## Como executar
 
@@ -48,7 +48,10 @@ Na raiz do repositório:
 ```
 corepack enable
 pnpm install
+pnpm dev:web
 ```
+
+Web: http://localhost:3000
 
 Requer Node.js >= 20 e pnpm >= 9.
 

@@ -14,7 +14,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build:shared": "pnpm --filter @studioemar/shared build"
+    "build:shared": "pnpm --filter @studioemar/shared build",
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build"
   },
   "devDependencies": {
     "eslint": "^9.17.0",
