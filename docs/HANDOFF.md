@@ -4,42 +4,45 @@
 
 FASE 0 concluída e aprovada.
 
-FASE 1 em andamento: tarefas 1 a 6 concluídas.
+FASE 1 em andamento: tarefas 1 a 7 concluídas.
 
-Monorepo, TypeScript, lint, @studioemar/shared,
-Next.js (placeholder) e NestJS (health) existem.
-Ainda não há tokens nem componentes.
+Monorepo, TypeScript, lint, shared, Next.js, NestJS
+e tokens provisórios (Tailwind v4) existem.
+Ainda não há componentes fundamentais.
 
 ## Já disponível
 
 - Protótipos HTML em /prototypes
 - Análise da FASE 0 aprovada
 - Decisões ADR-001 a ADR-008
-- package.json raiz com TypeScript, ESLint e Prettier
+- apps/web com Inter, JetBrains Mono e tokens
+  (background, foreground, primary, surface, muted,
+  border, accent, success, warning, danger, info, bg-cta)
+- apps/api GET /health
 - @studioemar/shared (esqueleto)
-- apps/web (Next.js, página "Studio EMAR")
-- apps/api (NestJS, GET /health na porta 3001)
 
 ## Próxima atividade
 
-Aguardar autorização para a tarefa 7 da FASE 1:
-Tailwind e Design Tokens.
+Aguardar autorização para a tarefa 8 da FASE 1:
+componentes fundamentais.
 
 ## Não fazer ainda
 
-- tokens, componentes, domínio em shared;
-- telas de produto;
+- componentes de produto, domínio em shared;
+- telas dos protótipos;
 - regras de cancelamento ou crédito no código;
 - Prisma e banco;
 - Docker de produção;
 - alterações na VPS;
 - alterações no Caddy;
 - aplicativo mobile;
-- assumir PEND-001 a PEND-010.
+- assumir PEND-001 a PEND-010;
+- gravar paleta oficial em DESIGN_SYSTEM.md
+  (ainda pendente).
 
 ## Pendências
 
-- autorizar tarefa 7 da FASE 1;
+- autorizar tarefa 8 da FASE 1;
 - inserir paleta oficial em DESIGN_SYSTEM.md;
 - validar regras pendentes de negócio (PEND-001 a PEND-010);
 - decidir criar conta / recuperar senha / perfil;

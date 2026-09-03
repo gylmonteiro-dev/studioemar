@@ -37,9 +37,10 @@ docs
 prototypes
 ```
 
-`apps/web` sobe um placeholder. Sem telas de produto.
+`apps/web` sobe um placeholder com tokens provisórios.
 `apps/api` responde GET /health. Sem módulos de negócio.
 `@studioemar/shared` é esqueleto (contratos na FASE 1b).
+Paleta oficial em DESIGN_SYSTEM.md continua pendente.
 
 ## Como executar
 
