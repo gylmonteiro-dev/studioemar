@@ -31,14 +31,15 @@ As interfaces HTML utilizadas como referência estão disponíveis em:
 apps/web          Next.js (FASE 1+)
 apps/api          NestJS (FASE 1+)
 apps/mobile       Expo (FASE 10 — não iniciar)
-packages/shared   tipos e Zod (FASE 1+)
+packages/shared   tipos e Zod (@studioemar/shared)
 infrastructure    Docker (FASE 8)
 docs
 prototypes
 ```
 
-Os workspaces ainda não possuem pacotes. Serão preenchidos
-nas próximas tarefas da FASE 1.
+`@studioemar/shared` existe como esqueleto. Sem contratos de
+domínio ainda (FASE 1b). Web e API entram nas próximas
+tarefas da FASE 1.
 
 ## Como executar
 
