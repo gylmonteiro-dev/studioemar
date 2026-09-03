@@ -18,6 +18,7 @@ Consulte:
 - docs/DESIGN_SYSTEM.md
 - docs/ROADMAP.md
 - docs/DECISIONS.md
+- docs/openapi.yaml
 
 ## Protótipos
 
@@ -39,7 +40,8 @@ prototypes
 
 `apps/web` sobe um sandbox temporário dos primitives.
 `apps/api` responde GET /health. Sem módulos de negócio.
-`@studioemar/shared` é esqueleto (contratos na FASE 1b).
+`@studioemar/shared` contém tipos, Zod e mocks da FASE 1b.
+Contrato HTTP estático: docs/openapi.yaml.
 Paleta oficial em DESIGN_SYSTEM.md continua pendente.
 
 ## Como executar

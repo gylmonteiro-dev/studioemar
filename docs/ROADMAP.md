@@ -66,17 +66,23 @@ ser removida antes da FASE 2.
 
 ## FASE 1b — Contrato de domínio
 
-[ ] Definir vocabulário (Booking, Credit, TimeSlot, Plan)
-[ ] Schemas Zod compartilhados
-[ ] OpenAPI mínimo
-[ ] Mocks tipados para o frontend
+[x] Definir vocabulário (Booking, Credit, TimeSlot, Plan)
+[x] Schemas Zod compartilhados
+[x] OpenAPI mínimo
+[x] Mocks tipados para o frontend
 
-STATUS: NÃO INICIADA
+STATUS: CONCLUÍDA
 
-Depende da FASE 1 e, para regras de crédito/cancelamento,
-das pendências PEND-001 a PEND-010.
+Constantes de regra no shared:
+
+- CANCELLATION_CREDIT_DEADLINE_HOURS = 12 (RN-012)
+- CREDIT_VALIDITY_DAYS = 30 (RN-013)
+
+OpenAPI estático em docs/openapi.yaml.
+Mocks em @studioemar/shared/mocks.
 
 Não inclui Prisma nem persistência.
+PEND-004, PEND-005, PEND-007 e PEND-010 continuam abertas.
 
 ---
 

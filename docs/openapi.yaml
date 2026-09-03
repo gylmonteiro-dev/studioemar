@@ -1,0 +1,291 @@
+openapi: 3.1.0
+info:
+  title: Studio EMAR API
+  version: 0.1.0
+  description: Contrato mínimo da FASE 1b. Sem implementação Nest além de GET /health.
+servers:
+  - url: http://localhost:3001
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Serviço no ar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /me/bookings:
+    get:
+      summary: Agenda do aluno autenticado
+      operationId: listMyBookings
+      responses:
+        '200':
+          description: Lista de reservas do aluno
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+
+  /bookings/{id}/cancellations:
+    post:
+      summary: Cancelar uma reserva
+      operationId: cancelBooking
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Cancelamento registrado. generatedCredit depende de RN-012.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cancellation'
+        '409':
+          description: Reserva não pode ser cancelada
+
+  /me/credits:
+    get:
+      summary: Créditos do aluno autenticado
+      operationId: listMyCredits
+      responses:
+        '200':
+          description: Créditos com rastreio (RN-010)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Credit'
+
+  /credits/{id}/redemptions:
+    post:
+      summary: Usar um crédito em um horário disponível
+      operationId: redeemCredit
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [timeSlotId]
+              properties:
+                timeSlotId:
+                  type: string
+      responses:
+        '201':
+          description: Reserva MAKEUP criada e crédito consumido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '409':
+          description: Sem vaga, crédito inválido ou expirado
+
+  /time-slots:
+    get:
+      summary: Horários e vagas
+      description: O aluno vê ocupação numérica, não os nomes dos demais alunos.
+      operationId: listTimeSlots
+      responses:
+        '200':
+          description: Horários
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeSlot'
+
+  /time-slots/{id}/waitlist:
+    post:
+      summary: Entrar na lista de espera (FIFO)
+      operationId: joinWaitlist
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '201':
+          description: Posição na fila
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitlistEntry'
+
+  /dashboard/occupancy:
+    get:
+      summary: Indicadores de ocupação do treinador
+      operationId: getOccupancyDashboard
+      responses:
+        '200':
+          description: Métricas do dia e da semana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccupancyDashboard'
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    Booking:
+      type: object
+      required: [id, studentId, timeSlotId, kind, status]
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        timeSlotId:
+          type: string
+        kind:
+          type: string
+          enum: [REGULAR, MAKEUP]
+        status:
+          type: string
+          enum: [CONFIRMED, CANCELLED, NO_SHOW]
+
+    Cancellation:
+      type: object
+      required: [id, bookingId, cancelledAt, generatedCredit]
+      properties:
+        id:
+          type: string
+        bookingId:
+          type: string
+        cancelledAt:
+          type: string
+          format: date-time
+        generatedCredit:
+          type: boolean
+        creditId:
+          type: string
+
+    Credit:
+      type: object
+      required:
+        [id, studentId, source, generatedAt, expiresAt, status]
+      properties:
+        id:
+          type: string
+        studentId:
+          type: string
+        source:
+          type: string
+          enum: [CANCELLATION, MANUAL]
+        generatedAt:
+          type: string
+          format: date-time
+        originBookingId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [AVAILABLE, USED, EXPIRED]
+        usedAt:
+          type: string
+          format: date-time
+        usedBookingId:
+          type: string
+
+    TimeSlot:
+      type: object
+      required:
+        [id, startsAt, endsAt, capacity, enrolledCount, status, classType, trainerId]
+      properties:
+        id:
+          type: string
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        capacity:
+          type: integer
+        enrolledCount:
+          type: integer
+        status:
+          type: string
+          enum: [OPEN, FULL, CLOSED]
+        classType:
+          type: string
+        trainerId:
+          type: string
+
+    WaitlistEntry:
+      type: object
+      required: [id, timeSlotId, studentId, position, enqueuedAt, status]
+      properties:
+        id:
+          type: string
+        timeSlotId:
+          type: string
+        studentId:
+          type: string
+        position:
+          type: integer
+        enqueuedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [WAITING, PROMOTED, CANCELLED]
+
+    OccupancyDashboard:
+      type: object
+      required: [metrics, byHour, byWeekday]
+      properties:
+        metrics:
+          type: object
+          required:
+            [studentsToday, occupancyPercent, freeSpots, cancellations, makeups]
+          properties:
+            studentsToday:
+              type: integer
+            occupancyPercent:
+              type: number
+            freeSpots:
+              type: integer
+            cancellations:
+              type: integer
+            makeups:
+              type: integer
+        byHour:
+          type: array
+          items:
+            type: object
+            required: [hour, occupancyPercent]
+            properties:
+              hour:
+                type: string
+              occupancyPercent:
+                type: number
+        byWeekday:
+          type: array
+          items:
+            type: object
+            required: [weekday, occupancyPercent]
+            properties:
+              weekday:
+                type: string
+              occupancyPercent:
+                type: number

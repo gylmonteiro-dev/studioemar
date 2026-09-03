@@ -116,25 +116,62 @@ O sistema deverá preservar histórico de:
 
 ---
 
+## RN-012 — Antecedência para crédito
+
+Status: ACEITO
+
+O aluno só recebe crédito se cancelar com antecedência mínima de
+12 horas em relação ao início da aula.
+
+Constante compartilhada:
+
+CANCELLATION_CREDIT_DEADLINE_HOURS = 12
+
+---
+
+## RN-013 — Validade do crédito
+
+Status: ACEITO
+
+O crédito possui validade de 30 dias a partir da data de geração.
+
+Constante compartilhada:
+
+CREDIT_VALIDITY_DAYS = 30
+
+---
+
+## RN-014 — Fechamento do Studio
+
+Status: ACEITO
+
+Feriados e demais fechamentos são informados pelo professor
+(administrador do Studio) quando o Studio for fechado.
+
+Não utilizar calendário automático de feriados nacionais.
+
+---
+
+## RN-015 — Falta sem cancelamento
+
+Status: ACEITO
+
+A falta sem cancelamento não gera crédito de reposição.
+
+---
+
+## RN-016 — Lista de espera
+
+Status: ACEITO
+
+Haverá lista de espera por ordem de chegada (FIFO).
+
+O aluno não visualiza os demais participantes. O treinador pode
+visualizar a fila.
+
+---
+
 # REGRAS PENDENTES
-
-## PEND-001
-
-Qual a antecedência mínima para cancelamento com crédito?
-
-PENDENTE.
-
-## PEND-002
-
-Créditos possuem validade?
-
-PENDENTE.
-
-## PEND-003
-
-Caso possuam validade, qual será?
-
-PENDENTE.
 
 ## PEND-004
 
@@ -148,29 +185,13 @@ O treinador poderá remover crédito?
 
 PENDENTE.
 
-## PEND-006
-
-Como serão tratados feriados?
-
-PENDENTE.
-
 ## PEND-007
 
-Como serão tratadas férias/recesso?
+Como serão tratadas férias/recesso como processo separado?
 
 PENDENTE.
 
-## PEND-008
-
-Como será tratada falta sem cancelamento?
-
-PENDENTE.
-
-## PEND-009
-
-Haverá lista de espera?
-
-PENDENTE.
+O efeito prático de Studio fechado é coberto por RN-014.
 
 ## PEND-010
 

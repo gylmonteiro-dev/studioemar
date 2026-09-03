@@ -2,51 +2,43 @@
 
 ## Situação atual
 
-FASE 0 e FASE 1 concluídas.
+FASE 0, FASE 1 e FASE 1b concluídas.
 
-Fundação do monorepo pronta: web, API stub, shared
-esqueleto, tokens provisórios e primitives.
+Contrato de domínio está em @studioemar/shared
+(tipos, Zod, constantes 12h/30d e helpers).
 
-A home de apps/web é um sandbox temporário. Remover
-antes da FASE 2.
-
-apps/mobile está reservada. Sem Expo.
+A home de apps/web continua um sandbox temporário.
+Remover antes da FASE 2.
 
 ## Já disponível
 
-- Protótipos HTML em /prototypes
-- Análise da FASE 0 aprovada
-- Decisões ADR-001 a ADR-008
-- apps/web (Next.js + Tailwind + sandbox de primitives)
-- apps/api (GET /health)
-- packages/shared (esqueleto)
-- apps/mobile (README apenas; excluída do pnpm workspace)
+- Vocabulário: Plan, RecurringSlot, TimeSlot, Booking,
+  Cancellation, Credit, WaitlistEntry, StudioClosure
+- Helpers: isCancellationEligibleForCredit, creditExpiresAt
+- Mocks em @studioemar/shared/mocks
+- Contrato HTTP em docs/openapi.yaml
+- RN-012 a RN-016 aceitas
+- apps/api ainda só expõe GET /health
 
 ## Próxima atividade
 
-Aguardar autorização para a FASE 1b — Contrato de
-domínio.
-
-A FASE 1b depende, para crédito e cancelamento, das
-regras PEND-001 a PEND-010.
+Aguardar autorização para a FASE 2 — Frontend aluno.
 
 ## Não fazer ainda
 
-- telas dos protótipos;
-- domínio/Zod sem autorização da 1b;
-- Expo / apps/mobile;
+- telas dos protótipos sem autorização;
 - Prisma e banco;
+- implementar os paths do OpenAPI no Nest;
+- Expo / apps/mobile;
 - Docker de produção;
-- alterações na VPS;
-- alterações no Caddy;
-- assumir PEND-001 a PEND-010;
-- gravar paleta oficial em DESIGN_SYSTEM.md.
+- alterações na VPS / Caddy;
+- assumir PEND-004, PEND-005, PEND-007, PEND-010.
 
 ## Pendências
 
-- autorizar FASE 1b;
+- autorizar FASE 2;
 - inserir paleta oficial em DESIGN_SYSTEM.md;
-- validar regras pendentes de negócio (PEND-001 a PEND-010);
+- PEND-004, PEND-005, PEND-007, PEND-010;
 - decidir criar conta / recuperar senha / perfil;
 - decidir se TRAINER e ADMIN são o mesmo operador;
 - prototipar ou aceitar UI mínima das telas de treinador
