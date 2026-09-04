@@ -27,11 +27,23 @@ export const bookingStatusSchema = z.enum([
 ]);
 export type BookingStatus = z.infer<typeof bookingStatusSchema>;
 
-export const creditStatusSchema = z.enum(['AVAILABLE', 'USED', 'EXPIRED']);
+export const creditStatusSchema = z.enum([
+  'AVAILABLE',
+  'USED',
+  'EXPIRED',
+  'ANNULLED',
+]);
 export type CreditStatus = z.infer<typeof creditStatusSchema>;
 
-export const creditSourceSchema = z.enum(['CANCELLATION', 'MANUAL']);
+export const creditSourceSchema = z.enum([
+  'CANCELLATION',
+  'TRAINER_CANCELLATION',
+  'CLOSURE_COMPENSATION',
+]);
 export type CreditSource = z.infer<typeof creditSourceSchema>;
+
+export const cancelledBySchema = z.enum(['STUDENT', 'TRAINER']);
+export type CancelledBy = z.infer<typeof cancelledBySchema>;
 
 export const waitlistStatusSchema = z.enum([
   'WAITING',

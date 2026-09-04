@@ -4,10 +4,12 @@ import { cn } from '@/lib/cn';
 const variants = {
   primary:
     'bg-primary text-primary-foreground hover:bg-primary/90',
+  accent:
+    'bg-accent text-accent-foreground hover:bg-accent/90',
   ghost:
     'border border-foreground bg-transparent text-foreground hover:bg-muted',
-  cta: 'bg-cta text-primary-foreground hover:opacity-90',
-  danger: 'border border-danger bg-transparent text-danger hover:bg-danger/10',
+  cta: 'bg-cta text-accent-foreground hover:opacity-90',
+  danger: 'border border-danger bg-transparent text-danger hover:bg-danger-subtle',
 } as const;
 
 type ButtonVariant = keyof typeof variants;

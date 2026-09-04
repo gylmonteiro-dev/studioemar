@@ -8,5 +8,6 @@ export const userSchema = z.object({
   email: z.string().email(),
   role: userRoleSchema,
   planId: idSchema.optional(),
+  mustSetPassword: z.boolean().default(false),
 });
 export type User = z.infer<typeof userSchema>;

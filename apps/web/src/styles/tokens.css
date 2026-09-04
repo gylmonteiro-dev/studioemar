@@ -1,10 +1,9 @@
 /*
-  Tokens provisórios a partir de
-  prototypes/studio_emar_athletics/DESIGN.md.
+  Paleta oficial: docs/DESIGN_SYSTEM.md (ADR-011, ADR-012)
 
-  A paleta oficial em docs/DESIGN_SYSTEM.md continua
-  PENDENTE. Não espalhar HEX nos componentes — usar
-  estas classes (bg-primary, text-foreground, bg-cta).
+  Light: valores em @theme.
+  Dark: html.dark sobrescreve as mesmas variáveis.
+  Padrão da aplicação: dark.
 */
 
 @theme {
@@ -12,29 +11,57 @@
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
   --color-background: #f9f9f9;
-  --color-foreground: #050505;
+  --color-foreground: #111111;
   --color-primary: #050505;
   --color-primary-foreground: #ffffff;
   --color-surface: #ffffff;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #5d5f5f;
-  --color-border: rgb(5 5 5 / 5%);
+  --color-surface-dark: #050505;
+  --color-surface-dark-foreground: #ffffff;
+  --color-muted: #f3f3f3;
+  --color-muted-foreground: #717171;
+  --color-faint: #a3a3a3;
+  --color-border: #eaeaea;
+  --color-border-hover: #dadada;
   --color-accent: #f79400;
   --color-accent-end: #ff6a1a;
-  --color-success: #2e7d32;
-  --color-success-foreground: #ffffff;
-  --color-warning: #f57f17;
-  --color-warning-foreground: #050505;
-  --color-danger: #ba1a1a;
-  --color-danger-foreground: #ffffff;
-  --color-info: #444748;
-  --color-info-foreground: #ffffff;
+  --color-accent-foreground: #ffffff;
+  --color-success: #166534;
+  --color-success-subtle: #ebf7ee;
+  --color-warning: #854d0e;
+  --color-warning-subtle: #fef9c3;
+  --color-danger: #dc2626;
+  --color-danger-subtle: #fee2e2;
+  --color-full: #717171;
+  --color-full-subtle: #f1f1f1;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius: 0.5rem;
+}
+
+html.dark {
+  --color-background: #050505;
+  --color-foreground: #ffffff;
+  --color-primary: #ffffff;
+  --color-primary-foreground: #050505;
+  --color-surface: #141414;
+  --color-surface-dark: #1a1a1a;
+  --color-surface-dark-foreground: #ffffff;
+  --color-muted: #1c1c1c;
+  --color-muted-foreground: #a3a3a3;
+  --color-faint: #717171;
+  --color-border: #2a2a2a;
+  --color-border-hover: #3a3a3a;
+  --color-success: #86efac;
+  --color-success-subtle: #14532d;
+  --color-warning: #fde68a;
+  --color-warning-subtle: #422006;
+  --color-danger: #fca5a5;
+  --color-danger-subtle: #450a0a;
+  --color-full: #a3a3a3;
+  --color-full-subtle: #1f1f1f;
 }
 
 @utility bg-cta {

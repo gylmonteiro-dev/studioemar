@@ -22,12 +22,26 @@ import {
   type WaitlistEntry,
 } from '../schemas/index.js';
 
+/** Relógio determinístico da FASE 2 (quinta 03/09/2026, 12:00 em São Paulo). */
+export const MOCK_NOW_ISO = '2026-09-03T15:00:00.000Z';
+export const MOCK_NOW = new Date(MOCK_NOW_ISO);
+
 export const mockStudent: User = userSchema.parse({
   id: 'user-joao',
   name: 'João',
   email: 'joao@studioemar.local',
   role: 'STUDENT',
   planId: 'plan-3x',
+  mustSetPassword: false,
+});
+
+export const mockFirstAccessStudent: User = userSchema.parse({
+  id: 'user-ana',
+  name: 'Ana',
+  email: 'ana@studioemar.local',
+  role: 'STUDENT',
+  planId: 'plan-3x',
+  mustSetPassword: true,
 });
 
 export const mockTrainer: User = userSchema.parse({
@@ -37,6 +51,12 @@ export const mockTrainer: User = userSchema.parse({
   role: 'TRAINER',
 });
 
+export const mockUsers: User[] = [
+  mockStudent,
+  mockFirstAccessStudent,
+  mockTrainer,
+];
+
 export const mockPlan: Plan = planSchema.parse({
   id: 'plan-3x',
   name: '3x por semana',
@@ -45,7 +65,7 @@ export const mockPlan: Plan = planSchema.parse({
 
 export const mockRecurringSlots: RecurringSlot[] = [
   recurringSlotSchema.parse({
-    id: 'rec-seg-18',
+    id: 'rec-mon-18',
     planId: 'plan-3x',
     weekday: 'MON',
     time: '18:00',
@@ -76,6 +96,16 @@ export const mockTimeSlots: TimeSlot[] = [
     trainerId: 'user-carlos',
   }),
   timeSlotSchema.parse({
+    id: 'slot-2026-09-02-18',
+    startsAt: '2026-09-02T21:00:00.000Z',
+    endsAt: '2026-09-02T22:00:00.000Z',
+    capacity: 6,
+    enrolledCount: 5,
+    status: 'OPEN',
+    classType: 'Treino de Força Avançado',
+    trainerId: 'user-carlos',
+  }),
+  timeSlotSchema.parse({
     id: 'slot-2026-09-03-18',
     startsAt: '2026-09-03T21:00:00.000Z',
     endsAt: '2026-09-03T22:00:00.000Z',
@@ -86,13 +116,33 @@ export const mockTimeSlots: TimeSlot[] = [
     trainerId: 'user-carlos',
   }),
   timeSlotSchema.parse({
-    id: 'slot-2026-09-05-17',
-    startsAt: '2026-09-05T20:00:00.000Z',
-    endsAt: '2026-09-05T21:00:00.000Z',
+    id: 'slot-2026-09-04-17',
+    startsAt: '2026-09-04T20:00:00.000Z',
+    endsAt: '2026-09-04T21:00:00.000Z',
     capacity: 6,
     enrolledCount: 3,
     status: 'OPEN',
     classType: 'Recovery',
+    trainerId: 'user-carlos',
+  }),
+  timeSlotSchema.parse({
+    id: 'slot-2026-09-07-18',
+    startsAt: '2026-09-07T21:00:00.000Z',
+    endsAt: '2026-09-07T22:00:00.000Z',
+    capacity: 6,
+    enrolledCount: 4,
+    status: 'OPEN',
+    classType: 'Funcional',
+    trainerId: 'user-carlos',
+  }),
+  timeSlotSchema.parse({
+    id: 'slot-2026-09-09-18',
+    startsAt: '2026-09-09T21:00:00.000Z',
+    endsAt: '2026-09-09T22:00:00.000Z',
+    capacity: 6,
+    enrolledCount: 4,
+    status: 'OPEN',
+    classType: 'LPO',
     trainerId: 'user-carlos',
   }),
   timeSlotSchema.parse({
@@ -125,6 +175,16 @@ export const mockTimeSlots: TimeSlot[] = [
     classType: 'Cross Training',
     trainerId: 'user-carlos',
   }),
+  timeSlotSchema.parse({
+    id: 'slot-2026-09-14-18',
+    startsAt: '2026-09-14T21:00:00.000Z',
+    endsAt: '2026-09-14T22:00:00.000Z',
+    capacity: 6,
+    enrolledCount: 3,
+    status: 'OPEN',
+    classType: 'Funcional',
+    trainerId: 'user-carlos',
+  }),
 ];
 
 export const mockBookings: Booking[] = [
@@ -136,50 +196,96 @@ export const mockBookings: Booking[] = [
     status: 'CONFIRMED',
   }),
   bookingSchema.parse({
-    id: 'booking-qua',
+    id: 'booking-qua-cancelada',
     studentId: 'user-joao',
-    timeSlotId: 'slot-2026-09-03-18',
+    timeSlotId: 'slot-2026-09-02-18',
     kind: 'REGULAR',
     status: 'CANCELLED',
   }),
   bookingSchema.parse({
+    id: 'booking-hoje-sem-credito',
+    studentId: 'user-joao',
+    timeSlotId: 'slot-2026-09-03-18',
+    kind: 'REGULAR',
+    status: 'CONFIRMED',
+  }),
+  bookingSchema.parse({
     id: 'booking-sex',
     studentId: 'user-joao',
-    timeSlotId: 'slot-2026-09-05-17',
+    timeSlotId: 'slot-2026-09-04-17',
+    kind: 'REGULAR',
+    status: 'CONFIRMED',
+  }),
+  bookingSchema.parse({
+    id: 'booking-seg-com-credito',
+    studentId: 'user-joao',
+    timeSlotId: 'slot-2026-09-07-18',
+    kind: 'REGULAR',
+    status: 'CONFIRMED',
+  }),
+  bookingSchema.parse({
+    id: 'booking-qua-reposicao',
+    studentId: 'user-joao',
+    timeSlotId: 'slot-2026-09-09-18',
     kind: 'MAKEUP',
     status: 'CONFIRMED',
   }),
 ];
 
-export const mockCancellation: Cancellation = cancellationSchema.parse({
-  id: 'cancel-qua',
-  bookingId: 'booking-qua',
-  cancelledAt: '2026-09-03T08:00:00.000Z',
-  generatedCredit: true,
-  creditId: 'credit-1',
-});
+export const mockCancellations: Cancellation[] = [
+  cancellationSchema.parse({
+    id: 'cancel-qua',
+    bookingId: 'booking-qua-cancelada',
+    cancelledAt: '2026-09-01T12:00:00.000Z',
+    cancelledBy: 'STUDENT',
+    generatedCredit: true,
+    creditId: 'credit-1',
+  }),
+];
 
-const creditGeneratedAt = new Date('2026-09-03T08:00:00.000Z');
+const creditFromCancellationAt = new Date('2026-09-01T12:00:00.000Z');
+const creditFromTrainerAt = new Date('2026-08-20T12:00:00.000Z');
+const creditUsedAt = new Date('2026-08-15T12:00:00.000Z');
+const creditAnnulledAt = new Date('2026-08-10T12:00:00.000Z');
 
 export const mockCredits: Credit[] = [
   creditSchema.parse({
     id: 'credit-1',
     studentId: 'user-joao',
     source: 'CANCELLATION',
-    generatedAt: creditGeneratedAt.toISOString(),
-    originBookingId: 'booking-qua',
-    expiresAt: creditExpiresAt(creditGeneratedAt).toISOString(),
+    generatedAt: creditFromCancellationAt.toISOString(),
+    originBookingId: 'booking-qua-cancelada',
+    expiresAt: creditExpiresAt(creditFromCancellationAt).toISOString(),
+    status: 'AVAILABLE',
+  }),
+  creditSchema.parse({
+    id: 'credit-trainer',
+    studentId: 'user-joao',
+    source: 'TRAINER_CANCELLATION',
+    generatedAt: creditFromTrainerAt.toISOString(),
+    originBookingId: 'booking-qua-cancelada',
+    expiresAt: creditExpiresAt(creditFromTrainerAt).toISOString(),
     status: 'AVAILABLE',
   }),
   creditSchema.parse({
     id: 'credit-used',
     studentId: 'user-joao',
     source: 'CANCELLATION',
-    generatedAt: '2026-08-15T12:00:00.000Z',
-    expiresAt: '2026-09-14T12:00:00.000Z',
+    generatedAt: creditUsedAt.toISOString(),
+    expiresAt: creditExpiresAt(creditUsedAt).toISOString(),
     status: 'USED',
     usedAt: '2026-08-15T18:00:00.000Z',
-    usedBookingId: 'booking-sex',
+    usedBookingId: 'booking-qua-reposicao',
+  }),
+  creditSchema.parse({
+    id: 'credit-annulled',
+    studentId: 'user-joao',
+    source: 'CANCELLATION',
+    generatedAt: creditAnnulledAt.toISOString(),
+    expiresAt: creditExpiresAt(creditAnnulledAt).toISOString(),
+    status: 'ANNULLED',
+    annulledAt: '2026-08-12T10:00:00.000Z',
+    annulledByUserId: 'user-carlos',
   }),
 ];
 
@@ -194,10 +300,11 @@ export const mockWaitlistEntry: WaitlistEntry = waitlistEntrySchema.parse({
 
 export const mockStudioClosure: StudioClosure = studioClosureSchema.parse({
   id: 'closure-independencia',
-  startsOn: '2026-09-07',
-  endsOn: '2026-09-07',
-  reason: 'Studio fechado — feriado informado pelo administrador',
+  startsOn: '2026-09-08',
+  endsOn: '2026-09-08',
+  reason: 'Studio fechado — recesso informado pelo administrador',
   createdByUserId: 'user-carlos',
+  grantsCredit: false,
 });
 
 export const mockOccupancyDashboard: OccupancyDashboard =

@@ -163,7 +163,7 @@ components:
 
     Cancellation:
       type: object
-      required: [id, bookingId, cancelledAt, generatedCredit]
+      required: [id, bookingId, cancelledAt, cancelledBy, generatedCredit]
       properties:
         id:
           type: string
@@ -172,6 +172,9 @@ components:
         cancelledAt:
           type: string
           format: date-time
+        cancelledBy:
+          type: string
+          enum: [STUDENT, TRAINER]
         generatedCredit:
           type: boolean
         creditId:
@@ -188,22 +191,29 @@ components:
           type: string
         source:
           type: string
-          enum: [CANCELLATION, MANUAL]
+          enum: [CANCELLATION, TRAINER_CANCELLATION, CLOSURE_COMPENSATION]
         generatedAt:
           type: string
           format: date-time
         originBookingId:
+          type: string
+        originClosureId:
           type: string
         expiresAt:
           type: string
           format: date-time
         status:
           type: string
-          enum: [AVAILABLE, USED, EXPIRED]
+          enum: [AVAILABLE, USED, EXPIRED, ANNULLED]
         usedAt:
           type: string
           format: date-time
         usedBookingId:
+          type: string
+        annulledAt:
+          type: string
+          format: date-time
+        annulledByUserId:
           type: string
 
     TimeSlot:
@@ -230,6 +240,26 @@ components:
           type: string
         trainerId:
           type: string
+
+    StudioClosure:
+      type: object
+      required: [id, startsOn, endsOn, reason, createdByUserId, grantsCredit]
+      properties:
+        id:
+          type: string
+        startsOn:
+          type: string
+          format: date
+        endsOn:
+          type: string
+          format: date
+        reason:
+          type: string
+        createdByUserId:
+          type: string
+        grantsCredit:
+          type: boolean
+          default: false
 
     WaitlistEntry:
       type: object

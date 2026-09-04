@@ -38,11 +38,16 @@ docs
 prototypes
 ```
 
-`apps/web` sobe um sandbox temporário dos primitives.
+`apps/web` é o frontend do aluno (FASE 2) contra mocks.
 `apps/api` responde GET /health. Sem módulos de negócio.
-`@studioemar/shared` contém tipos, Zod e mocks da FASE 1b.
+`@studioemar/shared` contém tipos, Zod e mocks.
 Contrato HTTP estático: docs/openapi.yaml.
-Paleta oficial em DESIGN_SYSTEM.md continua pendente.
+Paleta oficial em DESIGN_SYSTEM.md (ADR-011).
+
+Demo (sessão mock):
+
+- João: `joao@studioemar.local` (qualquer senha)
+- Ana (primeiro acesso): `ana@studioemar.local`
 
 ## Como executar
 

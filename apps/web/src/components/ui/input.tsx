@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string;
+  tone?: 'light' | 'dark';
 };
 
 export function Input({
@@ -11,15 +12,20 @@ export function Input({
   label,
   error,
   className,
+  tone = 'light',
   ...props
 }: InputProps) {
   const inputId = id ?? label.toLowerCase().replace(/\s+/g, '-');
+  const dark = tone === 'dark';
 
   return (
     <div className="flex w-full flex-col gap-2">
       <label
         htmlFor={inputId}
-        className="font-mono text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+        className={cn(
+          'font-mono text-xs font-semibold uppercase tracking-widest',
+          dark ? 'text-white/60' : 'text-muted-foreground',
+        )}
       >
         {label}
       </label>
@@ -28,10 +34,12 @@ export function Input({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${inputId}-error` : undefined}
         className={cn(
-          'w-full rounded-lg border bg-muted px-4 py-3 text-foreground',
-          'placeholder:text-muted-foreground',
+          'w-full rounded-lg border px-4 py-3',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          error ? 'border-danger' : 'border-border',
+          dark
+            ? 'border-white/10 bg-white/5 text-surface-dark-foreground placeholder:text-white/40'
+            : 'border-border bg-muted text-foreground placeholder:text-faint',
+          error ? 'border-danger' : null,
           className,
         )}
         {...props}

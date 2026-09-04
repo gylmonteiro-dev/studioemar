@@ -46,7 +46,7 @@ export function BottomSheet({
       <button
         type="button"
         aria-label="Fechar"
-        className="absolute inset-0 bg-primary/40"
+        className="absolute inset-0 bg-surface-dark/40"
         onClick={onClose}
       />
       <div

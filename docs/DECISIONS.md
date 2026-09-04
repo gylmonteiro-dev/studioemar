@@ -163,14 +163,79 @@ Motivos:
 
 ---
 
+## ADR-009 — TRAINER e ADMIN no início
+
+Status: ACEITO
+
+Decisão:
+
+No início, TRAINER e ADMIN são o mesmo operador (dono /
+professor do Studio).
+
+Os dois papéis permanecem no enum para evolução futura.
+A FASE 2 usa somente STUDENT.
+
+---
+
+## ADR-010 — Provisionamento de conta
+
+Status: ACEITO
+
+Decisão:
+
+O professor cria a conta. O aluno não se auto-cadastra.
+
+Após a criação, o aluno define senha no primeiro acesso
+e pode recuperar senha.
+
+A FASE 2 cobre essas telas com UI mínima e sessão mock.
+Cadastro pelo professor permanece na FASE 3.
+
+JWT real permanece para a FASE 5.
+
+---
+
+## ADR-011 — Paleta oficial e tokens Tailwind
+
+Status: ACEITO
+
+Decisão:
+
+A paleta de docs/DESIGN_SYSTEM.md é a fonte de verdade.
+
+Mapeamento no código:
+
+- laranja EMAR → accent e bg-cta (gradiente)
+- preto #050505 → surface-dark nas superfícies;
+  primary permanece o botão sólido preto
+- texto #111111 → foreground
+
+Não usar --color-primary para o laranja, para não
+pintar login e cards escuros.
+
+---
+
+## ADR-012 — Temas light e dark
+
+Status: ACEITO
+
+Decisão:
+
+Dois modos. Dark é o padrão.
+
+Light usa a paleta oficial das seções 3–8.
+Dark reusa as mesmas classes Tailwind e troca
+as variáveis em html.dark.
+
+Preferência em localStorage (studioemar.theme).
+O laranja EMAR não muda entre os modos.
+
+---
+
 ## Fora de escopo destas decisões
 
 Não foram decididos ainda:
 
-- paleta oficial (DESIGN_SYSTEM.md continua pendente);
-- PEND-001 a PEND-010 em BUSINESS_RULES.md;
-- self-registration versus cadastro pelo treinador;
-- detalhes de armazenamento do JWT;
-- se TRAINER e ADMIN são o mesmo operador no início.
+- detalhes de armazenamento do JWT.
 
 Esses pontos não devem ser assumidos no código.

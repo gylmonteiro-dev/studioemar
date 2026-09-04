@@ -20,6 +20,7 @@ export const studioClosureSchema = z.object({
   endsOn: isoDateSchema,
   reason: z.string().min(1),
   createdByUserId: idSchema,
+  grantsCredit: z.boolean().default(false),
 });
 export type StudioClosure = z.infer<typeof studioClosureSchema>;
 

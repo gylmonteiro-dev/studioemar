@@ -2,11 +2,12 @@ import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
 const variants = {
-  default: 'bg-muted text-foreground',
-  accent: 'bg-accent text-primary-foreground',
-  success: 'bg-success text-success-foreground',
-  warning: 'bg-warning text-warning-foreground',
-  danger: 'bg-danger text-danger-foreground',
+  default: 'bg-full-subtle text-full',
+  accent: 'bg-accent text-accent-foreground',
+  success: 'bg-success-subtle text-success',
+  warning: 'bg-warning-subtle text-warning',
+  danger: 'bg-danger-subtle text-danger',
+  full: 'bg-full-subtle text-full',
 } as const;
 
 type BadgeVariant = keyof typeof variants;

@@ -43,7 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={message.id}
             role="status"
             className={cn(
-              'pointer-events-auto rounded-lg border border-border bg-primary px-4 py-3 text-sm text-primary-foreground shadow-lg',
+              'pointer-events-auto rounded-lg border border-border bg-surface-dark px-4 py-3 text-sm text-surface-dark-foreground shadow-lg',
             )}
           >
             {message.text}

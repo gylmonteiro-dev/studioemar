@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { bookingKindSchema, bookingStatusSchema } from './enums.js';
+import {
+  bookingKindSchema,
+  bookingStatusSchema,
+  cancelledBySchema,
+} from './enums.js';
 import { idSchema, isoDateTimeSchema } from './ids.js';
 
 export const bookingSchema = z.object({
@@ -15,6 +19,7 @@ export const cancellationSchema = z.object({
   id: idSchema,
   bookingId: idSchema,
   cancelledAt: isoDateTimeSchema,
+  cancelledBy: cancelledBySchema,
   generatedCredit: z.boolean(),
   creditId: idSchema.optional(),
 });

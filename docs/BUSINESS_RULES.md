@@ -171,30 +171,87 @@ visualizar a fila.
 
 ---
 
+## RN-017 — Origem do crédito
+
+Status: ACEITO (ex-PEND-004)
+
+Não há crédito avulso concedido pelo professor.
+
+O crédito deriva sempre de uma aula:
+
+- o aluno cancela dentro do prazo (RN-012); ou
+- o professor cancela a aula do aluno.
+
+Origens no contrato:
+
+CANCELLATION
+TRAINER_CANCELLATION
+
+---
+
+## RN-018 — Anulação de crédito
+
+Status: ACEITO (ex-PEND-005)
+
+O professor pode anular um crédito já gerado.
+
+A anulação permanece no histórico (status ANNULLED).
+
+A interface de anulação pertence ao painel do treinador.
+
+---
+
+## RN-019 — Férias e recesso
+
+Status: ACEITO (ex-PEND-007)
+
+Férias e recesso são um fechamento informado pelo professor
+(RN-014). Não geram crédito por padrão.
+
+O professor pode, naquele fechamento, optar por compensar com
+crédito (grantsCredit). Essa compensação não é um botão genérico
+de crédito avulso.
+
+Origem no contrato:
+
+CLOSURE_COMPENSATION
+
+A interface dessa opção pertence ao painel do treinador.
+
+---
+
+## RN-020 — Vários créditos na mesma semana
+
+Status: ACEITO (ex-PEND-010)
+
+O aluno pode possuir e utilizar mais de um crédito na mesma
+semana. Não há teto semanal.
+
+---
+
+## RN-021 — Criação de conta
+
+Status: ACEITO
+
+Quem cria a conta do aluno é o administrador / professor.
+
+Não há auto-cadastro.
+
+---
+
+## RN-022 — Senha do aluno
+
+Status: ACEITO
+
+Depois que o professor cria o usuário, o aluno define uma senha
+pessoal no primeiro acesso.
+
+O aluno pode recuperar a senha.
+
+---
+
 # REGRAS PENDENTES
 
-## PEND-004
-
-O treinador poderá conceder crédito manualmente?
-
-PENDENTE.
-
-## PEND-005
-
-O treinador poderá remover crédito?
-
-PENDENTE.
-
-## PEND-007
-
-Como serão tratadas férias/recesso como processo separado?
-
-PENDENTE.
-
-O efeito prático de Studio fechado é coberto por RN-014.
-
-## PEND-010
-
-Um aluno poderá utilizar mais de um crédito na mesma semana?
-
-PENDENTE.
+Nenhuma pendência crítica de cancelamento ou crédito permanece
+aberta. Paleta oficial, JWT e telas de treinador sem protótipo
+continuam fora deste documento.

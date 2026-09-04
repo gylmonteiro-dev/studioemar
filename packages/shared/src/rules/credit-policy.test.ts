@@ -25,3 +25,17 @@ describe('creditExpiresAt', () => {
     );
   });
 });
+
+describe('cenários da FASE 2 com MOCK_NOW', () => {
+  const now = new Date('2026-09-03T15:00:00.000Z');
+
+  it('hoje 18:00 (6h) não gera crédito', () => {
+    const startsAt = new Date('2026-09-03T21:00:00.000Z');
+    assert.equal(isCancellationEligibleForCredit(now, startsAt), false);
+  });
+
+  it('segunda 18:00 (mais de 12h) gera crédito', () => {
+    const startsAt = new Date('2026-09-07T21:00:00.000Z');
+    assert.equal(isCancellationEligibleForCredit(now, startsAt), true);
+  });
+});

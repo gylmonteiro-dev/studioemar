@@ -8,9 +8,12 @@ export const creditSchema = z.object({
   source: creditSourceSchema,
   generatedAt: isoDateTimeSchema,
   originBookingId: idSchema.optional(),
+  originClosureId: idSchema.optional(),
   expiresAt: isoDateTimeSchema,
   status: creditStatusSchema,
   usedAt: isoDateTimeSchema.optional(),
   usedBookingId: idSchema.optional(),
+  annulledAt: isoDateTimeSchema.optional(),
+  annulledByUserId: idSchema.optional(),
 });
 export type Credit = z.infer<typeof creditSchema>;

@@ -12,7 +12,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@studioemar/shared": ["../../packages/shared/src/index.ts"]
+      "@studioemar/shared": ["../../packages/shared/src/index.ts"],
+      "@studioemar/shared/mocks": ["../../packages/shared/src/mocks/index.ts"]
     }
   },
   "include": [

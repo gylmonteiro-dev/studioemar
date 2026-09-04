@@ -30,12 +30,10 @@ STATUS: CONCLUÍDA E APROVADA
 - Monorepo com pnpm workspaces.
 - Um único app Next.js para aluno e treinador.
 - Pacote `packages/shared` para tipos e validações Zod.
-- Design System analisado: paleta oficial ainda pendente.
-  Tokens da FASE 1 devem partir de
-  `prototypes/studio_emar_athletics/DESIGN.md` até a paleta
-  oficial ser inserida.
-- Regras PEND-001 a PEND-010 continuam abertas e não devem
-  ser assumidas no código.
+- Design System analisado: paleta oficial em
+  docs/DESIGN_SYSTEM.md (ADR-011).
+- PEND-004, PEND-005, PEND-007 e PEND-010 foram aceitas
+  na FASE 2 (RN-017 a RN-020).
 
 ---
 
@@ -53,14 +51,13 @@ STATUS: CONCLUÍDA E APROVADA
 
 STATUS: CONCLUÍDA
 
-Tokens usam DESIGN.md como base provisória.
-Paleta oficial em DESIGN_SYSTEM.md continua pendente.
+Tokens usam a paleta oficial de DESIGN_SYSTEM.md (ADR-011).
 
 Não inclui: domínio completo, Prisma, auth real,
 telas de produto, Docker de produção, VPS.
 
-A home de apps/web é um sandbox temporário e deve
-ser removida antes da FASE 2.
+A home de apps/web era um sandbox temporário.
+Removida na FASE 2.
 
 ---
 
@@ -82,32 +79,36 @@ OpenAPI estático em docs/openapi.yaml.
 Mocks em @studioemar/shared/mocks.
 
 Não inclui Prisma nem persistência.
-PEND-004, PEND-005, PEND-007 e PEND-010 continuam abertas.
+PEND-004, PEND-005, PEND-007 e PEND-010 aceitas (RN-017 a RN-020).
 
 ---
 
 ## FASE 2 — Frontend aluno
 
-[ ] Login
-[ ] Home
-[ ] Agenda
-[ ] Detalhes da aula
-[ ] Cancelamento
-[ ] Créditos
-[ ] Horários disponíveis
-[ ] Reposição
-[ ] Perfil (somente se o fluxo for definido)
+[x] Login
+[x] Primeiro acesso (definir senha)
+[x] Recuperar senha (UI mínima)
+[x] Home
+[x] Agenda
+[x] Detalhes da aula
+[x] Cancelamento
+[x] Créditos
+[x] Horários disponíveis
+[x] Reposição
 
-STATUS: NÃO INICIADA
+STATUS: CONCLUÍDA
 
-Implementar apenas telas já prototipadas, contra mocks
-tipados da FASE 1b.
-
-Perfil, recuperar senha e criar conta não têm protótipo
-e dependem de decisão de produto.
+Telas prototipadas contra mocks tipados.
+Primeiro acesso e recuperar senha: UI mínima (RN-022).
+Criar conta é do professor (RN-021) — FASE 3.
+Perfil do aluno permanece fora (sem protótipo).
 
 O aluno não deve visualizar os demais participantes
 do horário.
+
+PEND-004, PEND-005, PEND-007 e PEND-010 aceitas
+(RN-017 a RN-020). UI de anular crédito e grantsCredit
+no fechamento: FASE 3.
 
 ---
 
