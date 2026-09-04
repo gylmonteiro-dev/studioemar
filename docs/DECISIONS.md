@@ -308,6 +308,70 @@ Motivos:
 
 ---
 
+## ADR-016 — Imagens de produção e migrations no entrypoint
+
+Status: ACEITO
+
+Decisão:
+
+Duas imagens multi-stage com contexto na raiz do monorepo:
+`infrastructure/Dockerfile.api` e `Dockerfile.web`. Base
+`node:22-bookworm-slim`.
+
+A web usa `output: 'standalone'` do Next, com
+`outputFileTracingRoot` na raiz para o tracing enxergar
+`packages/shared`, que é symlink do pnpm.
+
+A API separa os estágios de build e de dependências de produção
+(`pnpm install --prod --filter api...`) e só copia o `dist`. Por
+isso `prisma` saiu de devDependencies: a imagem de runtime precisa
+do CLI para `prisma migrate deploy`, executado no entrypoint antes
+de subir o Nest. `RUN_MIGRATIONS=false` desliga isso quando a
+atualização de schema precisa de janela controlada.
+
+`apps/api/tsconfig.build.json` passou a excluir também `src/test`,
+que a FASE 7 criou e que quebrava o `nest build`.
+
+Motivos:
+
+- o Nest exige `@studioemar/shared` em CJS e o Prisma Client
+  gerado; ambos entram prontos na imagem, sem build no runtime;
+- `prisma generate` roda dentro da imagem final, contra a libssl
+  dela, e não contra a da máquina de build;
+- Debian slim evita compilar `bcrypt` e caçar engine do Prisma
+  para musl;
+- um `docker compose up -d` deixa o banco no schema certo, sem
+  passo manual esquecido.
+
+`NEXT_PUBLIC_API_URL` é build arg, não variável de runtime: o Next
+embute `NEXT_PUBLIC_*` no bundle do navegador. Trocar o domínio
+exige rebuild da imagem web.
+
+---
+
+## ADR-017 — Exposição só em 127.0.0.1
+
+Status: ACEITO
+
+Decisão:
+
+Em produção, `studio-web` e `studio-api` publicam portas apenas em
+`127.0.0.1`. O `studio-postgres` não publica porta nenhuma e só é
+alcançável pela rede interna `studio` do Compose.
+
+Motivos:
+
+- o Caddy já existente na VPS é quem fala com a internet (ADR-004),
+  e ele alcança as portas locais;
+- a stack pode subir na VPS antes da FASE 9 sem expor nada;
+- atende "o PostgreSQL NÃO deverá ser exposto publicamente"
+  (ARCHITECTURE) sem depender de firewall.
+
+O container de desenvolvimento passou a se chamar
+`studio-postgres-dev` para não colidir com o de produção.
+
+---
+
 ## Fora de escopo destas decisões
 
 Não foram decididos ainda:

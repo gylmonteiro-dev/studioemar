@@ -1,0 +1,82 @@
+name: studioemar
+
+# Produção. Variáveis em infrastructure/.env (ver .env.example).
+# Web e API só escutam em 127.0.0.1: quem publica na internet é o
+# Caddy já existente na VPS (ADR-004). O Postgres não sai da rede interna.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: studio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB}
+    volumes:
+      - studio_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [studio]
+    logging: *default-logging
+
+  api:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.api
+    image: studioemar/api:${IMAGE_TAG:-latest}
+    container_name: studio-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?defina JWT_REFRESH_SECRET}
+      WEB_ORIGIN: ${WEB_ORIGIN:?defina WEB_ORIGIN}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+    ports:
+      - '127.0.0.1:${API_PORT:-3001}:3001'
+    networks: [studio]
+    logging: *default-logging
+
+  web:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?defina NEXT_PUBLIC_API_URL}
+    image: studioemar/web:${IMAGE_TAG:-latest}
+    container_name: studio-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - '127.0.0.1:${WEB_PORT:-3000}:3000'
+    networks: [studio]
+    logging: *default-logging
+
+volumes:
+  studio_postgres_data:
+    name: studio_postgres_data
+
+networks:
+  studio:
+    name: studio

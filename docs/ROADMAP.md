@@ -226,14 +226,31 @@ memória nos testes). O e2e cobre a UI com a API mockada.
 
 ## FASE 8 — Infraestrutura
 
-[ ] Dockerfile Web
-[ ] Dockerfile API
-[ ] PostgreSQL
-[ ] Docker Compose
-[ ] Volumes
-[ ] Health checks
-[ ] Variáveis
-[ ] Backup
+[x] Dockerfile Web
+[x] Dockerfile API
+[x] PostgreSQL
+[x] Docker Compose
+[x] Volumes
+[x] Health checks
+[x] Variáveis
+[x] Backup
+
+STATUS: CONCLUÍDA
+
+`infrastructure/docker-compose.prod.yml` sobe studio-postgres,
+studio-api e studio-web. Web e API só escutam em 127.0.0.1;
+o Postgres fica na rede interna, sem porta publicada.
+
+Imagens multi-stage: API NestJS com `prisma migrate deploy` no
+entrypoint, web com output standalone do Next. Volume nomeado
+`studio_postgres_data`. Health check nos três serviços, com
+ordem de subida garantida pelo Compose.
+
+Variáveis em `infrastructure/.env` (modelo em `.env.example`).
+Backup e restore em `infrastructure/scripts`, com retenção.
+
+Detalhes operacionais em infrastructure/README.md.
+Publicar na VPS e configurar o Caddy continua sendo a FASE 9.
 
 ---
 

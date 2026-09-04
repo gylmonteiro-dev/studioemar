@@ -41,6 +41,7 @@ temp/
 
 # backups
 *.bak
+infrastructure/backups/
 
 # coverage
 coverage/

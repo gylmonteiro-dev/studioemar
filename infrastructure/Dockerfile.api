@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1
+# Imagem de produção da API NestJS. Contexto de build: raiz do monorepo.
+
+FROM node:22-bookworm-slim AS base
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+WORKDIR /repo
+
+# Só os manifests: o install só refaz quando uma dependência muda.
+FROM base AS manifests
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
+
+FROM manifests AS build
+RUN pnpm install --frozen-lockfile --filter api...
+COPY tsconfig.base.json ./
+COPY packages/shared packages/shared
+COPY apps/api apps/api
+RUN pnpm --filter @studioemar/shared build:cjs \
+  && pnpm --filter api exec prisma generate \
+  && pnpm --filter api exec nest build
+
+FROM manifests AS prod-deps
+RUN pnpm install --frozen-lockfile --prod --filter api...
+
+FROM base AS runner
+ENV NODE_ENV=production
+ENV PORT=3001
+COPY pnpm-workspace.yaml package.json ./
+COPY --from=prod-deps /repo/node_modules node_modules
+COPY --from=prod-deps /repo/packages/shared/node_modules packages/shared/node_modules
+COPY --from=prod-deps /repo/apps/api/node_modules apps/api/node_modules
+COPY packages/shared/package.json packages/shared/
+COPY --from=build /repo/packages/shared/dist-cjs packages/shared/dist-cjs
+COPY apps/api/package.json apps/api/
+COPY apps/api/prisma apps/api/prisma
+COPY --from=build /repo/apps/api/dist apps/api/dist
+COPY infrastructure/scripts/api-entrypoint.sh /usr/local/bin/api-entrypoint
+
+# Gera o client contra a libssl desta imagem, não a da máquina de build.
+RUN chmod +x /usr/local/bin/api-entrypoint \
+  && cd apps/api \
+  && ./node_modules/.bin/prisma generate \
+  && chown -R node:node /repo
+
+USER node
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+ENTRYPOINT ["api-entrypoint"]

@@ -7,8 +7,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  timeout: 60_000,
-  expect: { timeout: 15_000 },
+  // A primeira navegação para uma rota protegida inclui a compilação sob
+  // demanda do `next dev`, que passa de 20s com o cache frio.
+  timeout: 120_000,
+  expect: { timeout: 45_000 },
   workers: 2,
   use: {
     baseURL: `http://127.0.0.1:${e2ePort}`,

@@ -33,7 +33,7 @@ apps/web          Next.js
 apps/api          NestJS
 apps/mobile       Expo (FASE 10 — não iniciar)
 packages/shared   tipos e Zod (@studioemar/shared)
-infrastructure    Docker (FASE 8)
+infrastructure    Docker (dev e produção)
 docs
 prototypes
 ```
@@ -69,7 +69,25 @@ Requer Node.js >= 20 e pnpm >= 9.
 
 /infrastructure
 
-A aplicação será preparada para execução utilizando Docker e Docker
-Compose.
+Desenvolvimento (só o banco):
 
-O ambiente de produção utiliza Caddy como reverse proxy.
+```
+pnpm db:up
+pnpm prisma:deploy
+pnpm prisma:seed
+```
+
+Produção (postgres + api + web em containers):
+
+```
+cp infrastructure/.env.example infrastructure/.env
+pnpm prod:build
+pnpm prod:up
+```
+
+Backup: `pnpm prod:backup`.
+
+Web e API só escutam em 127.0.0.1; o Postgres fica na rede interna.
+Na VPS, o Caddy já existente faz o proxy (FASE 9).
+
+Detalhes em infrastructure/README.md.

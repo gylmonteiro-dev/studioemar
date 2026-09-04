@@ -2,14 +2,14 @@
 
 ## Situação atual
 
-FASE 0, 1, 1b, 2, 3, 4, 5, 6 e 7 concluídas e mergeadas em main
-(`f353cc1`).
+FASE 0 a 7 concluídas e mergeadas em main (`f353cc1`).
+FASE 8 (infraestrutura) na branch `fase-8-infraestrutura`.
 
 Frontend aluno e treinador em apps/web contra a API Nest.
 JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
 
-Não trabalhar na main. Próxima fatia (FASE 8) em branch
-nova a partir de main.
+Não trabalhar na main. Próxima fatia (FASE 9) em branch
+nova a partir de main, depois do merge da FASE 8.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
@@ -32,6 +32,7 @@ Sessão web: ADR-015.
 - GET /health intacto
 - Testes: `pnpm test` (shared + API + web unitário)
 - E2E: `pnpm test:e2e` (Playwright, Chromium, API mockada)
+- Stack de produção em containers (FASE 8)
 
 ## Banco local
 
@@ -46,7 +47,8 @@ DATABASE_URL (apps/api/.env.example):
 postgresql://studioemar:studioemar@localhost:5434/studioemar
 
 A porta 5434 evita conflito com Postgres já instalado
-na máquina.
+na máquina. O container agora é `studio-postgres-dev`,
+para não colidir com o `studio-postgres` de produção.
 
 Seed: João e Carlos com senha `studioemar`;
 Ana em primeiro acesso (`passwordHash` null);
@@ -112,10 +114,46 @@ Cobertura:
 - Fluxos: login, cancelar, dashboard, horários sem nomes
 - Contrato Zod × docs/openapi.yaml
 
+## Produção em containers (FASE 8)
+
+```
+cp infrastructure/.env.example infrastructure/.env
+pnpm prod:build
+pnpm prod:up
+pnpm prod:ps
+pnpm prod:logs
+pnpm prod:down
+```
+
+Backup e restore:
+
+```
+pnpm prod:backup
+pnpm prod:restore infrastructure/backups/<arquivo>.sql.gz
+```
+
+studio-web em 127.0.0.1:3000 e studio-api em 127.0.0.1:3001.
+studio-postgres não publica porta: só a rede interna `studio`
+(ADR-017). Dados no volume `studio_postgres_data`.
+
+A API roda `prisma migrate deploy` no entrypoint; use
+`RUN_MIGRATIONS=false` para janela controlada (ADR-016).
+Não há seed em produção.
+
+`NEXT_PUBLIC_API_URL` é build arg: trocar o domínio exige
+`pnpm prod:build`, não só restart. `WEB_ORIGIN` é o CORS
+da API e precisa bater com o domínio da web.
+
+Operação detalhada em infrastructure/README.md.
+
 ## Próxima atividade
 
-FASE 8 — infraestrutura: Dockerfile Web/API, Compose de
-produção, volumes, health checks, variáveis, backup.
+FASE 9 — VPS: analisar ambiente e Caddy existentes, domínio,
+deploy dos containers, proxy, HTTPS, backup e procedimento de
+atualização.
+
+Não modificar o Caddy sem análise prévia e não afetar as
+outras aplicações da VPS.
 
 Quando autorizar, planeje primeiro. Não avance sozinho.
 
@@ -125,11 +163,12 @@ Quando autorizar, planeje primeiro. Não avance sozinho.
 - e-mail de recuperação (token existe; sem mailer;
   tela de reset com token não existe);
 - Expo / apps/mobile;
-- Docker de produção;
 - alterações na VPS / Caddy;
 - perfil do aluno.
 
 ## Pendências
 
 - Sem mailer de recuperação.
-- FASE 8 (infra de produção) não iniciada.
+- FASE 9 (VPS, domínio e Caddy) não iniciada.
+- Imagem da API tem ~810 MB: o CLI do Prisma e as engines
+  respondem pela maior parte. Reduzir só se a VPS apertar.

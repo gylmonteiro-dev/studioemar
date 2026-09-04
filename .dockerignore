@@ -1,0 +1,34 @@
+node_modules
+**/node_modules
+
+# Artefatos de build (as imagens compilam do zero).
+# O .tsbuildinfo é crítico: se vier junto, o tsc considera tudo atualizado
+# e não emite nada dentro da imagem.
+**/dist
+**/dist-cjs
+**/.next
+**/build
+**/.turbo
+**/*.tsbuildinfo
+
+# Testes e relatórios
+**/coverage
+**/playwright-report
+**/test-results
+**/blob-report
+**/playwright/.cache
+
+# Segredos e ambiente local
+**/.env
+**/.env.*
+!**/.env.example
+
+# Fora do escopo das imagens
+.git
+.github
+apps/mobile
+prototypes
+docs
+terminals
+**/*.log
+**/.DS_Store
