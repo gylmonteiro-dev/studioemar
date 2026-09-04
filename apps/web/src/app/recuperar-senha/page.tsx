@@ -3,8 +3,8 @@
 import { AuthPanel } from '@/components/auth/auth-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { recoverPassword } from '@/lib/api';
 import { recoverSchema, type RecoverValues } from '@/lib/auth-schemas';
-import { findStudentByEmail } from '@/lib/mock-api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -21,19 +21,24 @@ export default function RecuperarSenhaPage() {
     resolver: zodResolver(recoverSchema),
   });
 
-  function onSubmit(values: RecoverValues) {
-    const student = findStudentByEmail(values.email);
-    if (!student) {
-      setError('email', { message: 'Conta não encontrada. Fale com o Studio.' });
-      return;
+  async function onSubmit(values: RecoverValues) {
+    try {
+      await recoverPassword(values);
+      setSent(true);
+    } catch (caught) {
+      setError('email', {
+        message:
+          caught instanceof Error
+            ? caught.message
+            : 'Não foi possível pedir a recuperação',
+      });
     }
-    setSent(true);
   }
 
   return (
     <AuthPanel
       title="Recuperar senha"
-      description="Informe o e-mail da conta. No mock, nenhum e-mail real é enviado."
+      description="Informe o e-mail da conta. O envio de e-mail ainda não está ativo nesta fase."
     >
       {sent ? (
         <div className="flex flex-col gap-6">

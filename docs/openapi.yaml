@@ -3,8 +3,8 @@ info:
   title: Studio EMAR API
   version: 0.1.0
   description: >
-    Contrato da FASE 5 (auth, students, schedules, bookings, credits).
-    Sem dashboard e sem join na lista de espera.
+    Contrato da FASE 6 (auth, students, schedules, bookings, credits,
+    dashboard). Sem join na lista de espera.
 servers:
   - url: http://localhost:3001
 paths:
@@ -408,6 +408,22 @@ paths:
                 $ref: '#/components/schemas/Booking'
         '409':
           description: Sem vaga, crédito inválido ou expirado
+
+  /dashboard:
+    get:
+      summary: Ocupação e métricas do treinador
+      operationId: getDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Métricas de ocupação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccupancyDashboard'
+        '403':
+          description: Sem permissão
 
   /time-slots:
     get:

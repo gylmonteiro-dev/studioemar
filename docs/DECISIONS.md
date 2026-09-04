@@ -284,6 +284,30 @@ validar RN-012 sem mudar a fórmula do shared.
 
 ---
 
+## ADR-015 — Sessão web no sessionStorage
+
+Status: ACEITO
+
+Decisão:
+
+O web guarda `accessToken`, `refreshToken`, `expiresAt` e
+`user` em `sessionStorage` (`studioemar.session`). Sem cookie.
+Logout descarta a sessão localmente.
+
+Chamadas autenticadas enviam `Authorization: Bearer`. Em 401,
+o cliente tenta `POST /auth/refresh` uma vez; se falhar, limpa
+a sessão.
+
+Motivos:
+
+- ADR-014 entrega o par JWT no JSON; o storage é do cliente;
+- `sessionStorage` mantém o logout ao fechar a aba, como a
+  sessão mock (`userId`) da FASE 2;
+- o mobile futuro pode escolher outro armazenamento sem
+  mudar o contrato da API.
+
+---
+
 ## Fora de escopo destas decisões
 
 Não foram decididos ainda:

@@ -6,10 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
+import {
+  annulCredit,
+  getStudent,
+  listPlans,
+  listStudentBookings,
+  listStudentCredits,
+  listTimeSlots,
+} from '@/lib/api';
+import { viewsForStudent } from '@/lib/booking-views';
 import { creditSourceLabel, creditStatusLabel } from '@/lib/credit-copy';
 import { clockTime, formatDateLong } from '@/lib/format';
-import { annulCredit, useStudioMock, viewsForStudent } from '@/lib/mock-api';
 import { useTrainer } from '@/lib/trainer-context';
+import { useAsync } from '@/lib/use-async';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -18,16 +27,35 @@ export default function TreinadorAlunoDetalhePage() {
   const trainer = useTrainer();
   const { studentId } = useParams<{ studentId: string }>();
   const { toast } = useToast();
-  const { users, plans, credits } = useStudioMock();
+  const { data, error, loading, reload } = useAsync(async () => {
+    const [student, plans, bookings, credits, timeSlots] = await Promise.all([
+      getStudent(studentId),
+      listPlans(),
+      listStudentBookings(studentId),
+      listStudentCredits(studentId),
+      listTimeSlots(),
+    ]);
+    return { student, plans, bookings, credits, timeSlots };
+  }, [studentId]);
   const [annulId, setAnnulId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const student = users.find(
-    (user) => user.id === studentId && user.role === 'STUDENT',
-  );
-  if (!trainer || !student) {
+  if (!trainer) {
+    return null;
+  }
+
+  if (loading) {
     return (
       <PageCanvas>
-        <p className="text-muted-foreground">Aluno não encontrado.</p>
+        <p className="text-muted-foreground">Carregando…</p>
+      </PageCanvas>
+    );
+  }
+
+  if (!data) {
+    return (
+      <PageCanvas>
+        <p className="text-muted-foreground">{error ?? 'Aluno não encontrado.'}</p>
         <Link href="/treinador/alunos" className="text-accent">
           Voltar
         </Link>
@@ -35,15 +63,30 @@ export default function TreinadorAlunoDetalhePage() {
     );
   }
 
+  const { student, plans, bookings, credits, timeSlots } = data;
   const plan = plans.find((item) => item.id === student.planId);
-  const views = viewsForStudent(student.id);
-  const studentCredits = credits
-    .filter((credit) => credit.studentId === student.id)
-    .slice()
-    .sort(
-      (left, right) =>
-        new Date(right.generatedAt).getTime() - new Date(left.generatedAt).getTime(),
-    );
+  const views = viewsForStudent(bookings, timeSlots, student.id);
+  const studentCredits = credits.slice().sort(
+    (left, right) =>
+      new Date(right.generatedAt).getTime() - new Date(left.generatedAt).getTime(),
+  );
+
+  async function confirmAnnul() {
+    if (!annulId) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await annulCredit(annulId);
+      toast('Crédito anulado.');
+      setAnnulId(null);
+      reload();
+    } catch (caught) {
+      toast(caught instanceof Error ? caught.message : 'Não foi possível anular');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <PageCanvas>
@@ -137,14 +180,8 @@ export default function TreinadorAlunoDetalhePage() {
           <Button
             variant="danger"
             className="flex-1"
-            onClick={() => {
-              if (!annulId) {
-                return;
-              }
-              annulCredit(annulId, trainer.id);
-              toast('Crédito anulado.');
-              setAnnulId(null);
-            }}
+            onClick={confirmAnnul}
+            disabled={busy}
           >
             Anular
           </Button>

@@ -6,6 +6,7 @@ import { RolesGuard } from './auth/roles.guard';
 import { BookingsModule } from './bookings/bookings.module';
 import { CommonModule } from './common/common.module';
 import { CreditsModule } from './credits/credits.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { SchedulesModule } from './schedules/schedules.module';
@@ -20,6 +21,7 @@ import { StudentsModule } from './students/students.module';
     SchedulesModule,
     BookingsModule,
     CreditsModule,
+    DashboardModule,
   ],
   controllers: [HealthController],
   providers: [

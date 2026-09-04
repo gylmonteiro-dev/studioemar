@@ -2,30 +2,35 @@
 
 ## Situação atual
 
-FASE 0, 1, 1b, 2, 3, 4 e 5 concluídas e mergeadas em main.
+FASE 0, 1, 1b, 2, 3, 4 e 5 concluídas e mergeadas em main
+(`d0d0758`).
 
-Frontend aluno e treinador em apps/web contra mocks.
-Backend Nest em apps/api com JWT real. Ligar web à API
-é FASE 6.
+FASE 6 na branch `fase-6-integracao`: web ligado à API,
+JWT no sessionStorage (ADR-015), `GET /dashboard` no Nest.
+
+Não trabalhar na main. Mergear esta branch antes da FASE 7.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
 passwordHash só no banco (ADR-013). JWT no JSON (ADR-014).
-
-FASE 5 entrou em main neste merge (1a57c26).
-Não trabalhar na main. Próxima fatia (FASE 6) em branch
-nova a partir de main.
+Sessão web: ADR-015.
 
 ## Já disponível
 
-- Telas aluno e treinador contra mocks
-- Contrato Zod + OpenAPI da fatia FASE 5
+- Telas aluno e treinador contra a API (sem `mock-api.ts`)
+- Cliente `apps/web/src/lib/api-client.ts` (Bearer + refresh
+  em 401)
+- Contrato Zod + OpenAPI (auth, students, schedules,
+  bookings, credits, dashboard)
 - ER em docs/DOMAIN.md (9 tabelas)
 - Prisma schema, migrations e seed
 - Compose só do banco: infrastructure/docker-compose.dev.yml
-- Nest: auth, students, schedules, bookings, credits
-- Swagger da fatia: http://localhost:3001/docs
+- Nest: auth, students, schedules, bookings, credits,
+  dashboard
+- Swagger: http://localhost:3001/docs
 - GET /health intacto
+- Testes de domínio: `pnpm test:api`
+  (`slot-occupancy`, `occupancy`)
 
 ## Banco local
 
@@ -49,11 +54,24 @@ waitlist FIFO no slot lotado.
 
 Prisma Studio: `pnpm prisma:studio`
 
-## Demo API (FASE 5)
+## Demo (web + API)
 
 ```
 CLOCK_NOW=2026-09-03T15:00:00.000Z pnpm dev:api
+pnpm dev:web
 ```
+
+`apps/web/.env.example`:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:3001
+# NEXT_PUBLIC_CLOCK_NOW=2026-09-03T15:00:00.000Z
+```
+
+Alinhar `NEXT_PUBLIC_CLOCK_NOW` com `CLOCK_NOW` na demo
+RN-012 (preview de crédito no cancelamento).
+
+http://localhost:3000 — senha `studioemar` (João e Carlos).
 
 - João: joao@studioemar.local / studioemar
 - Ana (1º acesso): ana@studioemar.local
@@ -62,38 +80,26 @@ CLOCK_NOW=2026-09-03T15:00:00.000Z pnpm dev:api
 - Cancelar `booking-seg-com-credito` = com crédito
 - Swagger: http://localhost:3001/docs
 
-Se a :3001 estiver com processo antigo, reiniciar.
+Sessão: access + refresh em `sessionStorage`
+(`studioemar.session`). Logout só limpa o storage local.
 
-## Demo web (ainda mocks)
-
-```
-pnpm dev:web
-```
-
-http://localhost:3000
-
-- João: joao@studioemar.local — qualquer senha
-- Ana (primeiro acesso): ana@studioemar.local
-- Carlos (treinador): carlos@studioemar.local — qualquer senha
-- MOCK_NOW = 2026-09-03T15:00:00.000Z
+Se a :3000 falhar com `.next` (ENOENT), reiniciar
+`pnpm dev:web`. Se a :3001 estiver com processo antigo,
+reiniciar a API.
 
 ## Próxima atividade
 
-FASE 6 — ligar o frontend à API.
-Começar por autenticação, agenda, cancelamentos,
-créditos e reposição.
-
-Dashboard Nest não existe (ficou fora da FASE 5).
-Não assumir endpoint de ocupação. Apresentar o
-conflito se a fatia incluir dashboard.
+FASE 7 — testes: regras de cancelamento, créditos,
+capacidade, conflitos, permissões, responsividade,
+fluxos críticos, contratos Zod/OpenAPI.
 
 Quando autorizar, planeje primeiro. Não avance sozinho.
 
 ## Não fazer ainda
 
-- dashboard Nest (não implementado);
 - join na lista de espera;
-- e-mail de recuperação (token existe; sem mailer);
+- e-mail de recuperação (token existe; sem mailer;
+  tela de reset com token não existe);
 - Expo / apps/mobile;
 - Docker de produção;
 - alterações na VPS / Caddy;
@@ -101,6 +107,7 @@ Quando autorizar, planeje primeiro. Não avance sozinho.
 
 ## Pendências
 
-- Integração web ↔ API (FASE 6).
-- Sessão web ainda é `userId` no sessionStorage.
-  A API devolve access + refresh (ADR-014).
+- Merge da FASE 6 em main.
+- FASE 7 (testes). Hoje só há testes de domínio no Nest
+  (`pnpm test:api`). Sem suíte web/e2e.
+- Sem mailer de recuperação.

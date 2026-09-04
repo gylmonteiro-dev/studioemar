@@ -5,15 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { PageLoadState } from '@/components/ui/load-state';
 import { Modal } from '@/components/ui/modal';
 import { CANCELLATION_CREDIT_DEADLINE_HOURS } from '@studioemar/shared';
-import {
-  cancelBooking,
-  getTrainerName,
-  isEligibleToCredit,
-  viewsForStudent,
-  useStudioMock,
-} from '@/lib/mock-api';
+import { cancelBooking, listMyBookings, listTimeSlots } from '@/lib/api';
+import { isEligibleToCredit, viewsForStudent } from '@/lib/booking-views';
 import {
   clockTime,
   formatDateHeading,
@@ -21,61 +17,116 @@ import {
 } from '@/lib/format';
 import { useStudent } from '@/lib/student-context';
 import { useToast } from '@/components/ui/toast';
+import { useAsync } from '@/lib/use-async';
 import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function BookingDetailPage() {
   const params = useParams<{ bookingId: string }>();
   const router = useRouter();
   const { toast } = useToast();
   const student = useStudent();
-  useStudioMock();
+  const { data, error, loading } = useAsync(async () => {
+    const [bookings, timeSlots] = await Promise.all([
+      listMyBookings(),
+      listTimeSlots(),
+    ]);
+    return { bookings, timeSlots };
+  }, []);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [lateOpen, setLateOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const view = student
-    ? viewsForStudent(student.id).find((item) => item.booking.id === params.bookingId)
-    : undefined;
+  const view = useMemo(() => {
+    if (!student || !data) {
+      return undefined;
+    }
+    return viewsForStudent(data.bookings, data.timeSlots, student.id).find(
+      (item) => item.booking.id === params.bookingId,
+    );
+  }, [student, data, params.bookingId]);
 
   if (!student) {
     return null;
   }
 
-  if (!view) {
-    return (
-      <PageCanvas>
-        <p className="text-muted-foreground">Treino não encontrado.</p>
-        <Link href="/aluno/agenda" className="font-semibold text-foreground">
-          Voltar à agenda
-        </Link>
-      </PageCanvas>
-    );
+  async function confirmCancel() {
+    if (!view) {
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await cancelBooking(view.booking.id);
+      setSheetOpen(false);
+      setLateOpen(false);
+      toast(
+        result.generatedCredit
+          ? 'Treino desmarcado. Você ganhou 1 crédito de reposição.'
+          : 'Treino desmarcado. Sem crédito de reposição.',
+      );
+      router.replace('/aluno/agenda');
+    } catch (caught) {
+      toast(
+        caught instanceof Error ? caught.message : 'Não foi possível cancelar',
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
+  return (
+    <PageLoadState loading={loading} error={error}>
+      {!view ? (
+        <PageCanvas>
+          <p className="text-muted-foreground">Treino não encontrado.</p>
+          <Link href="/aluno/agenda" className="font-semibold text-foreground">
+            Voltar à agenda
+          </Link>
+        </PageCanvas>
+      ) : (
+        <BookingDetail
+          view={view}
+          busy={busy}
+          sheetOpen={sheetOpen}
+          lateOpen={lateOpen}
+          onSheet={setSheetOpen}
+          onLate={setLateOpen}
+          onConfirm={confirmCancel}
+        />
+      )}
+    </PageLoadState>
+  );
+}
+
+function BookingDetail({
+  view,
+  busy,
+  sheetOpen,
+  lateOpen,
+  onSheet,
+  onLate,
+  onConfirm,
+}: {
+  view: NonNullable<ReturnType<typeof viewsForStudent>[number]>;
+  busy: boolean;
+  sheetOpen: boolean;
+  lateOpen: boolean;
+  onSheet: (open: boolean) => void;
+  onLate: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
   const { booking, slot } = view;
   const eligible = isEligibleToCredit(slot.startsAt);
   const canCancel = booking.status === 'CONFIRMED';
 
   function requestCancel() {
     if (eligible) {
-      setSheetOpen(true);
+      onSheet(true);
       return;
     }
-    setLateOpen(true);
-  }
-
-  function confirmCancel() {
-    const result = cancelBooking(booking.id);
-    setSheetOpen(false);
-    setLateOpen(false);
-    toast(
-      result.generatedCredit
-        ? 'Treino desmarcado. Você ganhou 1 crédito de reposição.'
-        : 'Treino desmarcado. Sem crédito de reposição.',
-    );
-    router.replace('/aluno/agenda');
+    onLate(true);
   }
 
   return (
@@ -140,7 +191,7 @@ export default function BookingDetailPage() {
             <p className="font-mono text-xs uppercase text-muted-foreground">
               Treinador
             </p>
-            <p className="font-semibold">{getTrainerName()}</p>
+            <p className="font-semibold">Treinador</p>
             <p className="text-sm text-muted-foreground">
               {booking.kind === 'MAKEUP' ? 'Reposição' : 'Aula regular'}
             </p>
@@ -158,7 +209,7 @@ export default function BookingDetailPage() {
             </p>
           </div>
           {canCancel ? (
-            <Button variant="ghost" onClick={requestCancel}>
+            <Button variant="ghost" onClick={requestCancel} disabled={busy}>
               Desmarcar treino
             </Button>
           ) : (
@@ -171,7 +222,7 @@ export default function BookingDetailPage() {
         open={sheetOpen}
         title="Desmarcar treino?"
         onClose={() => {
-          setSheetOpen(false);
+          onSheet(false);
         }}
       >
         <p className="mb-4 font-semibold text-foreground">
@@ -185,12 +236,12 @@ export default function BookingDetailPage() {
           <Button
             variant="ghost"
             onClick={() => {
-              setSheetOpen(false);
+              onSheet(false);
             }}
           >
             Voltar
           </Button>
-          <Button variant="cta" onClick={confirmCancel}>
+          <Button variant="cta" onClick={onConfirm} disabled={busy}>
             Confirmar cancelamento
           </Button>
         </div>
@@ -200,7 +251,7 @@ export default function BookingDetailPage() {
         open={lateOpen}
         title="Atenção"
         onClose={() => {
-          setLateOpen(false);
+          onLate(false);
         }}
       >
         <p className="mb-6 text-center text-muted-foreground">
@@ -212,12 +263,12 @@ export default function BookingDetailPage() {
             variant="cta"
             className="w-full"
             onClick={() => {
-              setLateOpen(false);
+              onLate(false);
             }}
           >
             Manter treino
           </Button>
-          <Button variant="ghost" className="w-full" onClick={confirmCancel}>
+          <Button variant="ghost" className="w-full" onClick={onConfirm} disabled={busy}>
             Cancelar mesmo assim
           </Button>
         </div>

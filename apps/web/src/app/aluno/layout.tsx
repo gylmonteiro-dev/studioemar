@@ -1,17 +1,18 @@
 'use client';
 
 import { StudentShell } from '@/components/layout/student-shell';
+import { getMe } from '@/lib/api';
+import { ApiError } from '@/lib/api-client';
 import { homePathForUser, isTrainerRole } from '@/lib/auth-routing';
-import { useStudioMock } from '@/lib/mock-api';
-import { getSession } from '@/lib/session';
+import { getSession, patchSessionUser } from '@/lib/session';
 import { StudentProvider } from '@/lib/student-context';
+import type { User } from '@studioemar/shared';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 
 export default function AlunoLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { users } = useStudioMock();
-  const [userId, setUserId] = useState<string | null>(null);
+  const [student, setStudent] = useState<User | null>(null);
 
   useEffect(() => {
     const session = getSession();
@@ -19,18 +20,29 @@ export default function AlunoLayout({ children }: { children: ReactNode }) {
       router.replace('/login');
       return;
     }
-    setUserId(session.userId);
+    if (isTrainerRole(session.user.role)) {
+      router.replace(homePathForUser(session.user));
+      return;
+    }
+    setStudent(session.user);
+
+    void getMe()
+      .then((user) => {
+        patchSessionUser(user);
+        if (isTrainerRole(user.role)) {
+          router.replace(homePathForUser(user));
+          return;
+        }
+        setStudent(user);
+      })
+      .catch((caught: unknown) => {
+        if (caught instanceof ApiError && caught.status === 401) {
+          router.replace('/login');
+        }
+      });
   }, [router]);
 
-  const student = users.find((user) => user.id === userId);
-
-  useEffect(() => {
-    if (student && isTrainerRole(student.role)) {
-      router.replace(homePathForUser(student));
-    }
-  }, [student, router]);
-
-  if (!userId || !student || isTrainerRole(student.role)) {
+  if (!student || isTrainerRole(student.role)) {
     return null;
   }
 

@@ -3,12 +3,13 @@
 import { AuthPanel } from '@/components/auth/auth-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { firstAccess } from '@/lib/api';
 import {
   firstAccessSchema,
   type FirstAccessValues,
 } from '@/lib/auth-schemas';
-import { completeFirstAccess, findStudentByEmail } from '@/lib/mock-api';
-import { setSession } from '@/lib/session';
+import { homePathForUser } from '@/lib/auth-routing';
+import { applyAuthSession } from '@/lib/session';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,19 +26,17 @@ export default function PrimeiroAcessoPage() {
     resolver: zodResolver(firstAccessSchema),
   });
 
-  function onSubmit(values: FirstAccessValues) {
-    const student = findStudentByEmail(values.email);
-    if (!student) {
-      setError('email', { message: 'Conta não encontrada. Fale com o Studio.' });
-      return;
+  async function onSubmit(values: FirstAccessValues) {
+    try {
+      const session = await firstAccess(values);
+      applyAuthSession(session);
+      router.replace(homePathForUser(session.user));
+    } catch (caught) {
+      setError('email', {
+        message:
+          caught instanceof Error ? caught.message : 'Não foi possível definir a senha',
+      });
     }
-    if (!student.mustSetPassword) {
-      setError('email', { message: 'Esta conta já possui senha. Faça login.' });
-      return;
-    }
-    completeFirstAccess(student.id);
-    setSession(student.id);
-    router.replace('/aluno');
   }
 
   return (

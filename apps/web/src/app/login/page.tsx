@@ -3,10 +3,11 @@
 import { AuthPanel } from '@/components/auth/auth-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { login } from '@/lib/api';
+import { ApiError } from '@/lib/api-client';
 import { loginSchema, type LoginValues } from '@/lib/auth-schemas';
 import { homePathForUser } from '@/lib/auth-routing';
-import { findUserByEmail } from '@/lib/mock-api';
-import { setSession } from '@/lib/session';
+import { applyAuthSession } from '@/lib/session';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -24,20 +25,21 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  function onSubmit(values: LoginValues) {
-    const user = findUserByEmail(values.email);
-    if (!user) {
-      setError('email', { message: 'Conta não encontrada. Fale com o Studio.' });
-      return;
-    }
-    if (user.mustSetPassword) {
-      setError('password', {
-        message: 'Defina sua senha no primeiro acesso.',
+  async function onSubmit(values: LoginValues) {
+    try {
+      const session = await login(values);
+      applyAuthSession(session);
+      router.replace(homePathForUser(session.user));
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.code === 'MUST_SET_PASSWORD') {
+        setError('password', { message: caught.message });
+        return;
+      }
+      setError('email', {
+        message:
+          caught instanceof Error ? caught.message : 'Não foi possível entrar',
       });
-      return;
     }
-    setSession(user.id);
-    router.replace(homePathForUser(user));
   }
 
   return (

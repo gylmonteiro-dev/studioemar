@@ -1,7 +1,12 @@
+import type { AuthSession, User } from '@studioemar/shared';
+
 const SESSION_KEY = 'studioemar.session';
 
-type Session = {
-  userId: string;
+export type Session = {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  user: User;
 };
 
 function canUseStorage(): boolean {
@@ -20,7 +25,7 @@ export function getSession(): Session | null {
 
   try {
     const parsed = JSON.parse(raw) as Session;
-    if (!parsed.userId) {
+    if (!parsed.accessToken || !parsed.refreshToken || !parsed.user) {
       return null;
     }
     return parsed;
@@ -29,10 +34,32 @@ export function getSession(): Session | null {
   }
 }
 
-export function setSession(userId: string): void {
-  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ userId }));
+export function setSession(session: Session): void {
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+export function applyAuthSession(auth: AuthSession): Session {
+  const session: Session = {
+    accessToken: auth.accessToken,
+    refreshToken: auth.refreshToken,
+    expiresAt: Date.now() + auth.expiresIn * 1000,
+    user: auth.user,
+  };
+  setSession(session);
+  return session;
+}
+
+export function patchSessionUser(user: User): void {
+  const session = getSession();
+  if (!session) {
+    return;
+  }
+  setSession({ ...session, user });
 }
 
 export function clearSession(): void {
+  if (!canUseStorage()) {
+    return;
+  }
   window.sessionStorage.removeItem(SESSION_KEY);
 }

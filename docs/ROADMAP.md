@@ -167,7 +167,7 @@ Não inclui módulos Nest de negócio nem paths OpenAPI.
 [x] Bookings
 [x] Cancellation
 [x] Credits
-[ ] Dashboard
+[x] Dashboard
 [x] Swagger (só a fatia implementada)
 
 STATUS: CONCLUÍDA NA FATIA AUTORIZADA
@@ -177,20 +177,28 @@ JWT real (ADR-014). GET /health intacto.
 GET /plans vive no módulo de students (cadastro).
 Users = GET /me no módulo de auth.
 
-Fora desta fatia: dashboard, join na waitlist,
+GET /dashboard entrou na FASE 6 (módulo Nest + OpenAPI).
+
+Fora desta fatia original: join na waitlist,
 e-mail de recuperação, ligar o frontend (FASE 6).
 
 ---
 
 ## FASE 6 — Integração
 
-[ ] Frontend + API
-[ ] Autenticação
-[ ] Agenda real
-[ ] Cancelamentos
-[ ] Créditos
-[ ] Reposição
-[ ] Dashboard
+[x] Frontend + API
+[x] Autenticação
+[x] Agenda real
+[x] Cancelamentos
+[x] Créditos
+[x] Reposição
+[x] Dashboard
+
+STATUS: IMPLEMENTADA NA BRANCH (aguardando merge)
+
+Web consome a API Nest com JWT no sessionStorage (ADR-014 / ADR-015).
+GET /dashboard (TRAINER/ADMIN). Sem join na waitlist e sem e-mail
+de recuperação.
 
 ---
 
