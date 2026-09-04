@@ -4,7 +4,8 @@ import { AuthPanel } from '@/components/auth/auth-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loginSchema, type LoginValues } from '@/lib/auth-schemas';
-import { findStudentByEmail } from '@/lib/mock-api';
+import { homePathForUser } from '@/lib/auth-routing';
+import { findUserByEmail } from '@/lib/mock-api';
 import { setSession } from '@/lib/session';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
@@ -24,19 +25,19 @@ export default function LoginPage() {
   });
 
   function onSubmit(values: LoginValues) {
-    const student = findStudentByEmail(values.email);
-    if (!student) {
+    const user = findUserByEmail(values.email);
+    if (!user) {
       setError('email', { message: 'Conta não encontrada. Fale com o Studio.' });
       return;
     }
-    if (student.mustSetPassword) {
+    if (user.mustSetPassword) {
       setError('password', {
         message: 'Defina sua senha no primeiro acesso.',
       });
       return;
     }
-    setSession(student.id);
-    router.replace('/aluno');
+    setSession(user.id);
+    router.replace(homePathForUser(user));
   }
 
   return (

@@ -1,6 +1,18 @@
+import type { Weekday } from '@studioemar/shared';
+
 const TIME_ZONE = 'America/Sao_Paulo';
 
 const WEEKDAYS_SHORT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'] as const;
+
+export const WEEKDAY_LABEL: Record<Weekday, string> = {
+  SUN: 'DOM',
+  MON: 'SEG',
+  TUE: 'TER',
+  WED: 'QUA',
+  THU: 'QUI',
+  FRI: 'SEX',
+  SAT: 'SÁB',
+};
 const WEEKDAYS_LONG = [
   'Domingo',
   'Segunda-feira',

@@ -102,7 +102,7 @@ Mergeada em main (eb9b5cb).
 
 Telas prototipadas contra mocks tipados.
 Primeiro acesso e recuperar senha: UI mínima (RN-022).
-Criar conta é do professor (RN-021) — FASE 3.
+Criar conta é do professor (RN-021) — feito na FASE 3.
 Perfil do aluno permanece fora (sem protótipo).
 
 O aluno não deve visualizar os demais participantes
@@ -110,26 +110,29 @@ do horário.
 
 PEND-004, PEND-005, PEND-007 e PEND-010 aceitas
 (RN-017 a RN-020). UI de anular crédito e grantsCredit
-no fechamento: FASE 3.
+no fechamento: feita na FASE 3.
 
 ---
 
 ## FASE 3 — Frontend treinador
 
-[ ] Dashboard
-[ ] Agenda
-[ ] Alunos
-[ ] Detalhes do aluno
-[ ] Configuração da agenda recorrente
-[ ] Ocupação
-[ ] Créditos
-[ ] Configurações
+[x] Dashboard
+[x] Agenda
+[x] Alunos
+[x] Detalhes do aluno
+[x] Configuração da agenda recorrente
+[x] Ocupação
+[x] Créditos
+[x] Configurações
 
-STATUS: NÃO INICIADA
+STATUS: CONCLUÍDA
 
-Apenas o dashboard possui protótipo. As demais telas
-precisam de referência visual ou aceite explícito de
-UI funcional mínima.
+Dashboard a partir do protótipo (componentes + tokens +
+Recharts). Demais telas: UI funcional mínima aceita.
+Cadastro de aluno, anular crédito e grantsCredit no
+fechamento. Sem copiar HTML de /prototypes.
+
+Login do treinador: carlos@studioemar.local.
 
 ---
 

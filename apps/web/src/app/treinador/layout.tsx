@@ -1,14 +1,14 @@
 'use client';
 
-import { StudentShell } from '@/components/layout/student-shell';
+import { TrainerShell } from '@/components/layout/trainer-shell';
 import { homePathForUser, isTrainerRole } from '@/lib/auth-routing';
 import { useStudioMock } from '@/lib/mock-api';
 import { getSession } from '@/lib/session';
-import { StudentProvider } from '@/lib/student-context';
+import { TrainerProvider } from '@/lib/trainer-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 
-export default function AlunoLayout({ children }: { children: ReactNode }) {
+export default function TreinadorLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { users } = useStudioMock();
   const [userId, setUserId] = useState<string | null>(null);
@@ -22,21 +22,21 @@ export default function AlunoLayout({ children }: { children: ReactNode }) {
     setUserId(session.userId);
   }, [router]);
 
-  const student = users.find((user) => user.id === userId);
+  const trainer = users.find((user) => user.id === userId);
 
   useEffect(() => {
-    if (student && isTrainerRole(student.role)) {
-      router.replace(homePathForUser(student));
+    if (trainer && !isTrainerRole(trainer.role)) {
+      router.replace(homePathForUser(trainer));
     }
-  }, [student, router]);
+  }, [trainer, router]);
 
-  if (!userId || !student || isTrainerRole(student.role)) {
+  if (!userId || !trainer || !isTrainerRole(trainer.role)) {
     return null;
   }
 
   return (
-    <StudentProvider student={student}>
-      <StudentShell studentName={student.name}>{children}</StudentShell>
-    </StudentProvider>
+    <TrainerProvider trainer={trainer}>
+      <TrainerShell trainerName={trainer.name}>{children}</TrainerShell>
+    </TrainerProvider>
   );
 }

@@ -4,11 +4,12 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 type HeaderProps = {
+  homeHref?: string;
   trailing?: ReactNode;
   className?: string;
 };
 
-export function Header({ trailing, className }: HeaderProps) {
+export function Header({ homeHref = '/aluno', trailing, className }: HeaderProps) {
   return (
     <header
       className={cn(
@@ -16,7 +17,7 @@ export function Header({ trailing, className }: HeaderProps) {
         className,
       )}
     >
-      <Link href="/aluno" aria-label="Studio EMAR — início" className="flex items-center">
+      <Link href={homeHref} aria-label="Studio EMAR — início" className="flex items-center">
         <BrandLogo variant="wordmark" className="h-9" />
       </Link>
       {trailing}
