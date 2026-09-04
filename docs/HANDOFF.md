@@ -2,14 +2,14 @@
 
 ## Situação atual
 
-FASE 0, 1, 1b, 2, 3, 4, 5, 6 e 7 concluídas. FASE 6 está em
-main (`19fecd4`). FASE 7 (testes) na branch `fase-7-testes`.
+FASE 0, 1, 1b, 2, 3, 4, 5, 6 e 7 concluídas e mergeadas em main
+(`f353cc1`).
 
 Frontend aluno e treinador em apps/web contra a API Nest.
 JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
 
 Não trabalhar na main. Próxima fatia (FASE 8) em branch
-nova a partir de main, depois do merge da FASE 7.
+nova a partir de main.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
