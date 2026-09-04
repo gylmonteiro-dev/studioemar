@@ -204,14 +204,23 @@ de recuperação.
 
 ## FASE 7 — Testes
 
-[ ] Regras de cancelamento
-[ ] Créditos
-[ ] Capacidade
-[ ] Conflitos
-[ ] Permissões
-[ ] Responsividade
-[ ] Fluxos críticos
-[ ] Contratos Zod / OpenAPI
+[x] Regras de cancelamento
+[x] Créditos
+[x] Capacidade
+[x] Conflitos
+[x] Permissões
+[x] Responsividade
+[x] Fluxos críticos
+[x] Contratos Zod / OpenAPI
+
+STATUS: CONCLUÍDA
+
+Suíte sem Docker: `pnpm test` (shared + API + web unitário).
+E2E Playwright (login, cancelamento, permissões, viewports
+390/768/1024/1440): `pnpm test:e2e`.
+
+Backend continua a autoridade (serviço Nest + Prisma em
+memória nos testes). O e2e cobre a UI com a API mockada.
 
 ---
 

@@ -12,7 +12,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
-    "test": "pnpm exec tsx --test src/domain/*.test.ts"
+    "test": "pnpm exec tsx --test src/**/*.test.ts"
   },
   "prisma": {
     "seed": "pnpm exec tsx prisma/seed.ts"

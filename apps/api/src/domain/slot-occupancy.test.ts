@@ -23,6 +23,16 @@ describe('applySeatChange', () => {
     );
   });
 
+  it('não deixa enrolledCount negativo', () => {
+    assert.deepEqual(
+      applySeatChange(
+        { enrolledCount: 0, capacity: 6, status: 'OPEN' },
+        -1,
+      ),
+      { enrolledCount: 0, status: 'OPEN' },
+    );
+  });
+
   it('mantém CLOSED em fechamento mesmo com vaga', () => {
     assert.deepEqual(
       applySeatChange(

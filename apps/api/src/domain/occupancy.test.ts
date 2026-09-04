@@ -98,4 +98,22 @@ describe('computeOccupancy', () => {
       ['MON', 'TUE', 'WED', 'THU', 'FRI'],
     );
   });
+
+  it('zera percentual quando a capacidade do dia é zero', () => {
+    const dashboard = computeOccupancy({
+      now,
+      cancellationCount: 0,
+      timeSlots: [
+        {
+          id: 'slot-empty-cap',
+          startsAt: new Date('2026-09-03T21:00:00.000Z'),
+          capacity: 0,
+          enrolledCount: 0,
+        },
+      ],
+      bookings: [],
+    });
+    assert.equal(dashboard.metrics.occupancyPercent, 0);
+    assert.equal(dashboard.metrics.freeSpots, 0);
+  });
 });

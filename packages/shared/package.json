@@ -30,18 +30,23 @@
       "default": "./src/mocks/index.ts"
     }
   },
-  "files": ["src", "dist", "dist-cjs"],
+  "files": [
+    "src",
+    "dist",
+    "dist-cjs"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist-cjs/package.json', JSON.stringify({type:'commonjs'}))\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsc -p tsconfig.json && node --test dist/rules/credit-policy.test.js"
+    "test": "tsc -p tsconfig.json && node --test dist/*.test.js dist/**/*.test.js"
   },
   "dependencies": {
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
-    "typescript": "~5.7.3"
+    "typescript": "~5.7.3",
+    "yaml": "^2.9.0"
   }
 }

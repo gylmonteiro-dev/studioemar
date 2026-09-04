@@ -9,9 +9,27 @@ describe('isCancellationEligibleForCredit', () => {
     assert.equal(isCancellationEligibleForCredit(now, startsAt), true);
   });
 
+  it('concede crédito exatamente no limite de 12 horas', () => {
+    const startsAt = new Date('2026-09-03T21:00:00.000Z');
+    const now = new Date('2026-09-03T09:00:00.000Z');
+    assert.equal(isCancellationEligibleForCredit(now, startsAt), true);
+  });
+
+  it('nega crédito um milissegundo abaixo do limite', () => {
+    const startsAt = new Date('2026-09-03T21:00:00.000Z');
+    const now = new Date('2026-09-03T09:00:00.001Z');
+    assert.equal(isCancellationEligibleForCredit(now, startsAt), false);
+  });
+
   it('nega crédito com menos de 12 horas', () => {
     const startsAt = new Date('2026-09-03T21:00:00.000Z');
     const now = new Date('2026-09-03T10:00:00.000Z');
+    assert.equal(isCancellationEligibleForCredit(now, startsAt), false);
+  });
+
+  it('nega crédito depois que a aula começou', () => {
+    const startsAt = new Date('2026-09-03T21:00:00.000Z');
+    const now = new Date('2026-09-03T21:30:00.000Z');
     assert.equal(isCancellationEligibleForCredit(now, startsAt), false);
   });
 });

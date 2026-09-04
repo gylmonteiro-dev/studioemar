@@ -2,21 +2,19 @@
 
 ## Situação atual
 
-FASE 0, 1, 1b, 2, 3, 4, 5 e 6 concluídas e mergeadas em main
-(`19fecd4`).
+FASE 0, 1, 1b, 2, 3, 4, 5, 6 e 7 concluídas. FASE 6 está em
+main (`19fecd4`). FASE 7 (testes) na branch `fase-7-testes`.
 
 Frontend aluno e treinador em apps/web contra a API Nest.
 JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
 
-Não trabalhar na main. Próxima fatia (FASE 7) em branch
-nova a partir de main.
+Não trabalhar na main. Próxima fatia (FASE 8) em branch
+nova a partir de main, depois do merge da FASE 7.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
 passwordHash só no banco (ADR-013). JWT no JSON (ADR-014).
 Sessão web: ADR-015.
-
-FASE 6 entrou em main neste merge (19fecd4).
 
 ## Já disponível
 
@@ -32,8 +30,8 @@ FASE 6 entrou em main neste merge (19fecd4).
   dashboard
 - Swagger: http://localhost:3001/docs
 - GET /health intacto
-- Testes de domínio: `pnpm test:api`
-  (`slot-occupancy`, `occupancy`)
+- Testes: `pnpm test` (shared + API + web unitário)
+- E2E: `pnpm test:e2e` (Playwright, Chromium, API mockada)
 
 ## Banco local
 
@@ -90,11 +88,34 @@ Se a :3000 falhar com `.next` (ENOENT), reiniciar
 `pnpm dev:web`. Se a :3001 estiver com processo antigo,
 reiniciar a API.
 
+## Testes (FASE 7)
+
+```
+pnpm test
+pnpm test:e2e
+```
+
+Na primeira vez do e2e: `pnpm --filter web exec playwright install chromium`.
+
+O e2e sobe o Next na :3100 com
+`NEXT_PUBLIC_CLOCK_NOW=2026-09-03T15:00:00.000Z` e intercepta
+a API em :3001. Não precisa de Postgres nem da Nest.
+
+Cobertura:
+
+- Cancelamento RN-012 / RN-017 (aluno e professor)
+- Créditos RN-007 a RN-010, RN-013, RN-018 a RN-020
+- Capacidade RN-008
+- Conflitos (e-mail, horário recorrente, já inscrito)
+- Permissões (RolesGuard, JWT, rotas aluno/treinador)
+- Responsividade 390 / 768 / 1024 / 1440
+- Fluxos: login, cancelar, dashboard, horários sem nomes
+- Contrato Zod × docs/openapi.yaml
+
 ## Próxima atividade
 
-FASE 7 — testes: regras de cancelamento, créditos,
-capacidade, conflitos, permissões, responsividade,
-fluxos críticos, contratos Zod/OpenAPI.
+FASE 8 — infraestrutura: Dockerfile Web/API, Compose de
+produção, volumes, health checks, variáveis, backup.
 
 Quando autorizar, planeje primeiro. Não avance sozinho.
 
@@ -110,6 +131,5 @@ Quando autorizar, planeje primeiro. Não avance sozinho.
 
 ## Pendências
 
-- FASE 7 (testes). Hoje só há testes de domínio no Nest
-  (`pnpm test:api`). Sem suíte web/e2e.
 - Sem mailer de recuperação.
+- FASE 8 (infra de produção) não iniciada.
