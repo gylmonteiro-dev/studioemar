@@ -232,6 +232,28 @@ O laranja EMAR não muda entre os modos.
 
 ---
 
+## ADR-013 — Prisma em apps/api e passwordHash
+
+Status: ACEITO
+
+Decisão:
+
+O schema Prisma vive em `apps/api/prisma`. Não há pacote
+`packages/database`. Só o Nest consome o client.
+
+`User.passwordHash` existe somente na tabela. Não entra no
+schema Zod `User` nem nas respostas de domínio.
+
+Motivos:
+
+- um único consumidor do ORM nesta fase;
+- o contrato público não carrega credencial;
+- a coluna nula evita uma migration só para hash na FASE 5.
+
+JWT e verificação de senha permanecem na FASE 5.
+
+---
+
 ## Fora de escopo destas decisões
 
 Não foram decididos ainda:

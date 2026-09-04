@@ -138,16 +138,21 @@ Login do treinador: carlos@studioemar.local.
 
 ## FASE 4 — Domínio e banco
 
-[ ] Validar entidades
-[ ] Criar modelo ER
-[ ] Validar relacionamentos
-[ ] PostgreSQL
-[ ] Prisma
-[ ] Migrations
+[x] Validar entidades
+[x] Criar modelo ER
+[x] Validar relacionamentos
+[x] PostgreSQL
+[x] Prisma
+[x] Migrations
 
-STATUS: NÃO INICIADA
+STATUS: CONCLUÍDA
 
-Depende das regras PEND críticas de cancelamento e crédito.
+Nove tabelas alinhadas ao Zod. ER em docs/DOMAIN.md.
+Prisma em apps/api. Postgres local via
+infrastructure/docker-compose.dev.yml (porta 5434).
+Seed a partir de @studioemar/shared/mocks.
+
+Não inclui módulos Nest de negócio nem paths OpenAPI.
 
 ---
 

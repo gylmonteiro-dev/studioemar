@@ -19,7 +19,13 @@
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "dev:api": "pnpm --filter api start:dev",
-    "build:api": "pnpm --filter api build"
+    "build:api": "pnpm --filter api build",
+    "db:up": "docker compose -f infrastructure/docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f infrastructure/docker-compose.dev.yml down",
+    "prisma:migrate": "pnpm --filter api prisma:migrate",
+    "prisma:deploy": "pnpm --filter api prisma:deploy",
+    "prisma:seed": "pnpm --filter api prisma:seed",
+    "prisma:studio": "pnpm --filter api prisma:studio"
   },
   "devDependencies": {
     "eslint": "^9.17.0",

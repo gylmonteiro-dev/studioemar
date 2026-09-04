@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TRAINER
+  ADMIN
+}
+
+enum Weekday {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+enum TimeSlotStatus {
+  OPEN
+  FULL
+  CLOSED
+}
+
+enum BookingKind {
+  REGULAR
+  MAKEUP
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  NO_SHOW
+}
+
+enum CreditStatus {
+  AVAILABLE
+  USED
+  EXPIRED
+  ANNULLED
+}
+
+enum CreditSource {
+  CANCELLATION
+  TRAINER_CANCELLATION
+  CLOSURE_COMPENSATION
+}
+
+enum CancelledBy {
+  STUDENT
+  TRAINER
+}
+
+enum WaitlistStatus {
+  WAITING
+  PROMOTED
+  CANCELLED
+}
+
+model Plan {
+  id              String          @id @default(cuid())
+  name            String
+  weeklyFrequency Int
+  users           User[]
+  recurringSlots  RecurringSlot[]
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  role            UserRole
+  planId          String?
+  plan            Plan?    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  mustSetPassword Boolean  @default(false)
+  passwordHash    String?
+
+  trainedSlots    TimeSlot[]      @relation("TimeSlotTrainer")
+  bookings        Booking[]       @relation("BookingStudent")
+  waitlistEntries WaitlistEntry[] @relation("WaitlistStudent")
+  credits         Credit[]        @relation("CreditStudent")
+  createdClosures StudioClosure[] @relation("ClosureCreatedBy")
+  annulledCredits Credit[]        @relation("CreditAnnulledBy")
+}
+
+model RecurringSlot {
+  id      String  @id @default(cuid())
+  planId  String
+  plan    Plan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  weekday Weekday
+  time    String
+
+  @@unique([planId, weekday, time])
+}
+
+model TimeSlot {
+  id            String          @id @default(cuid())
+  startsAt      DateTime
+  endsAt        DateTime
+  capacity      Int
+  enrolledCount Int
+  status        TimeSlotStatus
+  classType     String
+  trainerId     String
+  trainer       User            @relation("TimeSlotTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
+  bookings      Booking[]
+  waitlist      WaitlistEntry[]
+
+  @@index([startsAt])
+  @@index([trainerId])
+}
+
+model StudioClosure {
+  id              String   @id @default(cuid())
+  startsOn        DateTime @db.Date
+  endsOn          DateTime @db.Date
+  reason          String
+  createdByUserId String
+  createdBy       User     @relation("ClosureCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  grantsCredit    Boolean  @default(false)
+  credits         Credit[]
+}
+
+model WaitlistEntry {
+  id         String         @id @default(cuid())
+  timeSlotId String
+  timeSlot   TimeSlot       @relation(fields: [timeSlotId], references: [id], onDelete: Restrict)
+  studentId  String
+  student    User           @relation("WaitlistStudent", fields: [studentId], references: [id], onDelete: Restrict)
+  position   Int
+  enqueuedAt DateTime
+  status     WaitlistStatus
+
+  @@unique([timeSlotId, studentId])
+}
+
+model Booking {
+  id           String         @id @default(cuid())
+  studentId    String
+  student      User           @relation("BookingStudent", fields: [studentId], references: [id], onDelete: Restrict)
+  timeSlotId   String
+  timeSlot     TimeSlot       @relation(fields: [timeSlotId], references: [id], onDelete: Restrict)
+  kind         BookingKind
+  status       BookingStatus
+  cancellation Cancellation?
+  originCredits Credit[]      @relation("CreditOriginBooking")
+  usedCredits   Credit[]      @relation("CreditUsedBooking")
+
+  @@index([studentId])
+  @@index([timeSlotId])
+}
+
+model Cancellation {
+  id              String      @id @default(cuid())
+  bookingId       String      @unique
+  booking         Booking     @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  cancelledAt     DateTime
+  cancelledBy     CancelledBy
+  generatedCredit Boolean
+  creditId        String?     @unique
+  credit          Credit?     @relation(fields: [creditId], references: [id], onDelete: SetNull)
+}
+
+model Credit {
+  id               String         @id @default(cuid())
+  studentId        String
+  student          User           @relation("CreditStudent", fields: [studentId], references: [id], onDelete: Restrict)
+  source           CreditSource
+  generatedAt      DateTime
+  originBookingId  String?
+  originBooking    Booking?       @relation("CreditOriginBooking", fields: [originBookingId], references: [id], onDelete: Restrict)
+  originClosureId  String?
+  originClosure    StudioClosure? @relation(fields: [originClosureId], references: [id], onDelete: Restrict)
+  expiresAt        DateTime
+  status           CreditStatus
+  usedAt           DateTime?
+  usedBookingId    String?
+  usedBooking      Booking?       @relation("CreditUsedBooking", fields: [usedBookingId], references: [id], onDelete: Restrict)
+  annulledAt       DateTime?
+  annulledByUserId String?
+  annulledBy       User?          @relation("CreditAnnulledBy", fields: [annulledByUserId], references: [id], onDelete: Restrict)
+  cancellation     Cancellation?
+
+  @@index([studentId])
+  @@index([status])
+}
