@@ -10,8 +10,10 @@ Frontend aluno em apps/web contra mocks de
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009).
 
-Trabalho na branch fase-2-contrato-regras (ainda não
-mergeada em main).
+FASE 2 está em main (eb9b5cb), alinhada com origin/main.
+A branch fase-2-contrato-regras aponta para o mesmo
+commit. Não trabalhar na main. Próxima fatia em
+branch nova a partir de eb9b5cb.
 
 ## Já disponível
 

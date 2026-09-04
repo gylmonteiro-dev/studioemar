@@ -98,6 +98,8 @@ PEND-004, PEND-005, PEND-007 e PEND-010 aceitas (RN-017 a RN-020).
 
 STATUS: CONCLUÍDA
 
+Mergeada em main (eb9b5cb).
+
 Telas prototipadas contra mocks tipados.
 Primeiro acesso e recuperar senha: UI mínima (RN-022).
 Criar conta é do professor (RN-021) — FASE 3.
