@@ -194,7 +194,7 @@ e-mail de recuperação, ligar o frontend (FASE 6).
 [x] Reposição
 [x] Dashboard
 
-STATUS: IMPLEMENTADA NA BRANCH (aguardando merge)
+STATUS: CONCLUÍDA E MERGEADA EM MAIN
 
 Web consome a API Nest com JWT no sessionStorage (ADR-014 / ADR-015).
 GET /dashboard (TRAINER/ADMIN). Sem join na waitlist e sem e-mail

@@ -2,18 +2,21 @@
 
 ## Situação atual
 
-FASE 0, 1, 1b, 2, 3, 4 e 5 concluídas e mergeadas em main
-(`d0d0758`).
+FASE 0, 1, 1b, 2, 3, 4, 5 e 6 concluídas e mergeadas em main
+(`19fecd4`).
 
-FASE 6 na branch `fase-6-integracao`: web ligado à API,
-JWT no sessionStorage (ADR-015), `GET /dashboard` no Nest.
+Frontend aluno e treinador em apps/web contra a API Nest.
+JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
 
-Não trabalhar na main. Mergear esta branch antes da FASE 7.
+Não trabalhar na main. Próxima fatia (FASE 7) em branch
+nova a partir de main.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
 passwordHash só no banco (ADR-013). JWT no JSON (ADR-014).
 Sessão web: ADR-015.
+
+FASE 6 entrou em main neste merge (19fecd4).
 
 ## Já disponível
 
@@ -107,7 +110,6 @@ Quando autorizar, planeje primeiro. Não avance sozinho.
 
 ## Pendências
 
-- Merge da FASE 6 em main.
 - FASE 7 (testes). Hoje só há testes de domínio no Nest
   (`pnpm test:api`). Sem suíte web/e2e.
 - Sem mailer de recuperação.
