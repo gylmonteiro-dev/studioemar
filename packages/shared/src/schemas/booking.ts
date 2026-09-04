@@ -5,6 +5,7 @@ import {
   cancelledBySchema,
 } from './enums.js';
 import { idSchema, isoDateTimeSchema } from './ids.js';
+import { userSchema } from './user.js';
 
 export const bookingSchema = z.object({
   id: idSchema,
@@ -24,3 +25,9 @@ export const cancellationSchema = z.object({
   creditId: idSchema.optional(),
 });
 export type Cancellation = z.infer<typeof cancellationSchema>;
+
+export const bookingParticipantSchema = z.object({
+  booking: bookingSchema,
+  student: userSchema,
+});
+export type BookingParticipant = z.infer<typeof bookingParticipantSchema>;

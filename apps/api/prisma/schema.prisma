@@ -79,8 +79,10 @@ model User {
   role            UserRole
   planId          String?
   plan            Plan?    @relation(fields: [planId], references: [id], onDelete: Restrict)
-  mustSetPassword Boolean  @default(false)
-  passwordHash    String?
+  mustSetPassword         Boolean   @default(false)
+  passwordHash            String?
+  passwordResetTokenHash  String?
+  passwordResetExpiresAt  DateTime?
 
   trainedSlots    TimeSlot[]      @relation("TimeSlotTrainer")
   bookings        Booking[]       @relation("BookingStudent")

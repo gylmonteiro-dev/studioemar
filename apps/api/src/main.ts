@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 function loadLocalEnv(): void {
@@ -29,7 +30,16 @@ function loadLocalEnv(): void {
 
 loadLocalEnv();
 
+function requireEnv(name: string): void {
+  if (!process.env[name]) {
+    throw new Error(`${name} não configurado`);
+  }
+}
+
 async function bootstrap() {
+  requireEnv('JWT_SECRET');
+  requireEnv('JWT_REFRESH_SECRET');
+
   const app = await NestFactory.create(AppModule);
 
   const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:3000';
@@ -37,6 +47,14 @@ async function bootstrap() {
     origin: webOrigin,
     credentials: true,
   });
+
+  const swagger = new DocumentBuilder()
+    .setTitle('Studio EMAR API')
+    .setDescription('Fatia FASE 5: auth, students, schedules, bookings, credits.')
+    .setVersion('0.2.0')
+    .addBearerAuth()
+    .build();
+  SwaggerModule.setup('docs', app, SwaggerModule.createDocument(app, swagger));
 
   const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);

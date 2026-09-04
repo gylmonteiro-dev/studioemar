@@ -1,3 +1,4 @@
+export * from './auth.js';
 export * from './booking.js';
 export * from './credit.js';
 export * from './dashboard.js';

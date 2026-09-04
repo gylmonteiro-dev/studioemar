@@ -31,7 +31,7 @@ erDiagram
 | Tabela | Contrato Zod | Observação |
 |---|---|---|
 | Plan | Plan | Frequência semanal do pacote |
-| User | User | `passwordHash` só no banco (ADR-013) |
+| User | User | `passwordHash` e reset token só no banco (ADR-013 / ADR-014) |
 | RecurringSlot | RecurringSlot | Agenda regular do plano |
 | TimeSlot | TimeSlot | `enrolledCount` denormalizado |
 | StudioClosure | StudioClosure | Férias/recesso (RN-014 / RN-019) |
@@ -56,6 +56,5 @@ erDiagram
 
 ## Fora deste documento
 
-Regras de cancelamento, crédito e capacidade continuam no
-backend (FASE 5). Helpers no shared só repetem a fórmula
-(12h / 30d).
+Regras de cancelamento, crédito e capacidade estão no
+backend. Helpers no shared só repetem a fórmula (12h / 30d).

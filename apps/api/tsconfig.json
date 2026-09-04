@@ -8,10 +8,7 @@
     "noEmit": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "baseUrl": ".",
-    "paths": {
-      "@studioemar/shared": ["../../packages/shared/src/index.ts"]
-    }
+    "incremental": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

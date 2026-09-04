@@ -1,6 +1,15 @@
 import { z } from 'zod';
-import { timeSlotStatusSchema, waitlistStatusSchema } from './enums.js';
-import { idSchema, isoDateSchema, isoDateTimeSchema } from './ids.js';
+import {
+  timeSlotStatusSchema,
+  waitlistStatusSchema,
+  weekdaySchema,
+} from './enums.js';
+import {
+  clockTimeSchema,
+  idSchema,
+  isoDateSchema,
+  isoDateTimeSchema,
+} from './ids.js';
 
 export const timeSlotSchema = z.object({
   id: idSchema,
@@ -33,3 +42,27 @@ export const waitlistEntrySchema = z.object({
   status: waitlistStatusSchema,
 });
 export type WaitlistEntry = z.infer<typeof waitlistEntrySchema>;
+
+export const createStudioClosureRequestSchema = z
+  .object({
+    startsOn: isoDateSchema,
+    endsOn: isoDateSchema,
+    reason: z.string().min(1),
+    grantsCredit: z.boolean().default(false),
+  })
+  .refine((values) => values.endsOn >= values.startsOn, {
+    message: 'A data final não pode ser anterior ao início',
+    path: ['endsOn'],
+  });
+export type CreateStudioClosureRequest = z.infer<
+  typeof createStudioClosureRequestSchema
+>;
+
+export const addRecurringSlotRequestSchema = z.object({
+  planId: idSchema,
+  weekday: weekdaySchema,
+  time: clockTimeSchema,
+});
+export type AddRecurringSlotRequest = z.infer<
+  typeof addRecurringSlotRequestSchema
+>;

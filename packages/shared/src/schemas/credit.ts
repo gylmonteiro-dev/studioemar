@@ -17,3 +17,8 @@ export const creditSchema = z.object({
   annulledByUserId: idSchema.optional(),
 });
 export type Credit = z.infer<typeof creditSchema>;
+
+export const redeemCreditRequestSchema = z.object({
+  timeSlotId: idSchema,
+});
+export type RedeemCreditRequest = z.infer<typeof redeemCreditRequestSchema>;

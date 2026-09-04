@@ -2,26 +2,28 @@
 
 ## Situação atual
 
-FASE 0, 1, 1b, 2, 3 e 4 concluídas.
+FASE 0, 1, 1b, 2, 3, 4 e 5 (fatia autorizada) concluídas.
 
 Frontend aluno e treinador em apps/web contra mocks.
-Prisma + PostgreSQL em apps/api. Sem Nest de negócio.
+Backend Nest em apps/api com JWT real. Sem FASE 6.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
-passwordHash só no banco (ADR-013).
+passwordHash só no banco (ADR-013). JWT no JSON (ADR-014).
 
-FASE 4 entra em main neste merge. Não trabalhar na main.
-Próxima fatia (FASE 5) em branch nova a partir de main.
+Não trabalhar na main. Próxima fatia (FASE 6) em branch
+nova a partir de main, depois do merge desta.
 
 ## Já disponível
 
 - Telas aluno e treinador contra mocks
-- Contrato Zod + OpenAPI estático
+- Contrato Zod + OpenAPI da fatia FASE 5
 - ER em docs/DOMAIN.md (9 tabelas)
-- Prisma schema, migration inicial e seed do catálogo mock
+- Prisma schema, migrations e seed
 - Compose só do banco: infrastructure/docker-compose.dev.yml
-- PrismaModule / PrismaService (infra). GET /health intacto
+- Nest: auth, students, schedules, bookings, credits
+- Swagger da fatia: http://localhost:3001/docs
+- GET /health intacto
 
 ## Banco local
 
@@ -35,15 +37,26 @@ DATABASE_URL (apps/api/.env.example):
 
 postgresql://studioemar:studioemar@localhost:5434/studioemar
 
-A porta 5434 evita conflito com Postgres já instalado
-na máquina. Quem tiver Postgres livre em outra porta
-pode só ajustar o DATABASE_URL.
-
-Seed: João, Ana, Carlos; créditos nas 3 origens;
-fechamento sem crédito; waitlist FIFO no slot lotado.
-passwordHash permanece null (FASE 5).
+Seed: João e Carlos com senha `studioemar`;
+Ana em primeiro acesso (`passwordHash` null);
+créditos nas 3 origens; fechamento sem crédito;
+waitlist FIFO no slot lotado.
 
 Prisma Studio: `pnpm prisma:studio`
+
+## Demo API
+
+```
+pnpm dev:api
+```
+
+Relógio opcional para RN-012: `CLOCK_NOW=2026-09-03T15:00:00.000Z`
+
+- João: joao@studioemar.local / studioemar
+- Ana (1º acesso): ana@studioemar.local
+- Carlos: carlos@studioemar.local / studioemar
+- Cancelar `booking-hoje-sem-credito` com CLOCK_NOW = sem crédito
+- Cancelar `booking-seg-com-credito` = com crédito
 
 ## Demo web (ainda mocks)
 
@@ -54,20 +67,20 @@ Prisma Studio: `pnpm prisma:studio`
 
 ## Próxima atividade
 
-FASE 5 — backend Nest sob demanda.
-Começar por auth, students, schedules, bookings e credits.
-JWT real. Não criar todos os módulos de uma vez.
+FASE 6 — ligar o frontend à API.
+Não antecipar.
 
 ## Não fazer ainda
 
-- implementar os paths do OpenAPI no Nest (FASE 5);
 - ligar o frontend à API (FASE 6);
+- dashboard Nest;
+- join na lista de espera;
+- e-mail de recuperação;
 - Expo / apps/mobile;
 - Docker de produção;
 - alterações na VPS / Caddy;
-- perfil do aluno;
-- join na lista de espera.
+- perfil do aluno.
 
 ## Pendências
 
-- JWT real (FASE 5).
+- Integração web ↔ API (FASE 6).

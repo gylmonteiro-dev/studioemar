@@ -11,3 +11,10 @@ export const userSchema = z.object({
   mustSetPassword: z.boolean().default(false),
 });
 export type User = z.infer<typeof userSchema>;
+
+export const createStudentRequestSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  planId: idSchema,
+});
+export type CreateStudentRequest = z.infer<typeof createStudentRequestSchema>;

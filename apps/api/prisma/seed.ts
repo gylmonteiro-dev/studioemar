@@ -10,10 +10,15 @@ import {
   mockUsers,
   mockWaitlistEntry,
 } from '@studioemar/shared/mocks';
+import { hash } from 'bcrypt';
+
+/** Senha local de João e Carlos. Ana permanece em primeiro acesso. */
+const DEMO_PASSWORD = 'studioemar';
 
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
+  const passwordHash = await hash(DEMO_PASSWORD, 10);
   await prisma.cancellation.deleteMany();
   await prisma.credit.deleteMany();
   await prisma.waitlistEntry.deleteMany();
@@ -40,7 +45,7 @@ async function main(): Promise<void> {
       role: user.role,
       planId: user.planId,
       mustSetPassword: user.mustSetPassword,
-      passwordHash: null,
+      passwordHash: user.mustSetPassword ? null : passwordHash,
     })),
   });
 

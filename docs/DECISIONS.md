@@ -250,7 +250,37 @@ Motivos:
 - o contrato público não carrega credencial;
 - a coluna nula evita uma migration só para hash na FASE 5.
 
-JWT e verificação de senha permanecem na FASE 5.
+JWT e verificação de senha: ADR-014.
+
+---
+
+## ADR-014 — JWT no corpo da resposta
+
+Status: ACEITO
+
+Decisão:
+
+Access token JWT HS256, 1 hora, `Authorization: Bearer`.
+Refresh token JWT HS256, 7 dias, secret separado, enviado
+no JSON (`refreshToken`). Sem cookie e sem tabela de
+refresh.
+
+Payload do access: `sub`, `email`, `role`, `typ: "access"`.
+Payload do refresh: `sub`, `typ: "refresh"`.
+
+Recuperação de senha: token opaco (32 bytes), hash SHA-256
+em `User.passwordResetTokenHash`, validade 1 hora. Sem
+e-mail nesta fase; o token só é logado fora de production.
+
+Motivos:
+
+- o contrato já é REST + JSON; o mobile futuro consome o
+  mesmo par de tokens;
+- um Studio pequeno não precisa de denylist agora;
+- `passwordHash` e o token de reset não entram no Zod User.
+
+CLOCK_NOW (opcional) fixa o relógio do backend para
+validar RN-012 sem mudar a fórmula do shared.
 
 ---
 
@@ -258,6 +288,4 @@ JWT e verificação de senha permanecem na FASE 5.
 
 Não foram decididos ainda:
 
-- detalhes de armazenamento do JWT.
-
-Esses pontos não devem ser assumidos no código.
+- envio real de e-mail de recuperação.

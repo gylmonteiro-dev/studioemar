@@ -158,22 +158,27 @@ Não inclui módulos Nest de negócio nem paths OpenAPI.
 
 ## FASE 5 — Backend
 
-[ ] NestJS (módulos sob demanda)
-[ ] Auth
-[ ] Users
-[ ] Students
-[ ] Plans
-[ ] Schedule
-[ ] Bookings
-[ ] Cancellation
-[ ] Credits
+[x] NestJS (módulos sob demanda)
+[x] Auth
+[x] Users
+[x] Students
+[x] Plans
+[x] Schedule
+[x] Bookings
+[x] Cancellation
+[x] Credits
 [ ] Dashboard
-[ ] Swagger
+[x] Swagger (só a fatia implementada)
 
-STATUS: NÃO INICIADA
+STATUS: CONCLUÍDA NA FATIA AUTORIZADA
 
-Não criar todos os módulos de uma vez.
-Começar por auth, students, schedules, bookings e credits.
+Módulos: auth, students, schedules, bookings, credits.
+JWT real (ADR-014). GET /health intacto.
+GET /plans vive no módulo de students (cadastro).
+Users = GET /me no módulo de auth.
+
+Fora desta fatia: dashboard, join na waitlist,
+e-mail de recuperação, ligar o frontend (FASE 6).
 
 ---
 
