@@ -3,9 +3,12 @@
 ## Situação atual
 
 FASE 0 a 8 concluídas e mergeadas em main (`3df6f0e`).
+A fatia atual é a FASE 9 (VPS), ainda não iniciada.
 
 Frontend aluno e treinador em apps/web contra a API Nest.
 JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
+A stack de produção já roda em containers (FASE 8), mas só
+foi validada localmente: nada foi publicado na VPS.
 
 Não trabalhar na main. Próxima fatia (FASE 9) em branch
 nova a partir de main.
@@ -145,16 +148,62 @@ da API e precisa bater com o domínio da web.
 
 Operação detalhada em infrastructure/README.md.
 
-## Próxima atividade
+## Próxima atividade — FASE 9 (VPS)
 
-FASE 9 — VPS: analisar ambiente e Caddy existentes, domínio,
-deploy dos containers, proxy, HTTPS, backup e procedimento de
+Começar em conversa nova, em branch nova a partir de main.
+Antes de codar, ler docs/AGENTS.MD, docs/ARCHITECTURE.md,
+docs/ROADMAP.md e infrastructure/README.md.
+
+Objetivo: publicar a stack da FASE 8 na VPS, atrás do Caddy
+que já existe lá, com HTTPS e rotina de atualização.
+
+Checklist do ROADMAP: analisar ambiente existente; analisar
+Caddy existente; configurar domínio; deploy dos containers;
+configurar proxy; HTTPS; testes; backup; procedimento de
 atualização.
 
-Não modificar o Caddy sem análise prévia e não afetar as
-outras aplicações da VPS.
+### Levantar com o Gyl antes de propor qualquer coisa
 
-Quando autorizar, planeje primeiro. Não avance sozinho.
+A VPS não está descrita no repositório. Confirmar, sem
+adivinhar:
+
+- como acessar (host, usuário, sudo);
+- distribuição, e se já há Docker e Compose instalados;
+- onde mora o Caddy (pacote do sistema ou container) e o
+  caminho do Caddyfile;
+- quais aplicações já rodam lá e quais portas locais estão
+  ocupadas — o Compose quer 3000 e 3001 em 127.0.0.1;
+- os domínios da web e da API, e se o DNS já aponta;
+- se o Caddy já resolve certificado/ACME sozinho;
+- onde guardar os dumps e se já existe rotina de backup.
+
+### O que a FASE 8 já entrega para essa fase
+
+- `infrastructure/docker-compose.prod.yml` sobe os três
+  containers;
+- web em 127.0.0.1:3000 e API em 127.0.0.1:3001, que são
+  exatamente os alvos de `reverse_proxy` (ADR-017);
+- `WEB_PORT` e `API_PORT` remapeiam essas portas se já
+  estiverem ocupadas na VPS;
+- Postgres sem porta publicada, só na rede interna;
+- `infrastructure/.env.example` lista todas as variáveis;
+- backup com retenção e exemplo de cron no
+  infrastructure/README.md;
+- atualização: `git pull && pnpm prod:build && pnpm prod:up`.
+
+### Cuidados
+
+- Não alterar o Caddyfile sem ler o que já está lá e sem
+  autorização: outras aplicações dependem dele (ADR-004).
+- Não mexer em nada da VPS fora do escopo do Studio EMAR.
+- `NEXT_PUBLIC_API_URL` é build arg: definir o domínio real
+  antes do `pnpm prod:build`, senão a web chama a API errada.
+- `WEB_ORIGIN` precisa ser o domínio da web, ou o CORS barra.
+- Trocar todos os segredos do `.env.example`
+  (`openssl rand -base64 48`). Não versionar o `.env`.
+- Backup antes de qualquer atualização que traga migration.
+
+Planeje primeiro. Não avance sozinho.
 
 ## Não fazer ainda
 
@@ -162,7 +211,7 @@ Quando autorizar, planeje primeiro. Não avance sozinho.
 - e-mail de recuperação (token existe; sem mailer;
   tela de reset com token não existe);
 - Expo / apps/mobile;
-- alterações na VPS / Caddy;
+- alterações na VPS / Caddy fora do escopo da FASE 9;
 - perfil do aluno.
 
 ## Pendências
