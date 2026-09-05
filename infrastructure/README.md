@@ -103,6 +103,11 @@ quantidades de linhas diferentes, o bind mount aponta para um inode antigo.
 Valide o arquivo atual num container temporário e recrie somente o serviço
 do proxy para remontá-lo; um simples restart ou reload não corrige o mount.
 
+Na configuração atual, o Caddyfile pertence ao checkout do Genius Certify e
+fica modificado naquele repositório. Antes de atualizar o Genius, preserve
+os blocos do Studio EMAR e a cópia `Caddyfile.before-studioemar-*`; um pull
+ou checkout forçado pode remover o proxy do Studio.
+
 Os registros DNS A de `@` e `api` devem apontar para a VPS. Não configure
 AAAA enquanto a VPS não tiver IPv6 preparado para o serviço.
 

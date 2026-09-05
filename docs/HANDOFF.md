@@ -161,6 +161,10 @@ Operação detalhada em infrastructure/README.md.
 - Backup do Caddyfile anterior à mudança:
   `/opt/genius-certify/proxy/Caddyfile.before-studioemar-20260905-192255`
 
+O checkout `/opt/genius-certify` ficou com o Caddyfile modificado
+e a cópia acima não rastreada. Preservar os blocos do Studio
+antes de qualquer atualização daquele repositório.
+
 Web e API entram nas redes `studio` e `edge`. O Caddy usa
 `edge` para alcançar os containers diretamente. O Postgres
 fica somente em `studio` e não publica porta. As portas 3000
