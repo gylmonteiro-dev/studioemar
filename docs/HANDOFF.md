@@ -2,16 +2,15 @@
 
 ## Situação atual
 
-FASE 0 a 8 concluídas e mergeadas em main (`3df6f0e`).
-A fatia atual é a FASE 9 (VPS), ainda não iniciada.
+FASE 0 a 8 concluídas e mergeadas em main. FASE 9 concluída
+em homologação na branch `fase-9-vps`.
 
 Frontend aluno e treinador em apps/web contra a API Nest.
 JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
-A stack de produção já roda em containers (FASE 8), mas só
-foi validada localmente: nada foi publicado na VPS.
+A stack está publicada na VPS e disponível por HTTPS.
 
-Não trabalhar na main. Próxima fatia (FASE 9) em branch
-nova a partir de main.
+Não trabalhar na main. Antes da próxima fatia, revisar e
+mergear `fase-9-vps`.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
@@ -140,7 +139,8 @@ studio-postgres não publica porta: só a rede interna `studio`
 
 A API roda `prisma migrate deploy` no entrypoint; use
 `RUN_MIGRATIONS=false` para janela controlada (ADR-016).
-Não há seed em produção.
+O seed local não deve ser usado em produção. Há uma rotina
+compilada, destrutiva e confirmada para a homologação.
 
 `NEXT_PUBLIC_API_URL` é build arg: trocar o domínio exige
 `pnpm prod:build`, não só restart. `WEB_ORIGIN` é o CORS
@@ -148,62 +148,42 @@ da API e precisa bater com o domínio da web.
 
 Operação detalhada em infrastructure/README.md.
 
-## Próxima atividade — FASE 9 (VPS)
+## Homologação na VPS (FASE 9)
 
-Começar em conversa nova, em branch nova a partir de main.
-Antes de codar, ler docs/AGENTS.MD, docs/ARCHITECTURE.md,
-docs/ROADMAP.md e infrastructure/README.md.
+- Web: https://studioemar.com.br
+- API: https://api.studioemar.com.br
+- Swagger: https://api.studioemar.com.br/docs
+- VPS: Ubuntu 24.04, Docker 29, Compose 2.40, 1 vCPU,
+  4 GB RAM, sem swap
+- Projeto: `/opt/studioemar`, branch `fase-9-vps`
+- Caddy compartilhado: container `nexus_caddy`
+- Caddyfile: `/opt/genius-certify/proxy/Caddyfile`
+- Backup do Caddyfile anterior à mudança:
+  `/opt/genius-certify/proxy/Caddyfile.before-studioemar-20260905-192255`
 
-Objetivo: publicar a stack da FASE 8 na VPS, atrás do Caddy
-que já existe lá, com HTTPS e rotina de atualização.
+Web e API entram nas redes `studio` e `edge`. O Caddy usa
+`edge` para alcançar os containers diretamente. O Postgres
+fica somente em `studio` e não publica porta. As portas 3000
+e 3001 no host escutam apenas em 127.0.0.1.
 
-Checklist do ROADMAP: analisar ambiente existente; analisar
-Caddy existente; configurar domínio; deploy dos containers;
-configurar proxy; HTTPS; testes; backup; procedimento de
-atualização.
+Certificados Let's Encrypt emitidos para os dois domínios.
+HTTP redireciona para HTTPS; health, CORS, login, dashboard,
+listagem de alunos e endpoints do aluno foram validados.
+O Genius Certify continuou respondendo após a mudança.
 
-### Levantar com o Gyl antes de propor qualquer coisa
+Dados atuais são fictícios e descartáveis. Treinador:
+`Elissandro <elissandro@mail.com>`. As senhas aleatórias foram
+exibidas somente no deploy e não estão no Git. O reset do
+volume `studio_postgres_data` precisa de autorização explícita.
 
-A VPS não está descrita no repositório. Confirmar, sem
-adivinhar:
+Backup diário às 03:00 UTC em
+`/opt/studioemar/infrastructure/backups`, retenção de 14 dias.
+O primeiro dump foi restaurado com sucesso em PostgreSQL
+temporário isolado. Cópia off-site ainda é pendência.
 
-- como acessar (host, usuário, sudo);
-- distribuição, e se já há Docker e Compose instalados;
-- onde mora o Caddy (pacote do sistema ou container) e o
-  caminho do Caddyfile;
-- quais aplicações já rodam lá e quais portas locais estão
-  ocupadas — o Compose quer 3000 e 3001 em 127.0.0.1;
-- os domínios da web e da API, e se o DNS já aponta;
-- se o Caddy já resolve certificado/ACME sozinho;
-- onde guardar os dumps e se já existe rotina de backup.
-
-### O que a FASE 8 já entrega para essa fase
-
-- `infrastructure/docker-compose.prod.yml` sobe os três
-  containers;
-- web em 127.0.0.1:3000 e API em 127.0.0.1:3001, que são
-  exatamente os alvos de `reverse_proxy` (ADR-017);
-- `WEB_PORT` e `API_PORT` remapeiam essas portas se já
-  estiverem ocupadas na VPS;
-- Postgres sem porta publicada, só na rede interna;
-- `infrastructure/.env.example` lista todas as variáveis;
-- backup com retenção e exemplo de cron no
-  infrastructure/README.md;
-- atualização: `git pull && pnpm prod:build && pnpm prod:up`.
-
-### Cuidados
-
-- Não alterar o Caddyfile sem ler o que já está lá e sem
-  autorização: outras aplicações dependem dele (ADR-004).
-- Não mexer em nada da VPS fora do escopo do Studio EMAR.
-- `NEXT_PUBLIC_API_URL` é build arg: definir o domínio real
-  antes do `pnpm prod:build`, senão a web chama a API errada.
-- `WEB_ORIGIN` precisa ser o domínio da web, ou o CORS barra.
-- Trocar todos os segredos do `.env.example`
-  (`openssl rand -base64 48`). Não versionar o `.env`.
-- Backup antes de qualquer atualização que traga migration.
-
-Planeje primeiro. Não avance sozinho.
+Operação, atualização, homologação e reset documentados em
+`infrastructure/README.md`. A VPS não tem Node/pnpm; nela use
+diretamente `docker compose`.
 
 ## Não fazer ainda
 
@@ -217,6 +197,9 @@ Planeje primeiro. Não avance sozinho.
 ## Pendências
 
 - Sem mailer de recuperação.
-- FASE 9 (VPS, domínio e Caddy) não iniciada.
+- Mergear a branch `fase-9-vps` após revisão.
+- Configurar backup off-site antes do uso definitivo.
+- Após aceite do cliente, autorizar reset do banco fictício e
+  criar o primeiro treinador real.
 - Imagem da API tem ~810 MB: o CLI do Prisma e as engines
   respondem pela maior parte. Reduzir só se a VPS apertar.

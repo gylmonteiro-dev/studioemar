@@ -256,15 +256,30 @@ Publicar na VPS e configurar o Caddy continua sendo a FASE 9.
 
 ## FASE 9 — VPS
 
-[ ] Analisar ambiente existente
-[ ] Analisar Caddy existente
-[ ] Configurar domínio
-[ ] Deploy containers
-[ ] Configurar proxy
-[ ] HTTPS
-[ ] Testes
-[ ] Backup
-[ ] Procedimento de atualização
+[x] Analisar ambiente existente
+[x] Analisar Caddy existente
+[x] Configurar domínio
+[x] Deploy containers
+[x] Configurar proxy
+[x] HTTPS
+[x] Testes
+[x] Backup
+[x] Procedimento de atualização
+
+STATUS: CONCLUÍDA EM HOMOLOGAÇÃO
+
+Web em `https://studioemar.com.br` e API em
+`https://api.studioemar.com.br`. O Caddy compartilhado roda em container
+e acessa web/API pela rede externa `edge`; PostgreSQL permanece isolado
+na rede `studio`.
+
+Stack publicada em `/opt/studioemar`, com certificados Let's Encrypt,
+dados fictícios e credenciais aleatórias. Backup diário às 03:00 UTC,
+retenção de 14 dias e restore validado em PostgreSQL isolado.
+
+Antes do uso definitivo: autorizar o reset destrutivo do volume do Studio,
+inicializar o primeiro treinador real e configurar cópia off-site dos
+dumps.
 
 Não modificar o Caddy sem análise prévia.
 Não afetar outras aplicações da VPS.

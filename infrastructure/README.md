@@ -68,11 +68,25 @@ Blocos adicionados ao Caddyfile compartilhado da VPS:
 ```caddyfile
 studioemar.com.br {
 	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
 	reverse_proxy studio-web:3000
 }
 
 api.studioemar.com.br {
 	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
 	reverse_proxy studio-api:3001
 }
 ```
@@ -83,6 +97,11 @@ O Caddyfile deve ser copiado antes da edição e validado antes do reload:
 docker exec nexus_caddy caddy validate --config /etc/caddy/Caddyfile
 docker exec nexus_caddy caddy reload --config /etc/caddy/Caddyfile
 ```
+
+Se o arquivo no host e `/etc/caddy/Caddyfile` dentro do container tiverem
+quantidades de linhas diferentes, o bind mount aponta para um inode antigo.
+Valide o arquivo atual num container temporário e recrie somente o serviço
+do proxy para remontá-lo; um simples restart ou reload não corrige o mount.
 
 Os registros DNS A de `@` e `api` devem apontar para a VPS. Não configure
 AAAA enquanto a VPS não tiver IPv6 preparado para o serviço.
