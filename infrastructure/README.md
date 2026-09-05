@@ -1,9 +1,10 @@
 # Infraestrutura — Studio EMAR
 
-Docker de desenvolvimento e de produção (FASE 8).
+Docker de desenvolvimento e de produção, incluindo a publicação na VPS.
 
-A publicação na VPS, o domínio e o Caddy são a FASE 9. Aqui a stack
-sobe fechada em `127.0.0.1`, pronta para receber o proxy depois.
+Na VPS, web e API continuam publicadas somente em `127.0.0.1` e também
+participam da rede Docker externa `edge`. O Caddy compartilhado acessa os
+containers por essa rede; o PostgreSQL permanece apenas na rede `studio`.
 
 ## Arquivos
 
@@ -46,7 +47,7 @@ pnpm prod:down
 Gere cada segredo com `openssl rand -base64 48`. O `.env` não é
 versionado.
 
-### Containers
+### Containers e Caddy
 
 | Container         | Porta publicada  | Observação                  |
 | ----------------- | ---------------- | --------------------------- |
@@ -54,8 +55,37 @@ versionado.
 | `studio-api`      | `127.0.0.1:3001` | NestJS + Prisma             |
 | `studio-postgres` | nenhuma          | só na rede interna `studio` |
 
-Nada escuta em `0.0.0.0`: na FASE 9 o Caddy existente faz o proxy para
-essas portas locais. O Postgres não publica porta nenhuma (ARCHITECTURE).
+Nada da aplicação escuta em `0.0.0.0`: o Caddy existente é o único
+container publicado nas portas 80/443. Antes de subir a stack na VPS, a
+rede compartilhada precisa existir:
+
+```
+docker network inspect edge >/dev/null 2>&1 || docker network create edge
+```
+
+Blocos adicionados ao Caddyfile compartilhado da VPS:
+
+```caddyfile
+studioemar.com.br {
+	encode gzip
+	reverse_proxy studio-web:3000
+}
+
+api.studioemar.com.br {
+	encode gzip
+	reverse_proxy studio-api:3001
+}
+```
+
+O Caddyfile deve ser copiado antes da edição e validado antes do reload:
+
+```
+docker exec nexus_caddy caddy validate --config /etc/caddy/Caddyfile
+docker exec nexus_caddy caddy reload --config /etc/caddy/Caddyfile
+```
+
+Os registros DNS A de `@` e `api` devem apontar para a VPS. Não configure
+AAAA enquanto a VPS não tiver IPv6 preparado para o serviço.
 
 Dados em `studio_postgres_data`, um volume nomeado que sobrevive a
 `down` e a troca de imagem. `pnpm prod:down` não apaga o volume;
@@ -81,8 +111,35 @@ docker compose -f infrastructure/docker-compose.prod.yml exec api \
   sh -c 'cd /repo/apps/api && ./node_modules/.bin/prisma migrate deploy'
 ```
 
-Não há seed em produção: a imagem não carrega `tsx`. As contas reais
-são criadas pelo professor (ADR-010).
+Não execute o seed local em produção: ele usa a senha pública
+`studioemar`. Para uma homologação descartável, a imagem contém uma
+rotina compilada que gera senhas aleatórias e substitui todo o banco:
+
+```
+docker compose -f infrastructure/docker-compose.prod.yml exec \
+  -e CONFIRM_PREVIEW_SEED=APAGAR_E_CARREGAR_HOMOLOGACAO \
+  api node apps/api/dist/scripts/seed-preview.js
+```
+
+A saída mostra uma única vez as credenciais do treinador e dos alunos.
+Guarde-as fora do Git e dos logs. O treinador padrão da homologação é
+`Elissandro <elissandro@mail.com>`; nome e e-mail podem ser sobrescritos
+com `PREVIEW_TRAINER_NAME` e `PREVIEW_TRAINER_EMAIL`.
+
+### Encerrar a homologação
+
+O reset abaixo é irreversível e deve ser executado somente com autorização
+explícita. Ele remove apenas os containers e o volume do Studio EMAR:
+
+```
+docker compose -f infrastructure/docker-compose.prod.yml down
+docker volume rm studio_postgres_data
+docker compose -f infrastructure/docker-compose.prod.yml up -d
+```
+
+Na subida, as migrations criam um banco limpo. Antes do reset, preserve o
+último dump pelo período acordado. O seed de homologação não deve ser
+executado no ambiente definitivo.
 
 ### Health checks
 
@@ -109,18 +166,43 @@ confirmação digitada porque sobrescreve os dados atuais.
 Backup diário via cron na VPS:
 
 ```
-0 3 * * * cd /caminho/do/studioemar && bash infrastructure/scripts/backup.sh >> /var/log/studioemar-backup.log 2>&1
+0 3 * * * cd /opt/studioemar && bash infrastructure/scripts/backup.sh >> /var/log/studioemar-backup.log 2>&1
 ```
 
 Backup só vale se o restore for testado. Restaure num banco de teste
-antes de precisar de verdade.
+isolado antes de precisar de verdade. Os dumps locais protegem contra
+erro operacional, mas não contra perda da VPS; cópia off-site permanece
+obrigatória antes do uso definitivo.
 
-## Atualização
+## Deploy e atualização na VPS
+
+A VPS não precisa de Node nem pnpm: o build acontece dentro do Docker.
+Primeira publicação:
 
 ```
-git pull
-pnpm prod:build
-pnpm prod:up          # recria só o que mudou
+git clone https://github.com/gylmonteiro-dev/studioemar.git /opt/studioemar
+cd /opt/studioemar
+cp infrastructure/.env.example infrastructure/.env
+# editar segredos e domínios antes do build
+docker compose -f infrastructure/docker-compose.prod.yml build api
+docker compose -f infrastructure/docker-compose.prod.yml build web
+docker compose -f infrastructure/docker-compose.prod.yml up -d
 ```
 
-Faça um backup antes de qualquer atualização que traga migration.
+Atualização controlada:
+
+```
+cd /opt/studioemar
+bash infrastructure/scripts/backup.sh
+git pull --ff-only
+docker compose -f infrastructure/docker-compose.prod.yml build api
+docker compose -f infrastructure/docker-compose.prod.yml build web
+docker compose -f infrastructure/docker-compose.prod.yml up -d
+docker compose -f infrastructure/docker-compose.prod.yml ps
+```
+
+Faça sempre um backup antes de atualização com migration. Se a nova
+versão falhar, volte ao commit anterior, reconstrua as imagens e restaure
+o dump apenas se a migration tiver alterado dados de forma incompatível.
+`NEXT_PUBLIC_API_URL` é build-time, portanto troca de domínio exige rebuild
+da web.

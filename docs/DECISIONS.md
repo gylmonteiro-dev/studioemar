@@ -349,7 +349,7 @@ exige rebuild da imagem web.
 
 ---
 
-## ADR-017 — Exposição só em 127.0.0.1
+## ADR-017 — Exposição local e rede do proxy
 
 Status: ACEITO
 
@@ -359,10 +359,16 @@ Em produção, `studio-web` e `studio-api` publicam portas apenas em
 `127.0.0.1`. O `studio-postgres` não publica porta nenhuma e só é
 alcançável pela rede interna `studio` do Compose.
 
+Na FASE 9 foi verificado que o Caddy existente também roda em container.
+Por isso, web e API participam ainda da rede Docker externa `edge`, pela
+qual o Caddy acessa diretamente `studio-web:3000` e `studio-api:3001`.
+O Postgres não participa dessa rede.
+
 Motivos:
 
 - o Caddy já existente na VPS é quem fala com a internet (ADR-004),
-  e ele alcança as portas locais;
+  e alcança web e API por uma rede Docker compartilhada sem publicar
+  essas portas em `0.0.0.0`;
 - a stack pode subir na VPS antes da FASE 9 sem expor nada;
 - atende "o PostgreSQL NÃO deverá ser exposto publicamente"
   (ARCHITECTURE) sem depender de firewall.

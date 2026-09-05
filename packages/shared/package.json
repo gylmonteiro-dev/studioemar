@@ -30,6 +30,13 @@
       "default": "./src/mocks/index.ts"
     }
   },
+  "typesVersions": {
+    "*": {
+      "mocks": [
+        "dist-cjs/mocks/index.d.ts"
+      ]
+    }
+  },
   "files": [
     "src",
     "dist",
