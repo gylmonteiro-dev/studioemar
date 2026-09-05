@@ -2,15 +2,15 @@
 
 ## Situação atual
 
-FASE 0 a 8 concluídas e mergeadas em main. FASE 9 concluída
-em homologação na branch `fase-9-vps`.
+FASE 0 a 9 concluídas e mergeadas em main. A homologação
+está publicada e disponível para feedback do cliente.
 
 Frontend aluno e treinador em apps/web contra a API Nest.
 JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
 A stack está publicada na VPS e disponível por HTTPS.
 
-Não trabalhar na main. Antes da próxima fatia, revisar e
-mergear `fase-9-vps`.
+Não trabalhar diretamente na main. Criar uma branch nova a
+partir dela para os próximos ajustes.
 
 RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
 operador no início (ADR-009). Prisma em apps/api;
@@ -155,7 +155,7 @@ Operação detalhada em infrastructure/README.md.
 - Swagger: https://api.studioemar.com.br/docs
 - VPS: Ubuntu 24.04, Docker 29, Compose 2.40, 1 vCPU,
   4 GB RAM, sem swap
-- Projeto: `/opt/studioemar`, branch `fase-9-vps`
+- Projeto: `/opt/studioemar`, branch `main`
 - Caddy compartilhado: container `nexus_caddy`
 - Caddyfile: `/opt/genius-certify/proxy/Caddyfile`
 - Backup do Caddyfile anterior à mudança:
@@ -189,6 +189,42 @@ Operação, atualização, homologação e reset documentados em
 `infrastructure/README.md`. A VPS não tem Node/pnpm; nela use
 diretamente `docker compose`.
 
+## Próxima atividade — ajustes após homologação
+
+Começar a próxima conversa lendo este arquivo e os feedbacks
+do cliente. O checkout local deve estar limpo em `main`,
+sincronizado com `origin/main`. Criar uma branch específica
+antes de alterar código.
+
+Fazer os próximos ajustes primeiro apenas localmente. Não
+alterar a VPS, o Caddy nem os dados de homologação sem pedido
+explícito. Para validar:
+
+```
+pnpm test
+pnpm lint
+pnpm test:e2e
+```
+
+Na última validação, `pnpm test`, `pnpm lint`, build da API e
+Compose passaram. `pnpm format:check` ainda aponta 59 arquivos
+antigos fora da FASE 9; não formatar o repositório inteiro como
+efeito colateral de um ajuste pequeno.
+
+Se uma alteração aprovada precisar ser publicada:
+
+1. revisar e testar localmente;
+2. pedir autorização antes de commit/push;
+3. gerar backup na VPS antes de migration;
+4. atualizar `/opt/studioemar` com `git pull --ff-only`;
+5. reconstruir apenas as imagens afetadas e executar
+   `docker compose up -d`;
+6. validar health, HTTPS, CORS e os dois perfis.
+
+As imagens atualmente em execução foram construídas no commit
+`d062228`; os commits posteriores alteram somente documentação
+e já estão no checkout da VPS.
+
 ## Não fazer ainda
 
 - join na lista de espera;
@@ -201,7 +237,6 @@ diretamente `docker compose`.
 ## Pendências
 
 - Sem mailer de recuperação.
-- Mergear a branch `fase-9-vps` após revisão.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.
