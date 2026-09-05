@@ -216,7 +216,8 @@ Se uma alteração aprovada precisar ser publicada:
 1. revisar e testar localmente;
 2. pedir autorização antes de commit/push;
 3. gerar backup na VPS antes de migration;
-4. atualizar `/opt/studioemar` com `git pull --ff-only`;
+4. atualizar `/opt/studioemar` com
+   `git pull --ff-only origin main`;
 5. reconstruir apenas as imagens afetadas e executar
    `docker compose up -d`;
 6. validar health, HTTPS, CORS e os dois perfis.

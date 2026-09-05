@@ -218,7 +218,7 @@ Atualização controlada:
 ```
 cd /opt/studioemar
 bash infrastructure/scripts/backup.sh
-git pull --ff-only
+git pull --ff-only origin main
 docker compose -f infrastructure/docker-compose.prod.yml build api
 docker compose -f infrastructure/docker-compose.prod.yml build web
 docker compose -f infrastructure/docker-compose.prod.yml up -d
