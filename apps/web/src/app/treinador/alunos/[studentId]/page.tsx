@@ -9,11 +9,14 @@ import { useToast } from '@/components/ui/toast';
 import {
   annulCredit,
   getStudent,
+  listOperators,
   listPlans,
   listStudentBookings,
   listStudentCredits,
   listTimeSlots,
+  updateStudentTrainers,
 } from '@/lib/api';
+import { canManageAccess } from '@/lib/auth-routing';
 import { viewsForStudent } from '@/lib/booking-views';
 import { creditSourceLabel, creditStatusLabel } from '@/lib/credit-copy';
 import { clockTime, formatDateLong } from '@/lib/format';
@@ -21,24 +24,34 @@ import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function TreinadorAlunoDetalhePage() {
   const trainer = useTrainer();
   const { studentId } = useParams<{ studentId: string }>();
   const { toast } = useToast();
   const { data, error, loading, reload } = useAsync(async () => {
-    const [student, plans, bookings, credits, timeSlots] = await Promise.all([
+    const [student, plans, bookings, credits, timeSlots, operators] = await Promise.all([
       getStudent(studentId),
       listPlans(),
       listStudentBookings(studentId),
       listStudentCredits(studentId),
       listTimeSlots(),
+      trainer && canManageAccess(trainer.role)
+        ? listOperators()
+        : Promise.resolve([]),
     ]);
-    return { student, plans, bookings, credits, timeSlots };
-  }, [studentId]);
+    return { student, plans, bookings, credits, timeSlots, operators };
+  }, [studentId, trainer?.role]);
   const [annulId, setAnnulId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [trainerIds, setTrainerIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (data?.student) {
+      setTrainerIds(data.student.trainerIds);
+    }
+  }, [data?.student]);
 
   if (!trainer) {
     return null;
@@ -63,7 +76,7 @@ export default function TreinadorAlunoDetalhePage() {
     );
   }
 
-  const { student, plans, bookings, credits, timeSlots } = data;
+  const { student, plans, bookings, credits, timeSlots, operators } = data;
   const plan = plans.find((item) => item.id === student.planId);
   const views = viewsForStudent(bookings, timeSlots, student.id);
   const studentCredits = credits.slice().sort(
@@ -104,6 +117,57 @@ export default function TreinadorAlunoDetalhePage() {
           )}
         </div>
       </section>
+
+      {canManageAccess(trainer.role) ? (
+        <Card className="flex max-w-xl flex-col gap-4 p-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            Professores vinculados
+          </h2>
+          {operators
+            .filter((operator) => operator.isActive)
+            .map((operator) => (
+              <label
+                key={operator.id}
+                className="flex items-center gap-2 text-sm text-foreground"
+              >
+                <input
+                  type="checkbox"
+                  checked={trainerIds.includes(operator.id)}
+                  onChange={(event) =>
+                    setTrainerIds((current) =>
+                      event.target.checked
+                        ? [...current, operator.id]
+                        : current.filter((id) => id !== operator.id),
+                    )
+                  }
+                />
+                {operator.name}
+              </label>
+            ))}
+          <Button
+            variant="cta"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await updateStudentTrainers(student.id, trainerIds);
+                toast('Vínculos atualizados.');
+                reload();
+              } catch (caught) {
+                toast(
+                  caught instanceof Error
+                    ? caught.message
+                    : 'Não foi possível atualizar',
+                );
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Salvar vínculos
+          </Button>
+        </Card>
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-xl font-semibold text-foreground">Agenda</h2>

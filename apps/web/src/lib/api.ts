@@ -18,6 +18,7 @@ import {
   type BookingParticipant,
   type Cancellation,
   type CreateStudentRequest,
+  type CreateOperatorRequest,
   type CreateStudioClosureRequest,
   type Credit,
   type FirstAccessRequest,
@@ -29,6 +30,7 @@ import {
   type StudioClosure,
   type TimeSlot,
   type User,
+  type UpdateOperatorRequest,
   type WaitlistEntry,
 } from '@studioemar/shared';
 import { z } from 'zod';
@@ -169,6 +171,35 @@ export function listStudents(): Promise<User[]> {
 export function createStudent(body: CreateStudentRequest): Promise<User> {
   return apiRequest('/students', { method: 'POST', body }).then((data) =>
     userSchema.parse(data),
+  );
+}
+
+export function updateStudentTrainers(
+  id: string,
+  trainerIds: string[],
+): Promise<User> {
+  return apiRequest(`/students/${id}/trainers`, {
+    method: 'PUT',
+    body: { trainerIds },
+  }).then((data) => userSchema.parse(data));
+}
+
+export function listOperators(): Promise<User[]> {
+  return apiRequest('/operators').then((data) => usersSchema.parse(data));
+}
+
+export function createOperator(body: CreateOperatorRequest): Promise<User> {
+  return apiRequest('/operators', { method: 'POST', body }).then((data) =>
+    userSchema.parse(data),
+  );
+}
+
+export function updateOperator(
+  id: string,
+  body: UpdateOperatorRequest,
+): Promise<User> {
+  return apiRequest(`/operators/${id}`, { method: 'PATCH', body }).then(
+    (data) => userSchema.parse(data),
   );
 }
 

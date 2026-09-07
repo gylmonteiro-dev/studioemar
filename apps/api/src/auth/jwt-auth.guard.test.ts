@@ -36,22 +36,22 @@ function guard(isPublic = false): JwtAuthGuard {
 }
 
 describe('JwtAuthGuard', () => {
-  it('libera rota pública', () => {
-    assert.equal(guard(true).canActivate(contextWith().context), true);
+  it('libera rota pública', async () => {
+    assert.equal(await guard(true).canActivate(contextWith().context), true);
   });
 
-  it('recusa ausência de Bearer', () => {
-    assert.throws(
+  it('recusa ausência de Bearer', async () => {
+    await assert.rejects(
       () => guard().canActivate(contextWith().context),
       UnauthorizedException,
     );
-    assert.throws(
+    await assert.rejects(
       () => guard().canActivate(contextWith('Token abc').context),
       UnauthorizedException,
     );
   });
 
-  it('aceita access token e preenche request.user', () => {
+  it('aceita access token e preenche request.user', async () => {
     const previous = process.env.JWT_SECRET;
     process.env.JWT_SECRET = SECRET;
     try {
@@ -66,7 +66,7 @@ describe('JwtAuthGuard', () => {
         { secret: SECRET },
       );
       const { context, request } = contextWith(`Bearer ${token}`);
-      assert.equal(guard().canActivate(context), true);
+      assert.equal(await guard().canActivate(context), true);
       const user = request.user as { id: string; role: string } | undefined;
       assert.equal(user?.id, 'user-joao');
       assert.equal(user?.role, 'STUDENT');
@@ -75,7 +75,7 @@ describe('JwtAuthGuard', () => {
     }
   });
 
-  it('recusa refresh token no Authorization', () => {
+  it('recusa refresh token no Authorization', async () => {
     const previous = process.env.JWT_SECRET;
     process.env.JWT_SECRET = SECRET;
     try {
@@ -84,7 +84,7 @@ describe('JwtAuthGuard', () => {
         { sub: 'user-joao', typ: 'refresh' },
         { secret: SECRET },
       );
-      assert.throws(
+      await assert.rejects(
         () => guard().canActivate(contextWith(`Bearer ${token}`).context),
         UnauthorizedException,
       );

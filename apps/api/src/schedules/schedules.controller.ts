@@ -28,28 +28,28 @@ export class SchedulesController {
 
   @Get('time-slots')
   @ApiOperation({ summary: 'Horários e vagas' })
-  listTimeSlots() {
-    return this.schedules.listTimeSlots();
+  listTimeSlots(@CurrentUser() user: AuthUser) {
+    return this.schedules.listTimeSlots(user);
   }
 
   @Get('time-slots/:id')
   @ApiOperation({ summary: 'Detalhe do horário' })
-  getTimeSlot(@Param('id') id: string) {
-    return this.schedules.getTimeSlot(id);
+  getTimeSlot(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.schedules.getTimeSlot(id, user);
   }
 
   @Get('time-slots/:id/bookings')
   @Roles('TRAINER')
   @ApiOperation({ summary: 'Participantes do horário (treinador)' })
-  listSlotBookings(@Param('id') id: string) {
-    return this.schedules.listSlotBookings(id);
+  listSlotBookings(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.schedules.listSlotBookings(id, user);
   }
 
   @Get('time-slots/:id/waitlist')
   @Roles('TRAINER')
   @ApiOperation({ summary: 'Lista de espera FIFO (treinador)' })
-  listWaitlist(@Param('id') id: string) {
-    return this.schedules.listWaitlist(id);
+  listWaitlist(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.schedules.listWaitlist(id, user);
   }
 
   @Get('recurring-slots')
@@ -60,7 +60,7 @@ export class SchedulesController {
   }
 
   @Post('recurring-slots')
-  @Roles('TRAINER')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Incluir horário recorrente' })
   addRecurring(
     @Body(new ZodValidationPipe(addRecurringSlotRequestSchema))
@@ -71,21 +71,21 @@ export class SchedulesController {
 
   @Delete('recurring-slots/:id')
   @HttpCode(204)
-  @Roles('TRAINER')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Remover horário recorrente' })
   async removeRecurring(@Param('id') id: string) {
     await this.schedules.removeRecurringSlot(id);
   }
 
   @Get('closures')
-  @Roles('TRAINER')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Fechamentos do Studio' })
   listClosures() {
     return this.schedules.listClosures();
   }
 
   @Post('closures')
-  @Roles('TRAINER')
+  @Roles('ADMIN')
   @ApiOperation({ summary: 'Informar fechamento (RN-014 / RN-019)' })
   createClosure(
     @Body(new ZodValidationPipe(createStudioClosureRequestSchema))

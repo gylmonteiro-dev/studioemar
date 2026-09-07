@@ -5,8 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { RedeemCreditRequest } from '@studioemar/shared';
+import type { AuthUser } from '../auth/auth.types';
 import { Clock } from '../common/clock';
 import { toBooking, toCredit } from '../common/mappers';
+import { StudentAccessService } from '../common/student-access.service';
 import { applySeatChange, isSlotBookable } from '../domain/slot-occupancy';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -15,6 +17,7 @@ export class CreditsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
+    private readonly access?: StudentAccessService,
   ) {}
 
   async expireStale(studentId?: string): Promise<void> {
@@ -38,9 +41,12 @@ export class CreditsService {
     return credits.map(toCredit);
   }
 
-  async listAll() {
+  async listAll(actor?: AuthUser) {
     await this.expireStale();
     const credits = await this.prisma.credit.findMany({
+      where: actor && this.access
+        ? { student: { is: this.access.whereFor(actor) } }
+        : undefined,
       orderBy: { generatedAt: 'desc' },
     });
     return credits.map(toCredit);
@@ -115,7 +121,7 @@ export class CreditsService {
     });
   }
 
-  async annul(creditId: string, trainerId: string) {
+  async annul(creditId: string, actor: AuthUser | string) {
     await this.expireStale();
     const now = this.clock.now();
     const credit = await this.prisma.credit.findUnique({
@@ -124,6 +130,10 @@ export class CreditsService {
     if (!credit || credit.status !== 'AVAILABLE') {
       throw new ConflictException('Crédito não pode ser anulado');
     }
+    if (typeof actor !== 'string' && this.access) {
+      await this.access.assertCanAccess(actor, credit.studentId);
+    }
+    const trainerId = typeof actor === 'string' ? actor : actor.id;
 
     const updated = await this.prisma.credit.update({
       where: { id: creditId },

@@ -5,16 +5,9 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { UserRole } from '@studioemar/shared';
+import { canActAsRole, type UserRole } from '@studioemar/shared';
 import { ROLES_KEY } from '../common/roles.decorator';
 import type { AuthUser } from './auth.types';
-
-function canActAs(role: UserRole, allowed: UserRole[]): boolean {
-  if (allowed.includes(role)) {
-    return true;
-  }
-  return role === 'ADMIN' && allowed.includes('TRAINER');
-}
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -31,7 +24,7 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<{ user?: AuthUser }>();
     const user = request.user;
-    if (!user || !canActAs(user.role, allowed)) {
+    if (!user || !canActAsRole(user.role, allowed)) {
       throw new ForbiddenException('Sem permissão');
     }
     return true;

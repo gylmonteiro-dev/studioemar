@@ -6,4 +6,8 @@ export {
   creditExpiresAt,
   isCancellationEligibleForCredit,
 } from './rules/credit-policy.js';
+export {
+  canActAsRole,
+  isOperatorRole,
+} from './rules/access-policy.js';
 export * from './schemas/index.js';

@@ -9,6 +9,7 @@ import {
   type AddRecurringSlotRequest,
   type CreateStudioClosureRequest,
 } from '@studioemar/shared';
+import type { AuthUser } from '../auth/auth.types';
 import { calendarDate, dateInRange } from '../common/calendar-date';
 import { Clock } from '../common/clock';
 import {
@@ -29,23 +30,29 @@ export class SchedulesService {
     private readonly clock: Clock,
   ) {}
 
-  async listTimeSlots() {
+  async listTimeSlots(actor?: AuthUser) {
     const slots = await this.prisma.timeSlot.findMany({
+      where: actor?.role === 'TRAINER' ? { trainerId: actor.id } : undefined,
       orderBy: { startsAt: 'asc' },
     });
     return slots.map(toTimeSlot);
   }
 
-  async getTimeSlot(id: string) {
-    const slot = await this.prisma.timeSlot.findUnique({ where: { id } });
+  async getTimeSlot(id: string, actor?: AuthUser) {
+    const slot =
+      actor?.role === 'TRAINER'
+        ? await this.prisma.timeSlot.findFirst({
+            where: { id, trainerId: actor.id },
+          })
+        : await this.prisma.timeSlot.findUnique({ where: { id } });
     if (!slot) {
       throw new NotFoundException('Horário não encontrado');
     }
     return toTimeSlot(slot);
   }
 
-  async listSlotBookings(timeSlotId: string) {
-    await this.getTimeSlot(timeSlotId);
+  async listSlotBookings(timeSlotId: string, actor?: AuthUser) {
+    await this.getTimeSlot(timeSlotId, actor);
     const bookings = await this.prisma.booking.findMany({
       where: { timeSlotId },
       include: { student: true },
@@ -59,8 +66,8 @@ export class SchedulesService {
     );
   }
 
-  async listWaitlist(timeSlotId: string) {
-    await this.getTimeSlot(timeSlotId);
+  async listWaitlist(timeSlotId: string, actor?: AuthUser) {
+    await this.getTimeSlot(timeSlotId, actor);
     const entries = await this.prisma.waitlistEntry.findMany({
       where: { timeSlotId, status: 'WAITING' },
       orderBy: { position: 'asc' },

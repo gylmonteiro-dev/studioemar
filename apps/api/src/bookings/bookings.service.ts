@@ -6,10 +6,12 @@ import {
 } from '@nestjs/common';
 import {
   creditExpiresAt,
+  isOperatorRole,
   isCancellationEligibleForCredit,
 } from '@studioemar/shared';
 import { Clock } from '../common/clock';
 import { toBooking, toCancellation } from '../common/mappers';
+import { StudentAccessService } from '../common/student-access.service';
 import { applySeatChange } from '../domain/slot-occupancy';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth.types';
@@ -19,6 +21,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
+    private readonly access?: StudentAccessService,
   ) {}
 
   async listMine(studentId: string) {
@@ -32,7 +35,7 @@ export class BookingsService {
 
   async cancel(bookingId: string, actor: AuthUser) {
     const now = this.clock.now();
-    const isTrainer = actor.role === 'TRAINER' || actor.role === 'ADMIN';
+    const isTrainer = isOperatorRole(actor.role);
 
     return this.prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
@@ -44,6 +47,9 @@ export class BookingsService {
       }
       if (!isTrainer && booking.studentId !== actor.id) {
         throw new ForbiddenException('Sem permissão');
+      }
+      if (actor.role === 'TRAINER' && this.access) {
+        await this.access.assertCanAccess(actor, booking.studentId);
       }
       if (booking.status !== 'CONFIRMED' || booking.cancellation) {
         throw new ConflictException('Reserva não pode ser cancelada');

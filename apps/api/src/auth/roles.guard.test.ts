@@ -40,6 +40,11 @@ const admin: AuthUser = {
   email: 'admin@studioemar.local',
   role: 'ADMIN',
 };
+const superadmin: AuthUser = {
+  id: 'user-superadmin',
+  email: 'superadmin@studioemar.local',
+  role: 'SUPERADMIN',
+};
 
 describe('RolesGuard', () => {
   it('libera rota sem @Roles', () => {
@@ -55,10 +60,30 @@ describe('RolesGuard', () => {
     );
   });
 
-  it('libera treinador e ADMIN na rota TRAINER (ADR-009)', () => {
+  it('herda TRAINER para ADMIN e SUPERADMIN', () => {
     const guard = guardFor(['TRAINER']);
     assert.equal(guard.canActivate(contextWith(trainer)), true);
     assert.equal(guard.canActivate(contextWith(admin)), true);
+    assert.equal(guard.canActivate(contextWith(superadmin)), true);
+  });
+
+  it('reserva ADMIN para proprietário e superadmin', () => {
+    const guard = guardFor(['ADMIN']);
+    assert.throws(
+      () => guard.canActivate(contextWith(trainer)),
+      ForbiddenException,
+    );
+    assert.equal(guard.canActivate(contextWith(admin)), true);
+    assert.equal(guard.canActivate(contextWith(superadmin)), true);
+  });
+
+  it('reserva SUPERADMIN ao administrador do sistema', () => {
+    const guard = guardFor(['SUPERADMIN']);
+    assert.throws(
+      () => guard.canActivate(contextWith(admin)),
+      ForbiddenException,
+    );
+    assert.equal(guard.canActivate(contextWith(superadmin)), true);
   });
 
   it('bloqueia treinador em rota só de aluno', () => {

@@ -40,7 +40,7 @@ export class AuthService {
 
   async login(input: LoginRequest): Promise<AuthSession> {
     const user = await this.findByEmail(input.email);
-    if (!user || user.mustSetPassword || !user.passwordHash) {
+    if (!user || !user.isActive || user.mustSetPassword || !user.passwordHash) {
       if (user?.mustSetPassword) {
         throw new UnauthorizedException({
           code: 'MUST_SET_PASSWORD',
@@ -60,7 +60,7 @@ export class AuthService {
 
   async firstAccess(input: FirstAccessRequest): Promise<AuthSession> {
     const user = await this.findByEmail(input.email);
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedException(
         'Conta não encontrada. Fale com o Studio.',
       );
@@ -84,7 +84,7 @@ export class AuthService {
 
   async recover(input: RecoverRequest): Promise<{ ok: true }> {
     const user = await this.findByEmail(input.email);
-    if (user) {
+    if (user?.isActive) {
       const token = randomBytes(32).toString('hex');
       await this.prisma.user.update({
         where: { id: user.id },
@@ -106,6 +106,7 @@ export class AuthService {
       where: {
         passwordResetTokenHash: tokenHash,
         passwordResetExpiresAt: { gt: new Date() },
+        isActive: true,
       },
     });
     if (!user) {
@@ -141,7 +142,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
-    if (!user || user.mustSetPassword) {
+    if (!user || !user.isActive || user.mustSetPassword) {
       throw new UnauthorizedException('Sessão inválida');
     }
     return this.issueSession(user);
@@ -149,7 +150,7 @@ export class AuthService {
 
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('Sessão inválida');
     }
     return toUser(user);
@@ -168,6 +169,7 @@ export class AuthService {
     name: string;
     planId: string | null;
     mustSetPassword: boolean;
+    isActive: boolean;
     passwordHash?: string | null;
   }): AuthSession {
     const accessToken = this.jwt.sign(

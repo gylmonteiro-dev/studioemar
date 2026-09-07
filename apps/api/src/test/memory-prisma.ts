@@ -4,9 +4,10 @@ export type MemoryUser = {
   id: string;
   name: string;
   email: string;
-  role: 'STUDENT' | 'TRAINER' | 'ADMIN';
+  role: 'STUDENT' | 'TRAINER' | 'ADMIN' | 'SUPERADMIN';
   planId: string | null;
   mustSetPassword: boolean;
+  isActive?: boolean;
   passwordHash: string | null;
 };
 

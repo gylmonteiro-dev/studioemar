@@ -3,14 +3,16 @@ import { describe, it } from 'node:test';
 import { homePathForRole, isTrainerRole } from './auth-routing';
 
 describe('auth-routing', () => {
-  it('manda aluno para /aluno e treinador/admin para /treinador', () => {
+  it('manda aluno para /aluno e operadores para /treinador', () => {
     assert.equal(homePathForRole('STUDENT'), '/aluno');
     assert.equal(homePathForRole('TRAINER'), '/treinador');
     assert.equal(homePathForRole('ADMIN'), '/treinador');
+    assert.equal(homePathForRole('SUPERADMIN'), '/treinador');
   });
 
-  it('trata ADMIN como treinador no início (ADR-009)', () => {
+  it('trata toda a hierarquia de operadores como treinador', () => {
     assert.equal(isTrainerRole('ADMIN'), true);
+    assert.equal(isTrainerRole('SUPERADMIN'), true);
     assert.equal(isTrainerRole('TRAINER'), true);
     assert.equal(isTrainerRole('STUDENT'), false);
   });

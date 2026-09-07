@@ -26,8 +26,8 @@ export class CreditsController {
   @Get('credits')
   @Roles('TRAINER')
   @ApiOperation({ summary: 'Todos os créditos (treinador)' })
-  listAll() {
-    return this.credits.listAll();
+  listAll(@CurrentUser() user: AuthUser) {
+    return this.credits.listAll(user);
   }
 
   @Post('credits/:id/redemptions')
@@ -47,6 +47,6 @@ export class CreditsController {
   @Roles('TRAINER')
   @ApiOperation({ summary: 'Anular crédito (RN-018)' })
   annul(@Param('id') id: string, @CurrentUser() user: AuthUser) {
-    return this.credits.annul(id, user.id);
+    return this.credits.annul(id, user);
   }
 }

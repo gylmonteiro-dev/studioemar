@@ -6,6 +6,7 @@ import {
   mockPlan,
   mockRecurringSlots,
   mockStudioClosure,
+  mockStudentTrainers,
   mockTimeSlots,
   mockUsers,
   mockWaitlistEntry,
@@ -35,6 +36,7 @@ export function buildDemoUsers(options: DemoSeedOptions) {
       role: user.role,
       planId: user.planId,
       mustSetPassword,
+      isActive: true,
       passwordHash:
         override?.passwordHash ??
         (mustSetPassword ? null : options.defaultPasswordHash),
@@ -54,6 +56,7 @@ export async function replaceWithDemoData(
   await prisma.studioClosure.deleteMany();
   await prisma.timeSlot.deleteMany();
   await prisma.recurringSlot.deleteMany();
+  await prisma.studentTrainer.deleteMany();
   await prisma.user.deleteMany();
   await prisma.plan.deleteMany();
 
@@ -66,6 +69,8 @@ export async function replaceWithDemoData(
   });
 
   await prisma.user.createMany({ data: buildDemoUsers(options) });
+
+  await prisma.studentTrainer.createMany({ data: [...mockStudentTrainers] });
 
   await prisma.recurringSlot.createMany({
     data: mockRecurringSlots.map((slot) => ({

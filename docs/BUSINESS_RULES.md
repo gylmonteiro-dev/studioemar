@@ -250,6 +250,30 @@ O aluno pode recuperar a senha.
 
 ---
 
+## RN-023 — Hierarquia de acesso
+
+Status: ACEITO
+
+SUPERADMIN herda todas as permissões de ADMIN. ADMIN herda as
+permissões de TRAINER. As permissões pessoais de STUDENT não são
+herdadas pelos operadores.
+
+SUPERADMIN gerencia contas e papéis de ADMIN e TRAINER.
+
+---
+
+## RN-024 — Vínculo entre aluno e treinador
+
+Status: ACEITO
+
+Um aluno pode possuir vários treinadores vinculados. O treinador
+acessa os alunos vinculados e também os alunos com reserva em uma
+aula ministrada por ele.
+
+ADMIN e SUPERADMIN acessam todos os alunos.
+
+---
+
 # REGRAS PENDENTES
 
 Nenhuma pendência crítica de cancelamento ou crédito permanece

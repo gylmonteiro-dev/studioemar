@@ -37,8 +37,15 @@ function dateOnly(value: Date): string {
 export function toUser(
   row: Pick<
     PrismaUser,
-    'id' | 'name' | 'email' | 'role' | 'planId' | 'mustSetPassword'
+    | 'id'
+    | 'name'
+    | 'email'
+    | 'role'
+    | 'planId'
+    | 'mustSetPassword'
+    | 'isActive'
   >,
+  trainerIds: string[] = [],
 ): User {
   return userSchema.parse({
     id: row.id,
@@ -46,7 +53,9 @@ export function toUser(
     email: row.email,
     role: row.role,
     ...(row.planId ? { planId: row.planId } : {}),
+    trainerIds,
     mustSetPassword: row.mustSetPassword,
+    isActive: row.isActive,
   });
 }
 

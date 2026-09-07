@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { PageLoadState } from '@/components/ui/load-state';
 import { SelectField } from '@/components/ui/select-field';
 import { useToast } from '@/components/ui/toast';
-import { createStudent, listPlans } from '@/lib/api';
+import { createStudent, listOperators, listPlans } from '@/lib/api';
+import { canManageAccess } from '@/lib/auth-routing';
+import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -18,13 +20,21 @@ const schema = z.object({
   name: z.string().min(1, 'Informe o nome'),
   email: z.string().email('Informe um e-mail válido'),
   planId: z.string().min(1, 'Escolha o plano'),
+  trainerIds: z.array(z.string()).default([]),
 });
 type Values = z.infer<typeof schema>;
 
 export default function NovoAlunoPage() {
   const router = useRouter();
+  const actor = useTrainer();
   const { toast } = useToast();
-  const { data: plans, error, loading } = useAsync(listPlans, []);
+  const { data, error, loading } = useAsync(async () => {
+    const [plans, operators] = await Promise.all([
+      listPlans(),
+      actor && canManageAccess(actor.role) ? listOperators() : Promise.resolve([]),
+    ]);
+    return { plans, operators };
+  }, [actor?.role]);
   const {
     register,
     handleSubmit,
@@ -33,14 +43,14 @@ export default function NovoAlunoPage() {
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { planId: '' },
+    defaultValues: { planId: '', trainerIds: [] },
   });
 
   useEffect(() => {
-    if (plans?.[0]?.id) {
-      setValue('planId', plans[0].id);
+    if (data?.plans[0]?.id) {
+      setValue('planId', data.plans[0].id);
     }
-  }, [plans, setValue]);
+  }, [data, setValue]);
 
   async function onSubmit(values: Values) {
     try {
@@ -74,12 +84,34 @@ export default function NovoAlunoPage() {
             {...register('email')}
           />
           <SelectField label="Plano" error={errors.planId?.message} {...register('planId')}>
-            {(plans ?? []).map((plan) => (
+            {(data?.plans ?? []).map((plan) => (
               <option key={plan.id} value={plan.id}>
                 {plan.name}
               </option>
             ))}
           </SelectField>
+          {actor && canManageAccess(actor.role) ? (
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-2 text-sm font-medium text-foreground">
+                Professores vinculados
+              </legend>
+              {(data?.operators ?? [])
+                .filter((operator) => operator.isActive)
+                .map((operator) => (
+                  <label
+                    key={operator.id}
+                    className="flex items-center gap-2 text-sm text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      value={operator.id}
+                      {...register('trainerIds')}
+                    />
+                    {operator.name}
+                  </label>
+                ))}
+            </fieldset>
+          ) : null}
           <div className="flex gap-3">
             <Button
               variant="ghost"

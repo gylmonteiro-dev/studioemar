@@ -48,7 +48,7 @@ export default function TreinadorLayout({ children }: { children: ReactNode }) {
 
   return (
     <TrainerProvider trainer={trainer}>
-      <TrainerShell trainerName={trainer.name}>{children}</TrainerShell>
+      <TrainerShell user={trainer}>{children}</TrainerShell>
     </TrainerProvider>
   );
 }
