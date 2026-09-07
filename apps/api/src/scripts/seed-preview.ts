@@ -22,9 +22,18 @@ async function main(): Promise<void> {
     process.env.PREVIEW_TRAINER_EMAIL ?? 'elissandro@mail.com'
   ).toLowerCase();
   const trainerPassword = strongTemporaryPassword();
+  const ownerPassword = strongTemporaryPassword();
+  const superadminPassword = strongTemporaryPassword();
   const studentPassword = strongTemporaryPassword();
-  const [trainerPasswordHash, studentPasswordHash] = await Promise.all([
+  const [
+    trainerPasswordHash,
+    ownerPasswordHash,
+    superadminPasswordHash,
+    studentPasswordHash,
+  ] = await Promise.all([
     hash(trainerPassword, 10),
+    hash(ownerPassword, 10),
+    hash(superadminPassword, 10),
     hash(studentPassword, 10),
   ]);
 
@@ -41,11 +50,23 @@ async function main(): Promise<void> {
         mustSetPassword: false,
         passwordHash: trainerPasswordHash,
       },
+      'user-owner': {
+        mustSetPassword: false,
+        passwordHash: ownerPasswordHash,
+      },
+      'user-superadmin': {
+        mustSetPassword: false,
+        passwordHash: superadminPasswordHash,
+      },
     },
   });
 
   console.log('Homologação carregada. Guarde estas credenciais agora:');
   console.log(`Treinador: ${trainerEmail} / ${trainerPassword}`);
+  console.log(`Proprietário: marina@studioemar.local / ${ownerPassword}`);
+  console.log(
+    `Administrador: admin@studioemar.local / ${superadminPassword}`,
+  );
   console.log(
     `Alunos: joao@studioemar.local e ana@studioemar.local / ${studentPassword}`,
   );

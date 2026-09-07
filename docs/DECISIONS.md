@@ -163,17 +163,23 @@ Motivos:
 
 ---
 
-## ADR-009 — TRAINER e ADMIN no início
+## ADR-009 — Hierarquia de operadores
 
 Status: ACEITO
 
 Decisão:
 
-No início, TRAINER e ADMIN são o mesmo operador (dono /
-professor do Studio).
+Cada conta possui um papel principal. A herança entre operadores é:
 
-Os dois papéis permanecem no enum para evolução futura.
-A FASE 2 usa somente STUDENT.
+`SUPERADMIN → ADMIN → TRAINER`.
+
+SUPERADMIN executa todas as operações do proprietário (ADMIN) e
+gerencia contas e papéis de ADMIN e TRAINER. ADMIN herda as
+permissões operacionais de TRAINER. STUDENT não participa dessa
+herança e mantém endpoints pessoais exclusivos.
+
+Alunos podem ter vários treinadores vinculados. Um TRAINER também
+pode acessar o aluno quando ministra uma aula reservada por ele.
 
 ---
 

@@ -11,6 +11,7 @@ enum UserRole {
   STUDENT
   TRAINER
   ADMIN
+  SUPERADMIN
 }
 
 enum Weekday {
@@ -73,23 +74,37 @@ model Plan {
 }
 
 model User {
-  id              String   @id @default(cuid())
-  name            String
-  email           String   @unique
-  role            UserRole
-  planId          String?
-  plan            Plan?    @relation(fields: [planId], references: [id], onDelete: Restrict)
-  mustSetPassword         Boolean   @default(false)
-  passwordHash            String?
-  passwordResetTokenHash  String?
-  passwordResetExpiresAt  DateTime?
+  id                     String    @id @default(cuid())
+  name                   String
+  email                  String    @unique
+  role                   UserRole
+  planId                 String?
+  plan                   Plan?     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  mustSetPassword        Boolean   @default(false)
+  isActive               Boolean   @default(true)
+  passwordHash           String?
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
 
-  trainedSlots    TimeSlot[]      @relation("TimeSlotTrainer")
-  bookings        Booking[]       @relation("BookingStudent")
-  waitlistEntries WaitlistEntry[] @relation("WaitlistStudent")
-  credits         Credit[]        @relation("CreditStudent")
-  createdClosures StudioClosure[] @relation("ClosureCreatedBy")
-  annulledCredits Credit[]        @relation("CreditAnnulledBy")
+  trainedSlots        TimeSlot[]       @relation("TimeSlotTrainer")
+  bookings            Booking[]        @relation("BookingStudent")
+  waitlistEntries     WaitlistEntry[]  @relation("WaitlistStudent")
+  credits             Credit[]         @relation("CreditStudent")
+  createdClosures     StudioClosure[]  @relation("ClosureCreatedBy")
+  annulledCredits     Credit[]         @relation("CreditAnnulledBy")
+  studentTrainerLinks StudentTrainer[] @relation("StudentTrainerStudent")
+  trainerStudentLinks StudentTrainer[] @relation("StudentTrainerTrainer")
+}
+
+model StudentTrainer {
+  studentId String
+  student   User     @relation("StudentTrainerStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  trainerId String
+  trainer   User     @relation("StudentTrainerTrainer", fields: [trainerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([studentId, trainerId])
+  @@index([trainerId])
 }
 
 model RecurringSlot {

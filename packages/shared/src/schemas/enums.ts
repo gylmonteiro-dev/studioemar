@@ -1,7 +1,15 @@
 import { z } from 'zod';
 
-export const userRoleSchema = z.enum(['STUDENT', 'TRAINER', 'ADMIN']);
+export const userRoleSchema = z.enum([
+  'STUDENT',
+  'TRAINER',
+  'ADMIN',
+  'SUPERADMIN',
+]);
 export type UserRole = z.infer<typeof userRoleSchema>;
+
+export const operatorRoleSchema = z.enum(['TRAINER', 'ADMIN']);
+export type OperatorRole = z.infer<typeof operatorRoleSchema>;
 
 export const weekdaySchema = z.enum([
   'MON',

@@ -51,11 +51,32 @@ export const mockTrainer: User = userSchema.parse({
   role: 'TRAINER',
 });
 
+export const mockAdmin: User = userSchema.parse({
+  id: 'user-owner',
+  name: 'Marina',
+  email: 'marina@studioemar.local',
+  role: 'ADMIN',
+});
+
+export const mockSuperadmin: User = userSchema.parse({
+  id: 'user-superadmin',
+  name: 'Administrador',
+  email: 'admin@studioemar.local',
+  role: 'SUPERADMIN',
+});
+
 export const mockUsers: User[] = [
   mockStudent,
   mockFirstAccessStudent,
   mockTrainer,
+  mockAdmin,
+  mockSuperadmin,
 ];
+
+export const mockStudentTrainers = [
+  { studentId: mockStudent.id, trainerId: mockTrainer.id },
+  { studentId: mockFirstAccessStudent.id, trainerId: mockTrainer.id },
+] as const;
 
 export const mockPlan: Plan = planSchema.parse({
   id: 'plan-3x',

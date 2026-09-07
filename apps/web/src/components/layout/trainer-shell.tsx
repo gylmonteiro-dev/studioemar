@@ -10,13 +10,14 @@ import { Button } from '@/components/ui/button';
 import { clearSession } from '@/lib/session';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+import type { User } from '@studioemar/shared';
 
 type TrainerShellProps = {
-  trainerName: string;
+  user: User;
   children: ReactNode;
 };
 
-export function TrainerShell({ trainerName, children }: TrainerShellProps) {
+export function TrainerShell({ user, children }: TrainerShellProps) {
   const router = useRouter();
 
   return (
@@ -39,9 +40,9 @@ export function TrainerShell({ trainerName, children }: TrainerShellProps) {
           </div>
         }
       />
-      <TrainerDesktopSidebar trainerName={trainerName} />
+      <TrainerDesktopSidebar user={user} />
       <div className="pt-16 lg:ml-64">{children}</div>
-      <TrainerMobileNavigation />
+      <TrainerMobileNavigation user={user} />
     </div>
   );
 }

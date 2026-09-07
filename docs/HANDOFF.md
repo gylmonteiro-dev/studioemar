@@ -5,30 +5,38 @@
 FASE 0 a 9 concluídas e mergeadas em main. A homologação
 está publicada e disponível para feedback do cliente.
 
-Frontend aluno e treinador em apps/web contra a API Nest.
-JWT no sessionStorage (ADR-015). GET /dashboard no Nest.
-A stack está publicada na VPS e disponível por HTTPS.
+Os ajustes de hierarquia de acesso e vínculo de treinadores foram
+implementados apenas localmente na branch
+`docs/alinhar-handoff-main`, ainda sem commit, push ou deploy.
+A VPS continua executando a versão anterior a esses ajustes.
 
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
 
-RN-017 a RN-022 aceitas. TRAINER e ADMIN são o mesmo
-operador no início (ADR-009). Prisma em apps/api;
-passwordHash só no banco (ADR-013). JWT no JSON (ADR-014).
-Sessão web: ADR-015.
+RN-017 a RN-024 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
+e STUDENT. SUPERADMIN herda ADMIN e TRAINER; ADMIN herda
+TRAINER; STUDENT permanece isolado (ADR-009). Prisma em
+apps/api; passwordHash só no banco (ADR-013). JWT no JSON
+(ADR-014). Sessão web: ADR-015.
 
 ## Já disponível
 
 - Telas aluno e treinador contra a API (sem `mock-api.ts`)
 - Cliente `apps/web/src/lib/api-client.ts` (Bearer + refresh
   em 401)
-- Contrato Zod + OpenAPI (auth, students, schedules,
+- Contrato Zod + OpenAPI (auth, students, operators, schedules,
   bookings, credits, dashboard)
-- ER em docs/DOMAIN.md (9 tabelas)
+- Prisma com vínculo N:N `StudentTrainer`; o ER em
+  docs/DOMAIN.md ainda precisa refletir essa décima tabela
 - Prisma schema, migrations e seed
 - Compose só do banco: infrastructure/docker-compose.dev.yml
-- Nest: auth, students, schedules, bookings, credits,
+- Nest: auth, students, operators, schedules, bookings, credits,
   dashboard
+- Controle de acessos em `/treinador/acessos`
+- TRAINER vê alunos vinculados ou com reserva em aula ministrada
+  por ele; ADMIN e SUPERADMIN mantêm visão global
+- Configuração global de recorrência e fechamentos restrita a
+  ADMIN/SUPERADMIN
 - Swagger: http://localhost:3001/docs
 - GET /health intacto
 - Testes: `pnpm test` (shared + API + web unitário)
@@ -51,8 +59,8 @@ A porta 5434 evita conflito com Postgres já instalado
 na máquina. O container agora é `studio-postgres-dev`,
 para não colidir com o `studio-postgres` de produção.
 
-Seed: João e Carlos com senha `studioemar`;
-Ana em primeiro acesso (`passwordHash` null);
+Seed: João, Carlos, Marina e Administrador com senha
+`studioemar`; Ana em primeiro acesso (`passwordHash` null);
 créditos nas 3 origens; fechamento sem crédito;
 waitlist FIFO no slot lotado.
 
@@ -75,11 +83,13 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 Alinhar `NEXT_PUBLIC_CLOCK_NOW` com `CLOCK_NOW` na demo
 RN-012 (preview de crédito no cancelamento).
 
-http://localhost:3000 — senha `studioemar` (João e Carlos).
+http://localhost:3000 — senha `studioemar`:
 
 - João: joao@studioemar.local / studioemar
 - Ana (1º acesso): ana@studioemar.local
 - Carlos: carlos@studioemar.local / studioemar
+- Marina (ADMIN/proprietária): marina@studioemar.local / studioemar
+- Administrador (SUPERADMIN): admin@studioemar.local / studioemar
 - Cancelar `booking-hoje-sem-credito` = sem crédito
 - Cancelar `booking-seg-com-credito` = com crédito
 - Swagger: http://localhost:3001/docs
@@ -90,6 +100,10 @@ Sessão: access + refresh em `sessionStorage`
 Se a :3000 falhar com `.next` (ENOENT), reiniciar
 `pnpm dev:web`. Se a :3001 estiver com processo antigo,
 reiniciar a API.
+
+Não manter mais de um `next dev` no mesmo checkout. Encerrar
+`pnpm dev:web` antes de `pnpm build:web` ou `pnpm test:e2e`,
+pois esses processos compartilham o cache `.next`.
 
 ## Testes (FASE 7)
 
@@ -110,7 +124,8 @@ Cobertura:
 - Créditos RN-007 a RN-010, RN-013, RN-018 a RN-020
 - Capacidade RN-008
 - Conflitos (e-mail, horário recorrente, já inscrito)
-- Permissões (RolesGuard, JWT, rotas aluno/treinador)
+- Permissões (hierarquia dos quatro papéis, escopo do treinador,
+  prevenção de escalada e rotas aluno/operador)
 - Responsividade 390 / 768 / 1024 / 1440
 - Fluxos: login, cancelar, dashboard, horários sem nomes
 - Contrato Zod × docs/openapi.yaml
@@ -189,12 +204,12 @@ Operação, atualização, homologação e reset documentados em
 `infrastructure/README.md`. A VPS não tem Node/pnpm; nela use
 diretamente `docker compose`.
 
-## Próxima atividade — ajustes após homologação
+## Ajustes locais após homologação
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
-do cliente. O checkout local deve estar limpo em `main`,
-sincronizado com `origin/main`. Criar uma branch específica
-antes de alterar código.
+do cliente. O checkout atual está na branch
+`docs/alinhar-handoff-main`, baseada em `5036fdb`, com toda a
+hierarquia de acesso ainda como alteração não commitada.
 
 Fazer os próximos ajustes primeiro apenas localmente. Não
 alterar a VPS, o Caddy nem os dados de homologação sem pedido
@@ -203,13 +218,21 @@ explícito. Para validar:
 ```
 pnpm test
 pnpm lint
+pnpm build:api
+pnpm build:web
 pnpm test:e2e
 ```
 
-Na última validação, `pnpm test`, `pnpm lint`, build da API e
-Compose passaram. `pnpm format:check` ainda aponta 59 arquivos
-antigos fora da FASE 9; não formatar o repositório inteiro como
-efeito colateral de um ajuste pequeno.
+Na última validação dos ajustes de acesso, `pnpm test`,
+`pnpm lint`, builds da API/web e os 20 testes E2E passaram.
+A migration `20260905214000_access_hierarchy` foi criada; antes
+da validação manual com banco local, executar
+`pnpm prisma:deploy`. Não executar o seed para preservar dados.
+
+O arquivo não rastreado `apps/api/prisma/seed.js` é artefato
+gerado e não deve entrar no commit. Revisar/remover antes de
+versionar. `pnpm format:check` ainda aponta arquivos antigos;
+não formatar o repositório inteiro como efeito colateral.
 
 Se uma alteração aprovada precisar ser publicada:
 
@@ -220,7 +243,7 @@ Se uma alteração aprovada precisar ser publicada:
    `git pull --ff-only origin main`;
 5. reconstruir apenas as imagens afetadas e executar
    `docker compose up -d`;
-6. validar health, HTTPS, CORS e os dois perfis.
+6. validar health, HTTPS, CORS e os quatro perfis.
 
 As imagens atualmente em execução foram construídas no commit
 `d062228`; os commits posteriores alteram somente documentação
@@ -238,6 +261,10 @@ e já estão no checkout da VPS.
 ## Pendências
 
 - Sem mailer de recuperação.
+- Revisar e versionar os ajustes locais de hierarquia de acesso.
+- Atualizar o ER de docs/DOMAIN.md com `StudentTrainer`.
+- Aplicar e validar a migration de acesso no banco local; na VPS,
+  criar backup antes de permitir a migration do entrypoint.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.

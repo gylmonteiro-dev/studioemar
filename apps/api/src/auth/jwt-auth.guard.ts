@@ -2,11 +2,13 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { IS_PUBLIC_KEY } from '../common/public.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 import type { AccessTokenPayload, AuthUser } from './auth.types';
 
 @Injectable()
@@ -14,9 +16,10 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -42,11 +45,26 @@ export class JwtAuthGuard implements CanActivate {
       if (payload.typ !== 'access' || !payload.sub) {
         throw new UnauthorizedException('Sessão inválida');
       }
-      request.user = {
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role,
-      };
+      const currentUser = this.prisma
+        ? await this.prisma.user.findUnique({
+            where: { id: payload.sub },
+            select: { id: true, email: true, role: true, isActive: true },
+          })
+        : null;
+      if (this.prisma && (!currentUser || !currentUser.isActive)) {
+        throw new UnauthorizedException('Sessão inválida');
+      }
+      request.user = currentUser
+        ? {
+            id: currentUser.id,
+            email: currentUser.email,
+            role: currentUser.role,
+          }
+        : {
+            id: payload.sub,
+            email: payload.email,
+            role: payload.role,
+          };
       return true;
     } catch {
       throw new UnauthorizedException('Sessão inválida');

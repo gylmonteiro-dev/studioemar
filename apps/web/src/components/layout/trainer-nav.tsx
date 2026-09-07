@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Repeat,
   Settings,
+  ShieldCheck,
   Star,
   Users,
 } from 'lucide-react';
@@ -14,8 +15,10 @@ import {
   MobileNavigation as AppMobileNavigation,
   type AppNavItem,
 } from '@/components/layout/app-nav';
+import { canManageAccess, roleLabel } from '@/lib/auth-routing';
+import type { User } from '@studioemar/shared';
 
-export const trainerNav: readonly AppNavItem[] = [
+const trainerNav: readonly AppNavItem[] = [
   { href: '/treinador', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/treinador/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/treinador/alunos', label: 'Alunos', icon: Users },
@@ -25,7 +28,7 @@ export const trainerNav: readonly AppNavItem[] = [
   { href: '/treinador/configuracoes', label: 'Ajustes', icon: Settings },
 ];
 
-export const trainerMobileNav: readonly AppNavItem[] = [
+const trainerMobileNav: readonly AppNavItem[] = [
   { href: '/treinador', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/treinador/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/treinador/alunos', label: 'Alunos', icon: Users },
@@ -33,16 +36,38 @@ export const trainerMobileNav: readonly AppNavItem[] = [
   { href: '/treinador/configuracoes', label: 'Ajustes', icon: Settings },
 ];
 
-export function TrainerMobileNavigation() {
-  return <AppMobileNavigation items={trainerMobileNav} rootHref="/treinador" />;
+function itemsFor(user: User, mobile = false): readonly AppNavItem[] {
+  const items = [...(mobile ? trainerMobileNav : trainerNav)].filter(
+    (item) =>
+      canManageAccess(user.role) ||
+      (item.href !== '/treinador/agenda-recorrente' &&
+        item.href !== '/treinador/configuracoes'),
+  );
+  if (canManageAccess(user.role)) {
+    items.push({
+      href: '/treinador/acessos',
+      label: 'Acessos',
+      icon: ShieldCheck,
+    });
+  }
+  return items;
 }
 
-export function TrainerDesktopSidebar({ trainerName }: { trainerName: string }) {
+export function TrainerMobileNavigation({ user }: { user: User }) {
+  return (
+    <AppMobileNavigation
+      items={itemsFor(user, true)}
+      rootHref="/treinador"
+    />
+  );
+}
+
+export function TrainerDesktopSidebar({ user }: { user: User }) {
   return (
     <AppDesktopSidebar
-      name={trainerName}
-      roleLabel="Treinador"
-      items={trainerNav}
+      name={user.name}
+      roleLabel={roleLabel(user.role)}
+      items={itemsFor(user)}
       rootHref="/treinador"
     />
   );
