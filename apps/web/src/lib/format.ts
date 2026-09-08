@@ -136,3 +136,5 @@ export function formatWeekRange(weekStart: Date): string {
 export function spotsLeft(enrolledCount: number, capacity: number): number {
   return Math.max(0, capacity - enrolledCount);
 }
+
+export { formatCpf } from '@studioemar/shared';

@@ -174,9 +174,44 @@ describe('createStudentRequestSchema', () => {
     const result = createStudentRequestSchema.safeParse({
       name: 'Ana',
       email: 'ana',
+      cpf: '529.982.247-25',
       planId: 'plan-3x',
+      regularSlots: [{ studioHourId: 'hour-1', weekday: 'MON' }],
     });
     assert.equal(result.success, false);
+  });
+
+  it('normaliza CPF e recusa dia repetido', () => {
+    const parsed = createStudentRequestSchema.parse({
+      name: 'Ana Silva',
+      email: 'ana@studioemar.local',
+      cpf: '529.982.247-25',
+      planId: 'plan-3x',
+      regularSlots: [
+        { studioHourId: 'hour-1', weekday: 'MON' },
+        { studioHourId: 'hour-1', weekday: 'WED' },
+      ],
+    });
+    assert.equal(parsed.cpf, '52998224725');
+    const repeated = createStudentRequestSchema.safeParse({
+      name: 'Ana Silva',
+      email: 'ana@studioemar.local',
+      cpf: '52998224725',
+      planId: 'plan-3x',
+      regularSlots: [
+        { studioHourId: 'hour-1', weekday: 'MON' },
+        { studioHourId: 'hour-2', weekday: 'MON' },
+      ],
+    });
+    assert.equal(repeated.success, false);
+    const invalidCpf = createStudentRequestSchema.safeParse({
+      name: 'Ana Silva',
+      email: 'ana@studioemar.local',
+      cpf: '000.000.000-00',
+      planId: 'plan-3x',
+      regularSlots: [{ studioHourId: 'hour-1', weekday: 'MON' }],
+    });
+    assert.equal(invalidCpf.success, false);
   });
 });
 

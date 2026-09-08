@@ -218,7 +218,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
         '409':
-          description: E-mail já cadastrado
+          description: E-mail ou CPF já cadastrado
+
+  /students/regular-availability:
+    get:
+      summary: Horários com vaga para a agenda regular do aluno
+      operationId: listRegularAvailability
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: planId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pares turma e dia com vaga
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegularAvailabilitySlot'
+        '404':
+          description: Plano não encontrado
 
   /students/{id}:
     get:
@@ -231,6 +255,26 @@ paths:
       responses:
         '200':
           description: Aluno
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    patch:
+      summary: Ativar ou inativar aluno
+      operationId: updateStudent
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStudentRequest'
+      responses:
+        '200':
+          description: Aluno atualizado
           content:
             application/json:
               schema:
@@ -643,6 +687,7 @@ paths:
   /dashboard:
     get:
       summary: Ocupação e métricas do treinador
+      description: Agrega a folga vigente (hoje até 12 semanas à frente), não o histórico inteiro.
       operationId: getDashboard
       security:
         - bearerAuth: []
@@ -659,10 +704,25 @@ paths:
   /time-slots:
     get:
       summary: Horários e vagas
-      description: O aluno vê ocupação numérica, não os nomes dos demais alunos.
+      description: O aluno vê ocupação numérica, não os nomes dos demais alunos. Sem from/to, garante a folga de 12 semanas e devolve só essa janela. Com from/to, materializa e devolve só essa janela.
       operationId: listTimeSlots
       security:
         - bearerAuth: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Início da janela (YYYY-MM-DD), inclusive
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Fim da janela (YYYY-MM-DD), inclusive
       responses:
         '200':
           description: Horários
@@ -785,19 +845,90 @@ components:
 
     CreateStudentRequest:
       type: object
-      required: [name, email, planId]
+      required: [name, email, cpf, planId, regularSlots]
       properties:
         name:
           type: string
         email:
           type: string
           format: email
+        cpf:
+          type: string
         planId:
           type: string
         trainerIds:
           type: array
           items:
             type: string
+        regularSlots:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegularSlotSelection'
+
+    RegularSlotSelection:
+      type: object
+      required: [studioHourId, weekday]
+      properties:
+        studioHourId:
+          type: string
+        weekday:
+          type: string
+          enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+
+    StudentRegularSlot:
+      type: object
+      required: [studioHourId, weekday, name, startTime, endTime, classType, trainerId]
+      properties:
+        studioHourId:
+          type: string
+        weekday:
+          type: string
+          enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+        name:
+          type: string
+        startTime:
+          type: string
+        endTime:
+          type: string
+        classType:
+          type: string
+        trainerId:
+          type: string
+
+    RegularAvailabilitySlot:
+      type: object
+      required:
+        [
+          studioHourId,
+          name,
+          weekday,
+          startTime,
+          endTime,
+          classType,
+          trainerId,
+          capacity,
+          remainingSpots,
+        ]
+      properties:
+        studioHourId:
+          type: string
+        name:
+          type: string
+        weekday:
+          type: string
+          enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+        startTime:
+          type: string
+        endTime:
+          type: string
+        classType:
+          type: string
+        trainerId:
+          type: string
+        capacity:
+          type: integer
+        remainingSpots:
+          type: integer
 
     UpdateStudentTrainersRequest:
       type: object
@@ -807,6 +938,13 @@ components:
           type: array
           items:
             type: string
+
+    UpdateStudentRequest:
+      type: object
+      required: [isActive]
+      properties:
+        isActive:
+          type: boolean
 
     CreateOperatorRequest:
       type: object
@@ -851,10 +989,16 @@ components:
           enum: [STUDENT, TRAINER, ADMIN, SUPERADMIN]
         planId:
           type: string
+        cpf:
+          type: string
         trainerIds:
           type: array
           items:
             type: string
+        regularSlots:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudentRegularSlot'
         mustSetPassword:
           type: boolean
         isActive:

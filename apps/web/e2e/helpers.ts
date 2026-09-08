@@ -130,6 +130,7 @@ export type ApiMocks = {
 
 export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
   const user = mocks.user ?? joao;
+  let createdStudent: User | null = null;
   await page.route(/:3001\//, async (route) => {
     const request = route.request();
     const method = request.method();
@@ -285,6 +286,103 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
 
     if (method === 'GET' && path === '/operators') {
       return json(200, [carlos]);
+    }
+
+    if (method === 'GET' && path === '/students/regular-availability') {
+      return json(200, [
+        {
+          studioHourId: 'hour-manha',
+          name: 'Manhã 1',
+          weekday: 'MON',
+          startTime: '07:30',
+          endTime: '08:30',
+          classType: 'AULA',
+          trainerId: 'user-carlos',
+          capacity: 6,
+          remainingSpots: 2,
+        },
+        {
+          studioHourId: 'hour-manha',
+          name: 'Manhã 1',
+          weekday: 'WED',
+          startTime: '07:30',
+          endTime: '08:30',
+          classType: 'AULA',
+          trainerId: 'user-carlos',
+          capacity: 6,
+          remainingSpots: 2,
+        },
+        {
+          studioHourId: 'hour-manha',
+          name: 'Manhã 1',
+          weekday: 'FRI',
+          startTime: '07:30',
+          endTime: '08:30',
+          classType: 'AULA',
+          trainerId: 'user-carlos',
+          capacity: 6,
+          remainingSpots: 4,
+        },
+      ]);
+    }
+
+    if (method === 'GET' && path === '/students') {
+      return json(200, [joao]);
+    }
+
+    if (method === 'POST' && path === '/students') {
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        name: string;
+        email: string;
+        cpf: string;
+        planId: string;
+        trainerIds?: string[];
+        regularSlots?: Array<{ studioHourId: string; weekday: string }>;
+      };
+      const created = {
+        id: 'user-new',
+        name: body.name.trim(),
+        email: body.email.trim().toLowerCase(),
+        cpf: body.cpf.replace(/\D/g, ''),
+        role: 'STUDENT' as const,
+        planId: body.planId,
+        trainerIds: body.trainerIds ?? [],
+        mustSetPassword: true,
+        isActive: true,
+        regularSlots: (body.regularSlots ?? []).map((slot) => ({
+          studioHourId: slot.studioHourId,
+          weekday: slot.weekday,
+          name: 'Manhã 1',
+          startTime: '07:30',
+          endTime: '08:30',
+          classType: 'AULA',
+          trainerId: 'user-carlos',
+        })),
+      };
+      createdStudent = created as User;
+      return json(201, created);
+    }
+
+    const studentDetail = /^\/students\/([^/]+)$/.exec(path);
+    if (method === 'GET' && studentDetail) {
+      const id = studentDetail[1];
+      if (id === 'user-new' && createdStudent) {
+        return json(200, createdStudent);
+      }
+      if (id === joao.id) {
+        return json(200, joao);
+      }
+      return json(404, { message: 'Aluno não encontrado' });
+    }
+
+    const studentBookings = /^\/students\/([^/]+)\/bookings$/.exec(path);
+    if (method === 'GET' && studentBookings) {
+      return json(200, studentBookings[1] === joao.id ? joaoBookings : []);
+    }
+
+    const studentCredits = /^\/students\/([^/]+)\/credits$/.exec(path);
+    if (method === 'GET' && studentCredits) {
+      return json(200, studentCredits[1] === joao.id ? joaoCredits : []);
     }
 
     const cancel = /^\/bookings\/([^/]+)\/cancellations$/.exec(path);

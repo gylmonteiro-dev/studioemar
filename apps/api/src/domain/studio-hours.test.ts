@@ -27,6 +27,21 @@ describe('studio-hours', () => {
     assert.equal(occurrences[0]?.endsAt.toISOString(), '2026-09-04T11:30:00.000Z');
   });
 
+  it('materializa até uma data civil informada', () => {
+    const occurrences = enumerateStudioHourOccurrences({
+      weekdays: ['MON', 'WED', 'FRI'],
+      startTime: '07:30',
+      endTime: '08:30',
+      from: new Date('2026-09-03T15:00:00.000Z'),
+      startDate: '2026-09-14',
+      until: '2026-09-20',
+    });
+    assert.deepEqual(
+      occurrences.map((item) => item.date),
+      ['2026-09-14', '2026-09-16', '2026-09-18'],
+    );
+  });
+
   it('detecta intervalos sobrepostos', () => {
     const leftStart = new Date('2026-09-07T10:30:00.000Z');
     const leftEnd = new Date('2026-09-07T11:30:00.000Z');

@@ -159,7 +159,7 @@ describe('SchedulesService', () => {
     );
   });
 
-  it('cria turma seg/qua/sex e materializa as aulas das 12 semanas', async () => {
+  it('cria turma seg/qua/sex e materializa a folga de 12 semanas', async () => {
     const { prisma, store } = createMemoryPrisma({
       users: [carlos],
       classTypes,
@@ -263,6 +263,182 @@ describe('SchedulesService', () => {
     assert.equal(slot.startsAt, '2026-09-10T22:00:00.000Z');
   });
 
+  it('materializa uma semana além da folga sem duplicar', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      classTypes,
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['MON', 'WED', 'FRI'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    const firstCount = store.timeSlots.length;
+    await schedules.listTimeSlots(undefined, {
+      from: '2027-03-01',
+      to: '2027-03-07',
+    });
+    assert.ok(store.timeSlots.length > firstCount);
+    const after = store.timeSlots.length;
+    const week = await schedules.listTimeSlots(undefined, {
+      from: '2027-03-01',
+      to: '2027-03-07',
+    });
+    assert.equal(store.timeSlots.length, after);
+    assert.ok(week.some((slot) => slot.name === 'Manhã funcional'));
+    assert.ok(week.every((slot) => slot.startsAt.startsWith('2027-03')));
+  });
+
+  it('omite data de fechamento na geração', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      classTypes,
+      closures: [
+        {
+          id: 'closure-1',
+          startsOn: new Date('2026-09-04T00:00:00.000Z'),
+          endsOn: new Date('2026-09-04T00:00:00.000Z'),
+          reason: 'Recesso',
+          createdByUserId: 'user-carlos',
+          grantsCredit: false,
+        },
+      ],
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['FRI'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    assert.equal(
+      store.timeSlots.some(
+        (slot) => slot.startsAt.toISOString() === '2026-09-04T10:30:00.000Z',
+      ),
+      false,
+    );
+  });
+
+  it('inscreve aluno regular ativo na aula gerada depois', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [
+        carlos,
+        {
+          id: 'user-ana',
+          name: 'Ana',
+          email: 'ana@studioemar.local',
+          role: 'STUDENT',
+          planId: 'plan-3x',
+          mustSetPassword: true,
+          passwordHash: null,
+          isActive: true,
+        },
+      ],
+      classTypes,
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['MON'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    store.studentRegularSlots.push({
+      id: 'regular-1',
+      studentId: 'user-ana',
+      studioHourId: hour.id,
+      weekday: 'MON',
+    });
+    await schedules.listTimeSlots();
+    assert.ok(store.bookings.some((booking) => booking.studentId === 'user-ana'));
+    assert.ok(store.bookings.every((booking) => booking.kind === 'REGULAR'));
+  });
+
+  it('não inscreve aluno inativo nas aulas novas', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [
+        carlos,
+        {
+          id: 'user-ana',
+          name: 'Ana',
+          email: 'ana@studioemar.local',
+          role: 'STUDENT',
+          planId: 'plan-3x',
+          mustSetPassword: true,
+          passwordHash: null,
+          isActive: false,
+        },
+      ],
+      classTypes,
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['MON'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    store.studentRegularSlots.push({
+      id: 'regular-1',
+      studentId: 'user-ana',
+      studioHourId: hour.id,
+      weekday: 'MON',
+    });
+    await schedules.listTimeSlots();
+    assert.equal(store.bookings.length, 0);
+  });
+
+  it('exclui turma com inscritos e cancela as reservas futuras', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      classTypes,
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['FRI'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    const first = store.timeSlots[0];
+    if (!first) {
+      throw new Error('slot ausente');
+    }
+    store.bookings.push({
+      id: 'booking-1',
+      studentId: 'user-joao',
+      timeSlotId: first.id,
+      kind: 'REGULAR',
+      status: 'CONFIRMED',
+    });
+    first.enrolledCount = 1;
+    await schedules.deleteStudioHour(hour.id);
+    assert.equal(store.studioHours.length, 0);
+    assert.equal(store.bookings[0]?.status, 'CANCELLED');
+    assert.equal(store.cancellations.length, 1);
+    assert.equal(
+      store.timeSlots.some((slot) => slot.studioHourId === hour.id),
+      false,
+    );
+  });
+
   it('grava tipo de aula em maiúsculas e recusa nome duplicado', async () => {
     const { prisma, store } = createMemoryPrisma();
     const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
@@ -291,5 +467,76 @@ describe('SchedulesService', () => {
         }),
       BadRequestException,
     );
+  });
+
+  it('lista sem intervalo só a folga vigente, não o histórico', async () => {
+    const { prisma } = createMemoryPrisma({
+      users: [carlos],
+      classTypes,
+      timeSlots: [
+        {
+          ...slotToday,
+          id: 'slot-past',
+          startsAt: new Date('2025-09-03T21:00:00.000Z'),
+          endsAt: new Date('2025-09-03T22:00:00.000Z'),
+        },
+        {
+          ...slotToday,
+          id: 'slot-far',
+          startsAt: new Date('2028-03-01T21:00:00.000Z'),
+          endsAt: new Date('2028-03-01T22:00:00.000Z'),
+        },
+        slotToday,
+      ],
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const listed = await schedules.listTimeSlots();
+    assert.ok(listed.some((slot) => slot.id === 'slot-today-18'));
+    assert.equal(
+      listed.some((slot) => slot.id === 'slot-past' || slot.id === 'slot-far'),
+      false,
+    );
+  });
+
+  it('não reinscreve regulares em aula já lotada', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [
+        carlos,
+        {
+          id: 'user-ana',
+          name: 'Ana',
+          email: 'ana@studioemar.local',
+          role: 'STUDENT',
+          planId: 'plan-3x',
+          mustSetPassword: true,
+          passwordHash: null,
+          isActive: true,
+        },
+      ],
+      classTypes,
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['MON'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 1,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    for (const slot of store.timeSlots) {
+      slot.enrolledCount = 1;
+      slot.status = 'FULL';
+    }
+    store.studentRegularSlots.push({
+      id: 'regular-1',
+      studentId: 'user-ana',
+      studioHourId: hour.id,
+      weekday: 'MON',
+    });
+    const before = store.bookings.length;
+    await schedules.listTimeSlots();
+    assert.equal(store.bookings.length, before);
   });
 });

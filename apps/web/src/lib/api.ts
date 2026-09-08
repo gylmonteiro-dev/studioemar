@@ -10,6 +10,7 @@ import {
   planSchema,
   recoverAcceptedSchema,
   recurringSlotSchema,
+  regularAvailabilitySlotSchema,
   studioClosureSchema,
   studioHourSchema,
   timeSlotSchema,
@@ -35,6 +36,7 @@ import {
   type Plan,
   type RecoverRequest,
   type RecurringSlot,
+  type RegularAvailabilitySlot,
   type StudioClosure,
   type StudioHour,
   type TimeSlot,
@@ -42,6 +44,7 @@ import {
   type UpdatePlanRequest,
   type UpdateOperatorRequest,
   type UpdateStudioHourRequest,
+  type UpdateStudentRequest,
   type UpdateTimeSlotRequest,
   type WaitlistEntry,
 } from '@studioemar/shared';
@@ -59,6 +62,7 @@ const waitlistSchema = z.array(waitlistEntrySchema);
 const recurringSlotsSchema = z.array(recurringSlotSchema);
 const studioHoursSchema = z.array(studioHourSchema);
 const closuresSchema = z.array(studioClosureSchema);
+const regularAvailabilitySchema = z.array(regularAvailabilitySlotSchema);
 
 export function getServerNow(): Promise<Date> {
   return apiRequest('/health', { auth: false }).then((data) => {
@@ -129,8 +133,16 @@ export function annulCredit(creditId: string): Promise<Credit> {
   );
 }
 
-export function listTimeSlots(): Promise<TimeSlot[]> {
-  return apiRequest('/time-slots').then((data) => timeSlotsSchema.parse(data));
+export function listTimeSlots(range?: {
+  from: string;
+  to: string;
+}): Promise<TimeSlot[]> {
+  const query = range
+    ? `?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`
+    : '';
+  return apiRequest(`/time-slots${query}`).then((data) =>
+    timeSlotsSchema.parse(data),
+  );
 }
 
 export function getTimeSlot(id: string): Promise<TimeSlot> {
@@ -263,6 +275,14 @@ export function listStudents(): Promise<User[]> {
   return apiRequest('/students').then((data) => usersSchema.parse(data));
 }
 
+export function listRegularAvailability(
+  planId: string,
+): Promise<RegularAvailabilitySlot[]> {
+  return apiRequest(
+    `/students/regular-availability?planId=${encodeURIComponent(planId)}`,
+  ).then((data) => regularAvailabilitySchema.parse(data));
+}
+
 export function createStudent(body: CreateStudentRequest): Promise<User> {
   return apiRequest('/students', { method: 'POST', body }).then((data) =>
     userSchema.parse(data),
@@ -277,6 +297,15 @@ export function updateStudentTrainers(
     method: 'PUT',
     body: { trainerIds },
   }).then((data) => userSchema.parse(data));
+}
+
+export function updateStudent(
+  id: string,
+  body: UpdateStudentRequest,
+): Promise<User> {
+  return apiRequest(`/students/${id}`, { method: 'PATCH', body }).then((data) =>
+    userSchema.parse(data),
+  );
 }
 
 export function listOperators(): Promise<User[]> {

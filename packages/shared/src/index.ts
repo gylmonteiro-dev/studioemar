@@ -5,7 +5,12 @@ export {
   monthlyTrainingHours,
   normalizePlanName,
 } from './rules/plan-metrics.js';
-export { normalizeClockTime, toClockMinutes } from './clock-time.js';
+export {
+  clockIntervalMinutes,
+  normalizeClockTime,
+  toClockMinutes,
+} from './clock-time.js';
+export { formatCpf, isValidCpf, normalizeCpf } from './rules/cpf.js';
 export {
   CANCELLATION_CREDIT_DEADLINE_HOURS,
   CREDIT_VALIDITY_DAYS,

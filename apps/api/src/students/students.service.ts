@@ -5,17 +5,56 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  clockIntervalMinutes,
   normalizePlanName,
+  regularAvailabilitySlotSchema,
   type CreatePlanRequest,
   type CreateStudentRequest,
+  type RegularAvailabilitySlot,
+  type RegularSlotSelection,
+  type StudentRegularSlot,
   type UpdatePlanRequest,
+  type UpdateStudentRequest,
   type UpdateStudentTrainersRequest,
+  type Weekday,
 } from '@studioemar/shared';
+import type { StudioHour, TimeSlot, UserRole } from '@prisma/client';
 import type { AuthUser } from '../auth/auth.types';
+import {
+  calendarDate,
+  weekdayFromCalendarDate,
+} from '../common/calendar-date';
+import { Clock } from '../common/clock';
 import { toBooking, toCredit, toPlan, toUser } from '../common/mappers';
 import { StudentAccessService } from '../common/student-access.service';
+import { remainingSpotsForRegularPair } from '../domain/regular-availability';
+import { applySeatChange, isSlotBookable } from '../domain/slot-occupancy';
+import { WEEKDAY_ORDER } from '../domain/studio-hours';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreditsService } from '../credits/credits.service';
+import { SchedulesService } from '../schedules/schedules.service';
+
+const STUDENT_INCLUDE = {
+  studentTrainerLinks: { select: { trainerId: true } },
+  studentRegularSlots: { include: { studioHour: true } },
+} as const;
+
+type StudentRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  planId: string | null;
+  cpf: string | null;
+  mustSetPassword: boolean;
+  isActive: boolean;
+  studentTrainerLinks: Array<{ trainerId: string }>;
+  studentRegularSlots: Array<{
+    studioHourId: string;
+    weekday: Weekday;
+    studioHour: StudioHour;
+  }>;
+};
 
 @Injectable()
 export class StudentsService {
@@ -23,35 +62,82 @@ export class StudentsService {
     private readonly prisma: PrismaService,
     private readonly credits: CreditsService,
     private readonly access: StudentAccessService,
+    private readonly clock: Clock,
+    private readonly schedules: SchedulesService,
   ) {}
 
   async list(actor: AuthUser) {
     const users = await this.prisma.user.findMany({
       where: this.access.whereFor(actor),
-      include: { studentTrainerLinks: { select: { trainerId: true } } },
+      include: STUDENT_INCLUDE,
       orderBy: { name: 'asc' },
     });
-    return users.map((user) =>
-      toUser(
-        user,
-        user.studentTrainerLinks.map((link) => link.trainerId),
-      ),
-    );
+    return users.map((user) => this.toStudent(user as StudentRow));
   }
 
   async getById(studentId: string, actor: AuthUser) {
     await this.access.assertCanAccess(actor, studentId);
     const user = await this.prisma.user.findUnique({
       where: { id: studentId },
-      include: { studentTrainerLinks: { select: { trainerId: true } } },
+      include: STUDENT_INCLUDE,
     });
     if (!user || user.role !== 'STUDENT') {
       throw new NotFoundException('Aluno não encontrado');
     }
-    return toUser(
-      user,
-      user.studentTrainerLinks.map((link) => link.trainerId),
-    );
+    return this.toStudent(user as StudentRow);
+  }
+
+  async listRegularAvailability(planId: string) {
+    if (!planId) {
+      throw new BadRequestException('Informe o plano');
+    }
+    const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+    if (!plan) {
+      throw new NotFoundException('Plano não encontrado');
+    }
+
+    const now = this.clock.now();
+    await this.schedules.ensureLookAhead();
+    const [hours, timeSlots] = await Promise.all([
+      this.prisma.studioHour.findMany({
+        orderBy: [{ startTime: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.timeSlot.findMany({
+        where: { startsAt: { gt: now } },
+      }),
+    ]);
+
+    const available: RegularAvailabilitySlot[] = [];
+    for (const hour of hours) {
+      if (
+        clockIntervalMinutes(hour.startTime, hour.endTime) !==
+        plan.sessionMinutes
+      ) {
+        continue;
+      }
+      for (const weekday of sortWeekdays(hour.weekdays as Weekday[])) {
+        const remaining = remainingSpotsForRegularPair(
+          this.slotsForPair(timeSlots, hour.id, weekday),
+        );
+        if (remaining === null) {
+          continue;
+        }
+        available.push(
+          regularAvailabilitySlotSchema.parse({
+            studioHourId: hour.id,
+            name: hour.name,
+            weekday,
+            startTime: hour.startTime,
+            endTime: hour.endTime,
+            classType: hour.classType,
+            trainerId: hour.trainerId,
+            capacity: hour.capacity,
+            remainingSpots: remaining,
+          }),
+        );
+      }
+    }
+    return available;
   }
 
   async create(input: CreateStudentRequest, actor: AuthUser) {
@@ -60,6 +146,12 @@ export class StudentsService {
     if (existing) {
       throw new ConflictException('Já existe uma conta com este e-mail');
     }
+    const cpfTaken = await this.prisma.user.findUnique({
+      where: { cpf: input.cpf },
+    });
+    if (cpfTaken) {
+      throw new ConflictException('Já existe uma conta com este CPF');
+    }
 
     const plan = await this.prisma.plan.findUnique({
       where: { id: input.planId },
@@ -67,30 +159,77 @@ export class StudentsService {
     if (!plan) {
       throw new NotFoundException('Plano não encontrado');
     }
+    if (input.regularSlots.length !== plan.weeklyFrequency) {
+      throw new BadRequestException(
+        `Escolha ${plan.weeklyFrequency} ${plan.weeklyFrequency === 1 ? 'dia' : 'dias'} conforme o plano`,
+      );
+    }
 
     const trainerIds =
-      actor.role === 'TRAINER'
-        ? [actor.id]
-        : [...new Set(input.trainerIds)];
+      actor.role === 'TRAINER' ? [actor.id] : [...new Set(input.trainerIds)];
+    if (trainerIds.length === 0) {
+      throw new BadRequestException('Informe pelo menos um professor');
+    }
     await this.validateTrainerIds(trainerIds);
 
-    const user = await this.prisma.$transaction(async (tx) => {
+    await this.schedules.ensureLookAhead();
+    const now = this.clock.now();
+    const toBook = await this.resolveRegularBookings(
+      input.regularSlots,
+      plan.sessionMinutes,
+      now,
+    );
+
+    const createdId = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
         data: {
           name: input.name.trim(),
           email,
+          cpf: input.cpf,
           role: 'STUDENT',
           planId: plan.id,
           mustSetPassword: true,
           passwordHash: null,
-          studentTrainerLinks: {
-            create: trainerIds.map((trainerId) => ({ trainerId })),
-          },
         },
       });
-      return created;
+      await tx.studentTrainer.createMany({
+        data: trainerIds.map((trainerId) => ({
+          studentId: created.id,
+          trainerId,
+        })),
+      });
+      for (const slot of input.regularSlots) {
+        await tx.studentRegularSlot.create({
+          data: {
+            studentId: created.id,
+            studioHourId: slot.studioHourId,
+            weekday: slot.weekday,
+          },
+        });
+      }
+      for (const slot of toBook) {
+        await tx.booking.create({
+          data: {
+            studentId: created.id,
+            timeSlotId: slot.id,
+            kind: 'REGULAR',
+            status: 'CONFIRMED',
+          },
+        });
+        const next = applySeatChange(slot, 1);
+        await tx.timeSlot.update({
+          where: { id: slot.id },
+          data: next,
+        });
+      }
+      return created.id;
     });
-    return toUser(user, trainerIds);
+
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: createdId },
+      include: STUDENT_INCLUDE,
+    });
+    return this.toStudent(user as StudentRow);
   }
 
   async listPlans() {
@@ -189,16 +328,169 @@ export class StudentsService {
     const trainerIds = [...new Set(input.trainerIds)];
     await this.validateTrainerIds(trainerIds);
 
-    const user = await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       await tx.studentTrainer.deleteMany({ where: { studentId } });
       if (trainerIds.length > 0) {
         await tx.studentTrainer.createMany({
           data: trainerIds.map((trainerId) => ({ studentId, trainerId })),
         });
       }
-      return tx.user.findUniqueOrThrow({ where: { id: studentId } });
     });
-    return toUser(user, trainerIds);
+    return this.getById(studentId, actor);
+  }
+
+  async updateStudent(
+    studentId: string,
+    input: UpdateStudentRequest,
+    actor: AuthUser,
+  ) {
+    await this.access.assertCanAccess(actor, studentId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: studentId },
+    });
+    if (!user || user.role !== 'STUDENT') {
+      throw new NotFoundException('Aluno não encontrado');
+    }
+
+    const nextActive = input.isActive ?? user.isActive;
+    if (user.isActive && nextActive === false) {
+      await this.cancelFutureBookings(studentId);
+    }
+
+    await this.prisma.user.update({
+      where: { id: studentId },
+      data: { isActive: nextActive },
+    });
+
+    if (!user.isActive && nextActive === true) {
+      await this.schedules.ensureLookAhead();
+    }
+
+    return this.getById(studentId, actor);
+  }
+
+  private async cancelFutureBookings(studentId: string) {
+    const now = this.clock.now();
+    const bookings = await this.prisma.booking.findMany({
+      where: { studentId, status: 'CONFIRMED' },
+      include: { timeSlot: true },
+    });
+    const future = bookings.filter(
+      (row) => row.timeSlot && row.timeSlot.startsAt > now,
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const row of future) {
+        const slot = row.timeSlot;
+        if (!slot) {
+          continue;
+        }
+        await tx.booking.update({
+          where: { id: row.id },
+          data: { status: 'CANCELLED' },
+        });
+        await tx.cancellation.create({
+          data: {
+            bookingId: row.id,
+            cancelledAt: now,
+            cancelledBy: 'TRAINER',
+            generatedCredit: false,
+            creditId: null,
+          },
+        });
+        const latest = await tx.timeSlot.findUniqueOrThrow({
+          where: { id: slot.id },
+        });
+        const next = applySeatChange(latest, -1);
+        await tx.timeSlot.update({
+          where: { id: slot.id },
+          data: next,
+        });
+      }
+    });
+  }
+
+  private toStudent(user: StudentRow) {
+    return toUser(
+      user,
+      user.studentTrainerLinks.map((link) => link.trainerId),
+      sortRegularSlots(
+        user.studentRegularSlots.map((slot) => ({
+          studioHourId: slot.studioHourId,
+          weekday: slot.weekday,
+          name: slot.studioHour.name,
+          startTime: slot.studioHour.startTime,
+          endTime: slot.studioHour.endTime,
+          classType: slot.studioHour.classType,
+          trainerId: slot.studioHour.trainerId,
+        })),
+      ),
+    );
+  }
+
+  private async resolveRegularBookings(
+    selections: RegularSlotSelection[],
+    sessionMinutes: number,
+    now: Date,
+  ) {
+    const hourIds = [...new Set(selections.map((slot) => slot.studioHourId))];
+    const hours = await this.prisma.studioHour.findMany({
+      where: { id: { in: hourIds } },
+    });
+    if (hours.length !== hourIds.length) {
+      throw new BadRequestException('Há horário do estúdio inválido');
+    }
+    const hourById = new Map(hours.map((hour) => [hour.id, hour]));
+    const timeSlots = await this.prisma.timeSlot.findMany({
+      where: {
+        studioHourId: { in: hourIds },
+        startsAt: { gt: now },
+      },
+    });
+
+    const toBook: TimeSlot[] = [];
+    for (const selection of selections) {
+      const hour = hourById.get(selection.studioHourId);
+      if (!hour) {
+        throw new BadRequestException('Há horário do estúdio inválido');
+      }
+      if (!(hour.weekdays as Weekday[]).includes(selection.weekday)) {
+        throw new BadRequestException(
+          'O dia escolhido não faz parte deste horário',
+        );
+      }
+      if (
+        clockIntervalMinutes(hour.startTime, hour.endTime) !== sessionMinutes
+      ) {
+        throw new BadRequestException(
+          'A duração do horário não corresponde ao plano',
+        );
+      }
+      const pairSlots = this.slotsForPair(
+        timeSlots,
+        selection.studioHourId,
+        selection.weekday,
+      );
+      if (remainingSpotsForRegularPair(pairSlots) === null) {
+        throw new ConflictException(
+          'Há horário sem vaga disponível. Atualize a seleção.',
+        );
+      }
+      toBook.push(...pairSlots.filter((slot) => isSlotBookable(slot)));
+    }
+    return toBook;
+  }
+
+  private slotsForPair(
+    timeSlots: TimeSlot[],
+    studioHourId: string,
+    weekday: Weekday,
+  ) {
+    return timeSlots.filter(
+      (slot) =>
+        slot.studioHourId === studioHourId &&
+        weekdayFromCalendarDate(calendarDate(slot.startsAt)) === weekday,
+    );
   }
 
   private async validateTrainerIds(trainerIds: string[]): Promise<void> {
@@ -217,4 +509,16 @@ export class StudentsService {
       throw new BadRequestException('Há treinador inválido ou inativo');
     }
   }
+}
+
+function sortWeekdays(days: readonly Weekday[]): Weekday[] {
+  const selected = new Set(days);
+  return WEEKDAY_ORDER.filter((day) => selected.has(day));
+}
+
+function sortRegularSlots(slots: StudentRegularSlot[]): StudentRegularSlot[] {
+  return [...slots].sort(
+    (left, right) =>
+      WEEKDAY_ORDER.indexOf(left.weekday) - WEEKDAY_ORDER.indexOf(right.weekday),
+  );
 }

@@ -23,3 +23,15 @@ export function normalizeClockTime(value: string): string | null {
   const remainder = minutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
 }
+
+export function clockIntervalMinutes(
+  startTime: string,
+  endTime: string,
+): number | null {
+  const start = toClockMinutes(startTime);
+  const end = toClockMinutes(endTime);
+  if (start === null || end === null || end <= start) {
+    return null;
+  }
+  return end - start;
+}

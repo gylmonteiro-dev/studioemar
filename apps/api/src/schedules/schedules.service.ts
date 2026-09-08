@@ -17,13 +17,16 @@ import {
   type UpdateStudioHourRequest,
   type UpdateTimeSlotRequest,
   type Weekday,
+  isoDateSchema,
 } from '@studioemar/shared';
 import type { AuthUser } from '../auth/auth.types';
 import {
   calendarDate,
+  civilRangeBounds,
   clockTimeSaoPaulo,
   dateInRange,
   saoPauloDateTime,
+  weekdayFromCalendarDate,
 } from '../common/calendar-date';
 import { Clock } from '../common/clock';
 import {
@@ -36,17 +39,30 @@ import {
   toUser,
   toWaitlistEntry,
 } from '../common/mappers';
-import { applySeatChange } from '../domain/slot-occupancy';
+import { applySeatChange, isSlotBookable } from '../domain/slot-occupancy';
 import {
   enumerateStudioHourOccurrences,
+  lookAheadEndDate,
   sortWeekdays,
 } from '../domain/studio-hours';
 import { PrismaService } from '../prisma/prisma.service';
 
 type DbClient = Pick<
   PrismaService,
-  'timeSlot' | 'studioHour' | 'studioClosure' | 'waitlistEntry' | 'booking'
+  | 'timeSlot'
+  | 'studioHour'
+  | 'studioClosure'
+  | 'waitlistEntry'
+  | 'booking'
+  | 'cancellation'
+  | 'studentRegularSlot'
+  | 'user'
 >;
+
+export type TimeSlotRange = {
+  from: string;
+  to: string;
+};
 
 @Injectable()
 export class SchedulesService {
@@ -55,12 +71,34 @@ export class SchedulesService {
     private readonly clock: Clock,
   ) {}
 
-  async listTimeSlots(actor?: AuthUser) {
+  async listTimeSlots(actor?: AuthUser, range?: TimeSlotRange) {
+    const window = parseTimeSlotRange(range);
+    const now = this.clock.now();
+    const from = window?.from ?? calendarDate(now);
+    const to = window?.to ?? lookAheadEndDate(now);
+    if (window) {
+      await this.ensureGeneratedRange(this.prisma, window.from, window.to);
+    } else {
+      await this.ensureLookAhead();
+    }
+
     const slots = await this.prisma.timeSlot.findMany({
-      where: actor?.role === 'TRAINER' ? { trainerId: actor.id } : undefined,
+      where: {
+        startsAt: civilRangeBounds(from, to),
+        ...(actor?.role === 'TRAINER' ? { trainerId: actor.id } : {}),
+      },
       orderBy: { startsAt: 'asc' },
     });
     return slots.map(toTimeSlot);
+  }
+
+  async ensureLookAhead() {
+    const now = this.clock.now();
+    await this.ensureGeneratedRange(
+      this.prisma,
+      calendarDate(now),
+      lookAheadEndDate(now),
+    );
   }
 
   async getTimeSlot(id: string, actor?: AuthUser) {
@@ -232,7 +270,11 @@ export class SchedulesService {
           trainerId: input.trainerId,
         },
       });
-      await this.materializeStudioHour(tx, hour);
+      await this.ensureGeneratedRange(
+        tx,
+        calendarDate(this.clock.now()),
+        lookAheadEndDate(this.clock.now()),
+      );
       return toStudioHour(hour);
     });
   }
@@ -263,7 +305,7 @@ export class SchedulesService {
 
     return this.prisma.$transaction(async (tx) => {
       if (scheduleChanged) {
-        await this.clearFutureGeneratedSlots(tx, id, true);
+        await this.clearFutureGeneratedSlots(tx, id, { requireEmpty: true });
       }
 
       const updated = await tx.studioHour.update({
@@ -282,7 +324,11 @@ export class SchedulesService {
       });
 
       if (scheduleChanged) {
-        await this.materializeStudioHour(tx, updated);
+        await this.ensureGeneratedRange(
+          tx,
+          calendarDate(this.clock.now()),
+          lookAheadEndDate(this.clock.now()),
+        );
       } else {
         await this.propagateStudioHourDetails(tx, updated);
       }
@@ -297,7 +343,11 @@ export class SchedulesService {
       throw new NotFoundException('Horário do estúdio não encontrado');
     }
     await this.prisma.$transaction(async (tx) => {
-      await this.clearFutureGeneratedSlots(tx, id, true);
+      await this.clearFutureGeneratedSlots(tx, id, {
+        requireEmpty: false,
+        cancelBookings: true,
+      });
+      await tx.studentRegularSlot.deleteMany({ where: { studioHourId: id } });
       await tx.studioHour.delete({ where: { id } });
     });
   }
@@ -463,50 +513,137 @@ export class SchedulesService {
     }
   }
 
-  private async materializeStudioHour(
+  async ensureGeneratedRange(
     tx: DbClient,
-    hour: {
+    startDate: string,
+    until: string,
+  ) {
+    if (until < startDate) {
+      return;
+    }
+    const now = this.clock.now();
+    const bounds = civilRangeBounds(startDate, until);
+    const [hours, closures, existing] = await Promise.all([
+      tx.studioHour.findMany(),
+      tx.studioClosure.findMany(),
+      tx.timeSlot.findMany({
+        where: {
+          studioHourId: { not: null },
+          startsAt: bounds,
+        },
+      }),
+    ]);
+    const existingByKey = new Map(
+      existing
+        .filter((slot) => slot.studioHourId)
+        .map((slot) => [
+          `${slot.studioHourId}|${slot.startsAt.toISOString()}`,
+          slot,
+        ]),
+    );
+
+    for (const hour of hours) {
+      const occurrences = enumerateStudioHourOccurrences({
+        weekdays: hour.weekdays as Weekday[],
+        startTime: hour.startTime,
+        endTime: hour.endTime,
+        from: now,
+        startDate,
+        until,
+      });
+      for (const occurrence of occurrences) {
+        const closed = closures.some((closure) =>
+          dateInRange(
+            occurrence.date,
+            dateOnly(closure.startsOn),
+            dateOnly(closure.endsOn),
+          ),
+        );
+        if (closed) {
+          continue;
+        }
+        const key = `${hour.id}|${occurrence.startsAt.toISOString()}`;
+        let slot = existingByKey.get(key);
+        let created = false;
+        if (!slot) {
+          slot = await tx.timeSlot.create({
+            data: {
+              name: hour.name,
+              startsAt: occurrence.startsAt,
+              endsAt: occurrence.endsAt,
+              capacity: hour.capacity,
+              enrolledCount: 0,
+              status: 'OPEN',
+              classType: hour.classType,
+              trainerId: hour.trainerId,
+              studioHourId: hour.id,
+            },
+          });
+          existingByKey.set(key, slot);
+          created = true;
+        }
+        if (created || isSlotBookable(slot)) {
+          await this.enrollRegularsOnSlot(tx, slot);
+        }
+      }
+    }
+  }
+
+  private async enrollRegularsOnSlot(
+    tx: DbClient,
+    slot: {
       id: string;
-      name: string;
-      weekdays: Weekday[];
-      startTime: string;
-      endTime: string;
+      studioHourId?: string | null;
+      startsAt: Date;
+      enrolledCount: number;
       capacity: number;
-      classType: string;
-      trainerId: string;
+      status: 'OPEN' | 'FULL' | 'CLOSED';
     },
   ) {
-    const closures = await tx.studioClosure.findMany();
-    const occurrences = enumerateStudioHourOccurrences({
-      weekdays: hour.weekdays,
-      startTime: hour.startTime,
-      endTime: hour.endTime,
-      from: this.clock.now(),
+    if (!slot.studioHourId || !isSlotBookable(slot)) {
+      return;
+    }
+    const weekday = weekdayFromCalendarDate(calendarDate(slot.startsAt));
+    const regulars = await tx.studentRegularSlot.findMany({
+      where: { studioHourId: slot.studioHourId, weekday },
     });
+    if (regulars.length === 0) {
+      return;
+    }
+    const students = await tx.user.findMany({
+      where: {
+        id: { in: regulars.map((item) => item.studentId) },
+        role: 'STUDENT',
+      },
+    });
+    const activeIds = new Set(
+      students
+        .filter((student) => student.isActive !== false)
+        .map((student) => student.id),
+    );
+    const confirmed = await tx.booking.findMany({
+      where: { timeSlotId: slot.id, status: 'CONFIRMED' },
+    });
+    const alreadyIn = new Set(confirmed.map((booking) => booking.studentId));
 
-    for (const occurrence of occurrences) {
-      const closed = closures.some((closure) =>
-        dateInRange(
-          occurrence.date,
-          dateOnly(closure.startsOn),
-          dateOnly(closure.endsOn),
-        ),
-      );
-      if (closed) {
+    let current = { ...slot };
+    for (const studentId of activeIds) {
+      if (alreadyIn.has(studentId) || !isSlotBookable(current)) {
         continue;
       }
-      await tx.timeSlot.create({
+      await tx.booking.create({
         data: {
-          name: hour.name,
-          startsAt: occurrence.startsAt,
-          endsAt: occurrence.endsAt,
-          capacity: hour.capacity,
-          enrolledCount: 0,
-          status: 'OPEN',
-          classType: hour.classType,
-          trainerId: hour.trainerId,
-          studioHourId: hour.id,
+          studentId,
+          timeSlotId: slot.id,
+          kind: 'REGULAR',
+          status: 'CONFIRMED',
         },
+      });
+      const next = applySeatChange(current, 1);
+      current = { ...current, ...next };
+      await tx.timeSlot.update({
+        where: { id: slot.id },
+        data: next,
       });
     }
   }
@@ -522,9 +659,9 @@ export class SchedulesService {
     },
   ) {
     const now = this.clock.now();
-    const slots = (await tx.timeSlot.findMany()).filter(
-      (slot) => slot.studioHourId === hour.id && slot.startsAt > now,
-    );
+    const slots = await tx.timeSlot.findMany({
+      where: { studioHourId: hour.id, startsAt: { gt: now } },
+    });
     for (const slot of slots) {
       if (hour.capacity < slot.enrolledCount) {
         throw new BadRequestException(
@@ -549,14 +686,22 @@ export class SchedulesService {
   private async clearFutureGeneratedSlots(
     tx: DbClient,
     studioHourId: string,
-    requireEmpty: boolean,
+    options: { requireEmpty: boolean; cancelBookings?: boolean },
   ) {
     const now = this.clock.now();
-    const slots = (await tx.timeSlot.findMany()).filter(
-      (slot) => slot.studioHourId === studioHourId && slot.startsAt > now,
-    );
+    const slots = await tx.timeSlot.findMany({
+      where: { studioHourId, startsAt: { gt: now } },
+    });
     for (const slot of slots) {
-      if (requireEmpty && slot.enrolledCount > 0) {
+      if (options.cancelBookings) {
+        await this.cancelConfirmedOnSlot(tx, slot, now);
+        const latest = await tx.timeSlot.findUniqueOrThrow({
+          where: { id: slot.id },
+        });
+        await this.removeEmptySlot(tx, latest);
+        continue;
+      }
+      if (options.requireEmpty && slot.enrolledCount > 0) {
         throw new ConflictException(
           'Há aulas futuras com alunos inscritos. Cancele as reservas antes de alterar os dias ou o horário.',
         );
@@ -566,6 +711,46 @@ export class SchedulesService {
       }
       await this.removeEmptySlot(tx, slot);
     }
+  }
+
+  private async cancelConfirmedOnSlot(
+    tx: DbClient,
+    slot: { id: string; enrolledCount: number; capacity: number; status: string },
+    now: Date,
+  ) {
+    const confirmed = await tx.booking.findMany({
+      where: { timeSlotId: slot.id, status: 'CONFIRMED' },
+    });
+    if (confirmed.length === 0) {
+      return;
+    }
+    for (const booking of confirmed) {
+      await tx.booking.update({
+        where: { id: booking.id },
+        data: { status: 'CANCELLED' },
+      });
+      await tx.cancellation.create({
+        data: {
+          bookingId: booking.id,
+          cancelledAt: now,
+          cancelledBy: 'TRAINER',
+          generatedCredit: false,
+          creditId: null,
+        },
+      });
+    }
+    const next = applySeatChange(
+      {
+        enrolledCount: slot.enrolledCount,
+        capacity: slot.capacity,
+        status: slot.status as 'OPEN' | 'FULL' | 'CLOSED',
+      },
+      -confirmed.length,
+    );
+    await tx.timeSlot.update({
+      where: { id: slot.id },
+      data: next,
+    });
   }
 
   private async removeEmptySlot(
@@ -590,6 +775,31 @@ export class SchedulesService {
     }
     await tx.timeSlot.delete({ where: { id: slot.id } });
   }
+}
+
+function parseTimeSlotRange(
+  range?: TimeSlotRange,
+): { from: string; to: string } | undefined {
+  if (!range) {
+    return undefined;
+  }
+  const from = range.from?.trim();
+  const to = range.to?.trim();
+  if (!from && !to) {
+    return undefined;
+  }
+  if (!from || !to) {
+    throw new BadRequestException('Informe from e to juntos');
+  }
+  const parsedFrom = isoDateSchema.safeParse(from);
+  const parsedTo = isoDateSchema.safeParse(to);
+  if (!parsedFrom.success || !parsedTo.success) {
+    throw new BadRequestException('Informe from e to em YYYY-MM-DD');
+  }
+  if (parsedTo.data < parsedFrom.data) {
+    throw new BadRequestException('O término da janela deve ser após o início');
+  }
+  return { from: parsedFrom.data, to: parsedTo.data };
 }
 
 function dateOnly(value: Date): string {

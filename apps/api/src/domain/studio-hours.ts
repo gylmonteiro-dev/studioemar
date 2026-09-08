@@ -32,20 +32,37 @@ export function intervalsOverlap(
   return leftStart < rightEnd && rightStart < leftEnd;
 }
 
+export function lookAheadEndDate(from: Date): string {
+  return addCalendarDays(
+    calendarDate(from),
+    STUDIO_HOUR_HORIZON_WEEKS * 7 - 1,
+  );
+}
+
 export function enumerateStudioHourOccurrences(input: {
   weekdays: readonly Weekday[];
   startTime: string;
   endTime: string;
   from: Date;
+  startDate?: string;
+  until?: string;
   weeks?: number;
 }): Array<{ date: string; startsAt: Date; endsAt: Date }> {
-  const weeks = input.weeks ?? STUDIO_HOUR_HORIZON_WEEKS;
   const wanted = new Set(input.weekdays);
-  const fromDate = calendarDate(input.from);
+  const fromDate = input.startDate ?? calendarDate(input.from);
+  const until =
+    input.until ??
+    addCalendarDays(
+      fromDate,
+      (input.weeks ?? STUDIO_HOUR_HORIZON_WEEKS) * 7 - 1,
+    );
   const occurrences: Array<{ date: string; startsAt: Date; endsAt: Date }> = [];
 
-  for (let offset = 0; offset < weeks * 7; offset += 1) {
-    const date = addCalendarDays(fromDate, offset);
+  for (
+    let date = fromDate;
+    date <= until;
+    date = addCalendarDays(date, 1)
+  ) {
     if (!wanted.has(weekdayFromCalendarDate(date))) {
       continue;
     }

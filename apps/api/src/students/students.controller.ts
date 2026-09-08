@@ -8,16 +8,19 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   createPlanRequestSchema,
   createStudentRequestSchema,
   updatePlanRequestSchema,
+  updateStudentRequestSchema,
   updateStudentTrainersRequestSchema,
   type CreatePlanRequest,
   type CreateStudentRequest,
   type UpdatePlanRequest,
+  type UpdateStudentRequest,
   type UpdateStudentTrainersRequest,
 } from '@studioemar/shared';
 import type { AuthUser } from '../auth/auth.types';
@@ -74,6 +77,12 @@ export class StudentsController {
     return this.students.list(user);
   }
 
+  @Get('students/regular-availability')
+  @ApiOperation({ summary: 'Horários com vaga para a agenda regular' })
+  listRegularAvailability(@Query('planId') planId: string) {
+    return this.students.listRegularAvailability(planId);
+  }
+
   @Post('students')
   @ApiOperation({ summary: 'Criar conta de aluno' })
   create(
@@ -88,6 +97,17 @@ export class StudentsController {
   @ApiOperation({ summary: 'Detalhe do aluno' })
   getById(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.students.getById(id, user);
+  }
+
+  @Patch('students/:id')
+  @ApiOperation({ summary: 'Ativar ou inativar aluno' })
+  updateStudent(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateStudentRequestSchema))
+    body: UpdateStudentRequest,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.students.updateStudent(id, body, user);
   }
 
   @Get('students/:id/bookings')

@@ -22,6 +22,7 @@ import {
 import { canManageAccess } from '@/lib/auth-routing';
 import {
   addDays,
+  calendarDate,
   clockTime,
   formatDateHeading,
   formatWeekRange,
@@ -50,10 +51,18 @@ export default function TreinadorAgendaPage() {
   const trainer = useTrainer();
   const { toast } = useToast();
   const canManage = Boolean(trainer && canManageAccess(trainer.role));
+  const [weekOffset, setWeekOffset] = useState(0);
   const { data, error, loading, reload } = useAsync(async () => {
-    const [timeSlots, now] = await Promise.all([listTimeSlots(), getServerNow()]);
-    return { timeSlots, now };
-  }, []);
+    const now = await getServerNow();
+    const weekStart = addDays(
+      startOfWeekMonday(now.toISOString()),
+      weekOffset * 7,
+    );
+    const from = calendarDate(weekStart.toISOString());
+    const to = calendarDate(addDays(weekStart, 6).toISOString());
+    const timeSlots = await listTimeSlots({ from, to });
+    return { timeSlots, now, weekStart };
+  }, [weekOffset]);
   const timeSlots = data?.timeSlots;
   const { data: operators } = useAsync(
     async () => (canManage ? listOperators() : []),
@@ -63,11 +72,12 @@ export default function TreinadorAgendaPage() {
     async () => (canManage ? listClassTypes() : []),
     [canManage],
   );
-  const [weekOffset, setWeekOffset] = useState(0);
-  const weekStart = addDays(
-    startOfWeekMonday((data?.now ?? new Date(0)).toISOString()),
-    weekOffset * 7,
-  );
+  const weekStart =
+    data?.weekStart ??
+    addDays(
+      startOfWeekMonday((data?.now ?? new Date(0)).toISOString()),
+      weekOffset * 7,
+    );
   const [openCreate, setOpenCreate] = useState(false);
   const [busy, setBusy] = useState(false);
   const [overlapAck, setOverlapAck] = useState(false);

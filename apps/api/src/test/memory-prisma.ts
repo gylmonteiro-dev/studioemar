@@ -4,6 +4,7 @@ export type MemoryUser = {
   id: string;
   name: string;
   email: string;
+  cpf?: string | null;
   role: 'STUDENT' | 'TRAINER' | 'ADMIN' | 'SUPERADMIN';
   planId: string | null;
   mustSetPassword: boolean;
@@ -105,6 +106,18 @@ export type MemoryClassType = {
   name: string;
 };
 
+export type MemoryStudentTrainer = {
+  studentId: string;
+  trainerId: string;
+};
+
+export type MemoryStudentRegularSlot = {
+  id: string;
+  studentId: string;
+  studioHourId: string;
+  weekday: string;
+};
+
 export type MemoryStore = {
   users: MemoryUser[];
   plans: MemoryPlan[];
@@ -117,6 +130,8 @@ export type MemoryStore = {
   classTypes: MemoryClassType[];
   closures: MemoryClosure[];
   waitlist: MemoryWaitlist[];
+  studentTrainers: MemoryStudentTrainer[];
+  studentRegularSlots: MemoryStudentRegularSlot[];
 };
 
 type Where = Record<string, unknown>;
@@ -135,17 +150,28 @@ function matchScalar(value: unknown, expected: unknown): boolean {
       in?: unknown[];
       not?: unknown;
     };
-    if (filter.lt instanceof Date && value instanceof Date) {
-      return value < filter.lt;
-    }
-    if (filter.gt instanceof Date && value instanceof Date) {
-      return value > filter.gt;
-    }
-    if (filter.gte instanceof Date && value instanceof Date) {
-      return value >= filter.gte;
-    }
-    if (filter.lte instanceof Date && value instanceof Date) {
-      return value <= filter.lte;
+    const hasDate =
+      filter.lt instanceof Date ||
+      filter.gt instanceof Date ||
+      filter.gte instanceof Date ||
+      filter.lte instanceof Date;
+    if (hasDate) {
+      if (!(value instanceof Date)) {
+        return false;
+      }
+      if (filter.lt instanceof Date && !(value < filter.lt)) {
+        return false;
+      }
+      if (filter.gt instanceof Date && !(value > filter.gt)) {
+        return false;
+      }
+      if (filter.gte instanceof Date && !(value >= filter.gte)) {
+        return false;
+      }
+      if (filter.lte instanceof Date && !(value <= filter.lte)) {
+        return false;
+      }
+      return true;
     }
     if (Array.isArray(filter.in)) {
       return filter.in.includes(value);
@@ -238,7 +264,10 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
   store: MemoryStore;
 } {
   const store: MemoryStore = {
-    users: structuredClone(seed.users ?? []),
+    users: structuredClone(seed.users ?? []).map((user) => ({
+      ...user,
+      isActive: user.isActive ?? true,
+    })),
     plans: structuredClone(
       (seed.plans ?? []).map((plan) => ({
         sessionMinutes: 60,
@@ -255,7 +284,32 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
     classTypes: structuredClone(seed.classTypes ?? []),
     closures: structuredClone(seed.closures ?? []),
     waitlist: structuredClone(seed.waitlist ?? []),
+    studentTrainers: structuredClone(seed.studentTrainers ?? []),
+    studentRegularSlots: structuredClone(seed.studentRegularSlots ?? []),
   };
+
+  function includeUser(row: MemoryUser, include?: Where) {
+    if (!include) {
+      return row;
+    }
+    const studentRegularSlots = include.studentRegularSlots
+      ? store.studentRegularSlots
+          .filter((slot) => slot.studentId === row.id)
+          .map((slot) => ({
+            ...slot,
+            studioHour: store.studioHours.find(
+              (hour) => hour.id === slot.studioHourId,
+            ),
+          }))
+      : undefined;
+    return {
+      ...row,
+      studentTrainerLinks: include.studentTrainerLinks
+        ? store.studentTrainers.filter((link) => link.studentId === row.id)
+        : undefined,
+      studentRegularSlots,
+    };
+  }
 
   function includeBooking(row: MemoryBooking, include?: Where) {
     return {
@@ -274,28 +328,45 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
 
   const delegate = {
     user: {
-      async findMany(args: { where?: Where; orderBy?: unknown } = {}) {
+      async findMany(args: {
+        where?: Where;
+        include?: Where;
+        orderBy?: unknown;
+      } = {}) {
         return sortRows(
-          store.users.filter((row) => matches(row, args.where)),
+          store.users
+            .filter((row) => matches(row, args.where))
+            .map((row) => includeUser(row, args.include)),
           args.orderBy,
         );
       },
-      async findUnique(args: { where: Where }) {
-        return (
-          store.users.find((row) => matches(row, args.where)) ?? null
-        );
+      async findUnique(args: { where: Where; include?: Where }) {
+        const row = store.users.find((item) => matches(item, args.where));
+        return row ? includeUser(row, args.include) : null;
       },
-      async findFirst(args: { where?: Where } = {}) {
-        return store.users.find((row) => matches(row, args.where)) ?? null;
+      async findUniqueOrThrow(args: { where: Where; include?: Where }) {
+        const row = store.users.find((item) => matches(item, args.where));
+        if (!row) {
+          throw new Error('User not found');
+        }
+        return includeUser(row, args.include);
       },
-      async create(args: { data: Partial<MemoryUser> & { name: string; email: string } }) {
+      async findFirst(args: { where?: Where; include?: Where } = {}) {
+        const row = store.users.find((item) => matches(item, args.where));
+        return row ? includeUser(row, args.include) : null;
+      },
+      async create(args: {
+        data: Partial<MemoryUser> & { name: string; email: string };
+      }) {
         const row: MemoryUser = {
           id: args.data.id ?? nextId('user'),
           name: args.data.name,
           email: args.data.email,
+          cpf: args.data.cpf ?? null,
           role: args.data.role ?? 'STUDENT',
           planId: args.data.planId ?? null,
           mustSetPassword: args.data.mustSetPassword ?? false,
+          isActive: args.data.isActive ?? true,
           passwordHash: args.data.passwordHash ?? null,
         };
         store.users.push(row);
@@ -376,6 +447,17 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
       async create(args: {
         data: Omit<MemoryTimeSlot, 'id'> & { id?: string };
       }) {
+        const studioHourId = args.data.studioHourId ?? null;
+        if (studioHourId) {
+          const duplicate = store.timeSlots.find(
+            (item) =>
+              item.studioHourId === studioHourId &&
+              item.startsAt.getTime() === args.data.startsAt.getTime(),
+          );
+          if (duplicate) {
+            throw new Error('TimeSlot already exists for this studio hour');
+          }
+        }
         const row: MemoryTimeSlot = {
           id: args.data.id ?? nextId('slot'),
           name: args.data.name,
@@ -386,7 +468,7 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
           status: args.data.status,
           classType: args.data.classType,
           trainerId: args.data.trainerId,
-          studioHourId: args.data.studioHourId ?? null,
+          studioHourId,
         };
         store.timeSlots.push(row);
         return row;
@@ -508,8 +590,9 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         store.cancellations.push(row);
         return row;
       },
-      async count() {
-        return store.cancellations.length;
+      async count(args: { where?: Where } = {}) {
+        return store.cancellations.filter((row) => matches(row, args.where))
+          .length;
       },
     },
     recurringSlot: {
@@ -556,8 +639,11 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
       },
     },
     studioHour: {
-      async findMany(args: { orderBy?: unknown } = {}) {
-        return sortRows(store.studioHours, args.orderBy);
+      async findMany(args: { where?: Where; orderBy?: unknown } = {}) {
+        return sortRows(
+          store.studioHours.filter((row) => matches(row, args.where)),
+          args.orderBy,
+        );
       },
       async findUnique(args: { where: Where }) {
         return store.studioHours.find((row) => matches(row, args.where)) ?? null;
@@ -656,6 +742,55 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         return { count };
       },
     },
+    studentTrainer: {
+      async createMany(args: { data: MemoryStudentTrainer[] }) {
+        store.studentTrainers.push(...args.data);
+        return { count: args.data.length };
+      },
+      async deleteMany(args: { where?: Where } = {}) {
+        const kept = store.studentTrainers.filter(
+          (row) => !matches(row, args.where),
+        );
+        const count = store.studentTrainers.length - kept.length;
+        store.studentTrainers.splice(
+          0,
+          store.studentTrainers.length,
+          ...kept,
+        );
+        return { count };
+      },
+    },
+    studentRegularSlot: {
+      async create(args: {
+        data: Omit<MemoryStudentRegularSlot, 'id'> & { id?: string };
+      }) {
+        const row: MemoryStudentRegularSlot = {
+          id: args.data.id ?? nextId('regular'),
+          studentId: args.data.studentId,
+          studioHourId: args.data.studioHourId,
+          weekday: args.data.weekday,
+        };
+        store.studentRegularSlots.push(row);
+        return row;
+      },
+      async findMany(args: { where?: Where } = {}) {
+        return store.studentRegularSlots.filter((row) =>
+          matches(row, args.where),
+        );
+      },
+      async deleteMany(args: { where?: Where } = {}) {
+        const kept = store.studentRegularSlots.filter(
+          (row) => !matches(row, args.where),
+        );
+        const count = store.studentRegularSlots.length - kept.length;
+        store.studentRegularSlots.splice(
+          0,
+          store.studentRegularSlots.length,
+          ...kept,
+        );
+        return { count };
+      },
+    },
     async $transaction<T>(fn: (tx: typeof delegate) => Promise<T>): Promise<T> {
       const snapshot = cloneStore(store);
       try {
@@ -688,6 +823,16 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         );
         store.closures.splice(0, store.closures.length, ...snapshot.closures);
         store.waitlist.splice(0, store.waitlist.length, ...snapshot.waitlist);
+        store.studentTrainers.splice(
+          0,
+          store.studentTrainers.length,
+          ...snapshot.studentTrainers,
+        );
+        store.studentRegularSlots.splice(
+          0,
+          store.studentRegularSlots.length,
+          ...snapshot.studentRegularSlots,
+        );
         throw error;
       }
     },

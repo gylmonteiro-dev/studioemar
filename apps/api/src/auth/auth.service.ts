@@ -171,6 +171,7 @@ export class AuthService {
     mustSetPassword: boolean;
     isActive: boolean;
     passwordHash?: string | null;
+    cpf?: string | null;
   }): AuthSession {
     const accessToken = this.jwt.sign(
       {

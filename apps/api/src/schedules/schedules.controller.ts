@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
@@ -39,8 +40,15 @@ export class SchedulesController {
 
   @Get('time-slots')
   @ApiOperation({ summary: 'Horários e vagas' })
-  listTimeSlots(@CurrentUser() user: AuthUser) {
-    return this.schedules.listTimeSlots(user);
+  listTimeSlots(
+    @CurrentUser() user: AuthUser,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.schedules.listTimeSlots(
+      user,
+      from || to ? { from: from ?? '', to: to ?? '' } : undefined,
+    );
   }
 
   @Post('time-slots')
@@ -140,7 +148,9 @@ export class SchedulesController {
   @Delete('studio-hours/:id')
   @HttpCode(204)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Excluir horário/turma do estúdio' })
+  @ApiOperation({
+    summary: 'Excluir horário/turma do estúdio e aulas futuras geradas',
+  })
   async deleteStudioHour(@Param('id') id: string) {
     await this.schedules.deleteStudioHour(id);
   }

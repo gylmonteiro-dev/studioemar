@@ -52,6 +52,16 @@ export function saoPauloDateTime(date: string, time: string): Date {
   return new Date(`${date}T${time}:00-03:00`);
 }
 
+export function civilRangeBounds(
+  fromDate: string,
+  untilDate: string,
+): { gte: Date; lt: Date } {
+  return {
+    gte: saoPauloDateTime(fromDate, '00:00'),
+    lt: saoPauloDateTime(addCalendarDays(untilDate, 1), '00:00'),
+  };
+}
+
 export function clockTimeSaoPaulo(value: Date): string {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: TIME_ZONE,

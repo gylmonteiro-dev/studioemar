@@ -26,9 +26,11 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - Cliente `apps/web/src/lib/api-client.ts` (Bearer + refresh
   em 401)
 - Contrato Zod + OpenAPI (health, auth, students, operators,
-  schedules, bookings, credits, dashboard, class-types, plans)
+  schedules, bookings, credits, dashboard, class-types, plans,
+  agenda regular do aluno)
 - Prisma com vínculo N:N `StudentTrainer`, turmas `StudioHour`,
-  catálogo `ClassType` e métricas de `Plan`
+  catálogo `ClassType`, métricas de `Plan`, CPF do aluno e
+  `StudentRegularSlot`
 - Prisma schema, migrations e seed
 - Compose só do banco: infrastructure/docker-compose.dev.yml
 - Nest: auth, students, operators, schedules, bookings, credits,
@@ -40,8 +42,12 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - Horários saiu da nav do treinador; `/treinador/horarios` e
   `/treinador/agenda-recorrente` redirecionam para Ajustes
 - Turmas recorrentes exigem identificação, tipo de aula,
-  dias de segunda a domingo, intervalo, capacidade e treinador;
-  geram aulas para as próximas 12 semanas
+  dias de segunda a domingo, intervalo, capacidade e treinador.
+  A grade é contínua: gera uma folga de 12 semanas e materializa
+  qualquer semana futura ao listar `GET /time-slots?from&to`.
+  Alunos regulares ativos entram nas aulas novas. Aula some da
+  agenda se o aluno for inativado, o horário for excluído da
+  grade ou houver fechamento.
 - Tipo de aula vem de catálogo (`GET/POST /class-types`); nome
   único em maiúsculas; o admin cadastra o tipo se ainda não
   existir
@@ -53,6 +59,11 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
   semanas, preço opcional. CRUD ADMIN; DELETE 409 se houver aluno
 - Agenda recorrente do plano (`RecurringSlot`) permanece na API;
   a UI saiu do accordion Horários
+- Cadastro de aluno (ADMIN/TRAINER): nome completo, CPF válido,
+  e-mail, plano, professores e N dias/horários com vaga
+  (N = aulas/semana do plano). Gera reservas REGULAR. Senha no
+  primeiro acesso pelo e-mail. Inativar (`PATCH /students/:id`)
+  cancela as reservas futuras.
 - TRAINER vê alunos vinculados ou com reserva em aula ministrada
   por ele; ADMIN e SUPERADMIN mantêm visão global
 - Configuração global (horários, planos, fechamentos) restrita a
@@ -153,7 +164,7 @@ Cobertura:
 - Responsividade 390 / 768 / 1024 / 1440
 - Fluxos: login, cancelar, dashboard, Ajustes (horários, tipo de
   aula, cadastro de plano), agenda na semana do relógio do
-  servidor
+  servidor, cadastro de aluno (CPF e horários do plano)
 - Contrato Zod × docs/openapi.yaml
 
 ## Produção em containers (FASE 8)
@@ -265,6 +276,7 @@ As migrations abaixo estão aplicadas no banco local:
 - `20260908103000_studio_hour_name`
 - `20260908120000_class_types`
 - `20260908140000_plan_metrics`
+- `20260908160000_student_regular_slots`
 
 As aulas, reservas, créditos, waitlist e turmas de demonstração
 foram removidos, preservando os cinco usuários, senhas, plano e
@@ -314,6 +326,7 @@ Checklist para publicar na VPS (somente com autorização):
    - `20260908103000_studio_hour_name`
    - `20260908120000_class_types`
    - `20260908140000_plan_metrics`
+   - `20260908160000_student_regular_slots`
 
 6. Validar: `GET https://api.studioemar.com.br/health`
    (`status` e, após o merge desta fatia, `now`); HTTPS; CORS;
@@ -348,7 +361,8 @@ migration, rebuild e validação antes de entrarem na VPS.
   migrations `20260905214000_access_hierarchy`,
   `20260907210000_studio_hours`,
   `20260908103000_studio_hour_name`, `20260908120000_class_types`
-  e `20260908140000_plan_metrics`.
+  e `20260908140000_plan_metrics`,
+  `20260908160000_student_regular_slots`.
 - `GET /health.now` e a semana da agenda estão em `main`; não
   publicar na VPS sem autorização.
 - Configurar backup off-site antes do uso definitivo.

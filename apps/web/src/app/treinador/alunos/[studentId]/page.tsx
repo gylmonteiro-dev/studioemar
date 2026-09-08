@@ -15,11 +15,12 @@ import {
   listStudentCredits,
   listTimeSlots,
   updateStudentTrainers,
+  updateStudent,
 } from '@/lib/api';
 import { canManageAccess } from '@/lib/auth-routing';
 import { viewsForStudent } from '@/lib/booking-views';
 import { creditSourceLabel, creditStatusLabel } from '@/lib/credit-copy';
-import { clockTime, formatDateLong } from '@/lib/format';
+import { clockTime, formatCpf, formatDateLong, WEEKDAY_NAME } from '@/lib/format';
 import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
 import Link from 'next/link';
@@ -109,14 +110,68 @@ export default function TreinadorAlunoDetalhePage() {
         </p>
         <h1 className="mt-2 text-3xl font-bold text-foreground">{student.name}</h1>
         <p className="mt-1 text-muted-foreground">{student.email}</p>
-        <div className="mt-3">
-          {student.mustSetPassword ? (
+        {student.cpf ? (
+          <p className="mt-1 text-muted-foreground">CPF {formatCpf(student.cpf)}</p>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {student.isActive === false ? (
+            <Badge variant="warning">Inativo</Badge>
+          ) : student.mustSetPassword ? (
             <Badge variant="warning">Aguardando primeiro acesso</Badge>
           ) : (
             <Badge variant="success">Ativo</Badge>
           )}
+          {canManageAccess(trainer.role) ? (
+            <Button
+              variant={student.isActive === false ? 'cta' : 'danger'}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await updateStudent(student.id, {
+                    isActive: student.isActive === false,
+                  });
+                  toast(
+                    student.isActive === false
+                      ? 'Aluno reativado. As aulas futuras com vaga voltam na grade.'
+                      : 'Aluno inativado. As aulas futuras saíram da agenda.',
+                  );
+                  reload();
+                } catch (caught) {
+                  toast(
+                    caught instanceof Error
+                      ? caught.message
+                      : 'Não foi possível atualizar',
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {student.isActive === false ? 'Reativar' : 'Inativar'}
+            </Button>
+          ) : null}
         </div>
       </section>
+
+      {student.regularSlots.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold text-foreground">Agenda regular</h2>
+          {student.regularSlots.map((slot) => (
+            <Card
+              key={`${slot.studioHourId}-${slot.weekday}`}
+              className="p-4"
+            >
+              <p className="font-semibold text-foreground">
+                {WEEKDAY_NAME[slot.weekday]} · {slot.name}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {slot.startTime}–{slot.endTime} · {slot.classType}
+              </p>
+            </Card>
+          ))}
+        </section>
+      ) : null}
 
       {canManageAccess(trainer.role) ? (
         <Card className="flex max-w-xl flex-col gap-4 p-4">

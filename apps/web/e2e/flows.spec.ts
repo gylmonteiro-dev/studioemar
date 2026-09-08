@@ -104,6 +104,26 @@ test.describe('fluxos do treinador', () => {
     await expect(page.getByLabel('Tipo da aula')).toHaveValue('PILATES');
   });
 
+  test('admin cadastra aluno com CPF, plano 3x e horários com vaga', async ({
+    page,
+  }) => {
+    await mockApi(page, { user: marina });
+    await injectSession(page, marina);
+    await page.goto('/treinador/alunos/novo');
+    await page.getByLabel('Nome completo').fill('Ana Souza');
+    await page.getByLabel('CPF').fill('52998224725');
+    await page.getByLabel('E-mail').fill('ana.souza@studioemar.local');
+    await page.getByLabel('Aula 1').selectOption({ index: 1 });
+    await page.getByLabel('Aula 2').selectOption({ index: 1 });
+    await page.getByLabel('Aula 3').selectOption({ index: 1 });
+    await page.getByText('Carlos', { exact: true }).click();
+    await page.getByRole('button', { name: 'Criar conta' }).click();
+    await expect(page.getByRole('heading', { name: 'Ana Souza' })).toBeVisible();
+    await expect(page.getByText('CPF 529.982.247-25')).toBeVisible();
+    await expect(page.getByText('Segunda · Manhã 1')).toBeVisible();
+    await expect(page.getByText('Aguardando primeiro acesso')).toBeVisible();
+  });
+
   test('admin cadastra modelo de plano em Ajustes', async ({ page }) => {
     await mockApi(page, { user: marina });
     await injectSession(page, marina);

@@ -8,7 +8,6 @@ import type {
   StudioClosure as PrismaStudioClosure,
   StudioHour as PrismaStudioHour,
   TimeSlot as PrismaTimeSlot,
-  User as PrismaUser,
   WaitlistEntry as PrismaWaitlistEntry,
 } from '@prisma/client';
 import {
@@ -32,6 +31,7 @@ import {
   type RecurringSlot,
   type StudioClosure,
   type StudioHour,
+  type StudentRegularSlot,
   type TimeSlot,
   type User,
   type WaitlistEntry,
@@ -42,17 +42,18 @@ function dateOnly(value: Date): string {
 }
 
 export function toUser(
-  row: Pick<
-    PrismaUser,
-    | 'id'
-    | 'name'
-    | 'email'
-    | 'role'
-    | 'planId'
-    | 'mustSetPassword'
-    | 'isActive'
-  >,
+  row: {
+    id: string;
+    name: string;
+    email: string;
+    role: User['role'] | string;
+    planId?: string | null;
+    cpf?: string | null;
+    mustSetPassword: boolean;
+    isActive?: boolean;
+  },
   trainerIds: string[] = [],
+  regularSlots: StudentRegularSlot[] = [],
 ): User {
   return userSchema.parse({
     id: row.id,
@@ -60,7 +61,9 @@ export function toUser(
     email: row.email,
     role: row.role,
     ...(row.planId ? { planId: row.planId } : {}),
+    ...(row.cpf ? { cpf: row.cpf } : {}),
     trainerIds,
+    regularSlots,
     mustSetPassword: row.mustSetPassword,
     isActive: row.isActive,
   });

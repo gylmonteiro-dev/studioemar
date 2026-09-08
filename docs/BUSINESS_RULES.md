@@ -12,7 +12,7 @@ sem decisão.
 ## RN-001 — Agenda recorrente
 
 A agenda regular do aluno é definida pelo treinador conforme o pacote
-contratado.
+contratado, no cadastro da conta.
 
 Exemplo:
 
@@ -237,6 +237,14 @@ Quem cria a conta do aluno é o administrador / professor.
 
 Não há auto-cadastro.
 
+O cadastro exige nome completo, CPF válido (com ou sem
+pontuação; gravado só com dígitos e único), e-mail, plano,
+pelo menos um professor responsável e exatamente N dias e
+horários das turmas já cadastradas, em que N é a quantidade
+de aulas por semana do plano. Só entram horários com vaga
+e com a mesma duração do plano. A senha não é definida
+neste momento (RN-022).
+
 ---
 
 ## RN-022 — Senha do aluno
@@ -294,9 +302,21 @@ usar no horário.
 Exemplo: "Manhã 1", segunda, quarta e sexta, das 07:30 às 08:30.
 
 Esses cadastros geram as aulas (`TimeSlot`) usadas em reserva,
-cancelamento e reposição por crédito. O admin pode incluir um
-horário pontual, alterar e excluir, desde que não haja aluno
-inscrito na ocorrência.
+cancelamento e reposição por crédito. A grade é contínua: no
+cadastro gera uma folga de 12 semanas, e qualquer semana futura
+consultada na agenda também é materializada. Alunos com agenda
+regular ativa são inscritos nas aulas novas. Sem intervalo,
+`GET /time-slots` e o dashboard usam a folga vigente (hoje até
+12 semanas à frente), não o histórico persistido.
+
+A ocorrência some da agenda quando o aluno é inativado (reservas
+futuras canceladas, sem crédito), quando o horário é excluído da
+grade (aulas futuras geradas saem, reservas canceladas) ou quando
+há fechamento do estúdio (RN-014 / RN-019).
+
+O admin pode incluir um horário pontual. Alterar dias ou intervalo
+da turma exige que as aulas futuras estejam sem inscritos.
+Excluir uma ocorrência pontual continua exigindo a aula vazia.
 
 Turmas podem funcionar em paralelo no mesmo horário. Se os dias
 e os intervalos coincidirem, o sistema apenas alerta; o cadastro

@@ -8,6 +8,7 @@ import { listMyBookings, listTimeSlots, getServerNow } from '@/lib/api';
 import { viewsForStudent } from '@/lib/booking-views';
 import {
   addDays,
+  calendarDate,
   formatWeekRange,
   isInWeek,
   startOfWeekMonday,
@@ -19,19 +20,27 @@ import { useMemo, useState } from 'react';
 
 export default function AgendaPage() {
   const student = useStudent();
-  const { data, error, loading } = useAsync(async () => {
-    const [bookings, timeSlots, now] = await Promise.all([
-      listMyBookings(),
-      listTimeSlots(),
-      getServerNow(),
-    ]);
-    return { bookings, timeSlots, now };
-  }, []);
   const [weekOffset, setWeekOffset] = useState(0);
-  const weekStart = addDays(
-    startOfWeekMonday((data?.now ?? new Date(0)).toISOString()),
-    weekOffset * 7,
-  );
+  const { data, error, loading } = useAsync(async () => {
+    const now = await getServerNow();
+    const weekStart = addDays(
+      startOfWeekMonday(now.toISOString()),
+      weekOffset * 7,
+    );
+    const from = calendarDate(weekStart.toISOString());
+    const to = calendarDate(addDays(weekStart, 6).toISOString());
+    const [bookings, timeSlots] = await Promise.all([
+      listMyBookings(),
+      listTimeSlots({ from, to }),
+    ]);
+    return { bookings, timeSlots, now, weekStart };
+  }, [weekOffset]);
+  const weekStart =
+    data?.weekStart ??
+    addDays(
+      startOfWeekMonday((data?.now ?? new Date(0)).toISOString()),
+      weekOffset * 7,
+    );
 
   const views = useMemo(() => {
     if (!student || !data) {
