@@ -5,14 +5,23 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   addRecurringSlotRequestSchema,
   createStudioClosureRequestSchema,
+  createStudioHourRequestSchema,
+  createTimeSlotRequestSchema,
+  updateStudioHourRequestSchema,
+  updateTimeSlotRequestSchema,
   type AddRecurringSlotRequest,
   type CreateStudioClosureRequest,
+  type CreateStudioHourRequest,
+  type CreateTimeSlotRequest,
+  type UpdateStudioHourRequest,
+  type UpdateTimeSlotRequest,
 } from '@studioemar/shared';
 import { CurrentUser } from '../common/current-user.decorator';
 import { Roles } from '../common/roles.decorator';
@@ -32,10 +41,39 @@ export class SchedulesController {
     return this.schedules.listTimeSlots(user);
   }
 
+  @Post('time-slots')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Incluir horário pontual' })
+  createTimeSlot(
+    @Body(new ZodValidationPipe(createTimeSlotRequestSchema))
+    body: CreateTimeSlotRequest,
+  ) {
+    return this.schedules.createTimeSlot(body);
+  }
+
   @Get('time-slots/:id')
   @ApiOperation({ summary: 'Detalhe do horário' })
   getTimeSlot(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.schedules.getTimeSlot(id, user);
+  }
+
+  @Patch('time-slots/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Alterar horário pontual ou ocorrência' })
+  updateTimeSlot(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateTimeSlotRequestSchema))
+    body: UpdateTimeSlotRequest,
+  ) {
+    return this.schedules.updateTimeSlot(id, body);
+  }
+
+  @Delete('time-slots/:id')
+  @HttpCode(204)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Excluir horário sem alunos inscritos' })
+  async deleteTimeSlot(@Param('id') id: string) {
+    await this.schedules.deleteTimeSlot(id);
   }
 
   @Get('time-slots/:id/bookings')
@@ -52,16 +90,52 @@ export class SchedulesController {
     return this.schedules.listWaitlist(id, user);
   }
 
+  @Get('studio-hours')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Horários do estúdio' })
+  listStudioHours() {
+    return this.schedules.listStudioHours();
+  }
+
+  @Post('studio-hours')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Criar horário/turma do estúdio' })
+  createStudioHour(
+    @Body(new ZodValidationPipe(createStudioHourRequestSchema))
+    body: CreateStudioHourRequest,
+  ) {
+    return this.schedules.createStudioHour(body);
+  }
+
+  @Patch('studio-hours/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Alterar horário/turma do estúdio' })
+  updateStudioHour(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateStudioHourRequestSchema))
+    body: UpdateStudioHourRequest,
+  ) {
+    return this.schedules.updateStudioHour(id, body);
+  }
+
+  @Delete('studio-hours/:id')
+  @HttpCode(204)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Excluir horário/turma do estúdio' })
+  async deleteStudioHour(@Param('id') id: string) {
+    await this.schedules.deleteStudioHour(id);
+  }
+
   @Get('recurring-slots')
   @Roles('TRAINER')
-  @ApiOperation({ summary: 'Agenda recorrente' })
+  @ApiOperation({ summary: 'Agenda do plano' })
   listRecurring() {
     return this.schedules.listRecurringSlots();
   }
 
   @Post('recurring-slots')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Incluir horário recorrente' })
+  @ApiOperation({ summary: 'Incluir horário do plano' })
   addRecurring(
     @Body(new ZodValidationPipe(addRecurringSlotRequestSchema))
     body: AddRecurringSlotRequest,
@@ -72,7 +146,7 @@ export class SchedulesController {
   @Delete('recurring-slots/:id')
   @HttpCode(204)
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Remover horário recorrente' })
+  @ApiOperation({ summary: 'Remover horário do plano' })
   async removeRecurring(@Param('id') id: string) {
     await this.schedules.removeRecurringSlot(id);
   }

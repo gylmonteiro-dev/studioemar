@@ -5,6 +5,7 @@ import type {
   Plan as PrismaPlan,
   RecurringSlot as PrismaRecurringSlot,
   StudioClosure as PrismaStudioClosure,
+  StudioHour as PrismaStudioHour,
   TimeSlot as PrismaTimeSlot,
   User as PrismaUser,
   WaitlistEntry as PrismaWaitlistEntry,
@@ -16,6 +17,7 @@ import {
   planSchema,
   recurringSlotSchema,
   studioClosureSchema,
+  studioHourSchema,
   timeSlotSchema,
   userSchema,
   waitlistEntrySchema,
@@ -25,6 +27,7 @@ import {
   type Plan,
   type RecurringSlot,
   type StudioClosure,
+  type StudioHour,
   type TimeSlot,
   type User,
   type WaitlistEntry,
@@ -73,6 +76,18 @@ export function toRecurringSlot(row: PrismaRecurringSlot): RecurringSlot {
     planId: row.planId,
     weekday: row.weekday,
     time: row.time,
+  });
+}
+
+export function toStudioHour(row: PrismaStudioHour): StudioHour {
+  return studioHourSchema.parse({
+    id: row.id,
+    weekdays: row.weekdays,
+    startTime: row.startTime,
+    endTime: row.endTime,
+    capacity: row.capacity,
+    classType: row.classType,
+    trainerId: row.trainerId,
   });
 }
 

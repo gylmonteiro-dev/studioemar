@@ -5,25 +5,30 @@ import { AvailabilityBadge } from '@/components/student/availability-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { PageLoadState } from '@/components/ui/load-state';
 import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import {
   cancelBooking,
+  deleteTimeSlot,
   getTimeSlot,
   listSlotBookings,
   listStudents,
   listWaitlist,
+  updateTimeSlot,
 } from '@/lib/api';
+import { canManageAccess } from '@/lib/auth-routing';
 import { clockTime, formatDateHeading, spotsLeft } from '@/lib/format';
 import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function TreinadorSlotPage() {
   const trainer = useTrainer();
+  const router = useRouter();
   const { slotId } = useParams<{ slotId: string }>();
   const { toast } = useToast();
   const { data, error, loading, reload } = useAsync(async () => {
@@ -37,6 +42,8 @@ export default function TreinadorSlotPage() {
   }, [slotId]);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [capacity, setCapacity] = useState('');
+  const canManage = Boolean(trainer && canManageAccess(trainer.role));
 
   if (!trainer) {
     return null;
@@ -98,6 +105,63 @@ export default function TreinadorSlotPage() {
               )}
             </div>
           </section>
+
+          {canManage && slot ? (
+            <Card className="flex flex-col gap-4 p-4 md:flex-row md:items-end">
+              <Input
+                label="Limite de alunos"
+                type="number"
+                min={1}
+                value={capacity || String(slot.capacity)}
+                onChange={(event) => setCapacity(event.target.value)}
+              />
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await updateTimeSlot(slot.id, {
+                      capacity: Number(capacity || slot.capacity),
+                    });
+                    toast('Limite atualizado.');
+                    reload();
+                  } catch (caught) {
+                    toast(
+                      caught instanceof Error
+                        ? caught.message
+                        : 'Não foi possível alterar',
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Salvar limite
+              </Button>
+              <Button
+                variant="danger"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await deleteTimeSlot(slot.id);
+                    toast('Horário excluído.');
+                    router.push('/treinador/agenda');
+                  } catch (caught) {
+                    toast(
+                      caught instanceof Error
+                        ? caught.message
+                        : 'Não foi possível excluir',
+                    );
+                    setBusy(false);
+                  }
+                }}
+              >
+                Excluir horário
+              </Button>
+            </Card>
+          ) : null}
 
           <section className="flex flex-col gap-3">
             <h2 className="text-xl font-semibold text-foreground">Alunos</h2>

@@ -20,7 +20,7 @@ const schema = z.object({
   name: z.string().min(1, 'Informe o nome'),
   email: z.string().email('Informe um e-mail válido'),
   planId: z.string().min(1, 'Escolha o plano'),
-  trainerIds: z.array(z.string()).default([]),
+  trainerIds: z.array(z.string()),
 });
 type Values = z.infer<typeof schema>;
 

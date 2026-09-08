@@ -55,6 +55,7 @@ export async function replaceWithDemoData(
   await prisma.booking.deleteMany();
   await prisma.studioClosure.deleteMany();
   await prisma.timeSlot.deleteMany();
+  await prisma.studioHour.deleteMany();
   await prisma.recurringSlot.deleteMany();
   await prisma.studentTrainer.deleteMany();
   await prisma.user.deleteMany();

@@ -6,6 +6,7 @@ import {
   cancellationSchema,
   createStudentRequestSchema,
   createStudioClosureRequestSchema,
+  createStudioHourRequestSchema,
   creditSchema,
   firstAccessRequestSchema,
   loginRequestSchema,
@@ -209,6 +210,30 @@ describe('timeSlotSchema', () => {
       trainerId: 'user-carlos',
     });
     assert.equal(result.success, false);
+  });
+});
+
+describe('createStudioHourRequestSchema', () => {
+  it('ordena os dias e rejeita intervalo invertido', () => {
+    const hour = createStudioHourRequestSchema.parse({
+      weekdays: ['FRI', 'MON', 'WED'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: ' Funcional ',
+      trainerId: 'user-carlos',
+    });
+    assert.deepEqual(hour.weekdays, ['MON', 'WED', 'FRI']);
+    assert.equal(hour.classType, 'Funcional');
+    const inverted = createStudioHourRequestSchema.safeParse({
+      weekdays: ['MON'],
+      startTime: '08:30',
+      endTime: '07:30',
+      capacity: 6,
+      classType: 'Aula',
+      trainerId: 'user-carlos',
+    });
+    assert.equal(inverted.success, false);
   });
 });
 
