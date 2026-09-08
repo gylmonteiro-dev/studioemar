@@ -12,8 +12,9 @@ o cadastro de aluno com agenda regular, a grade contínua,
 as listagens/dashboard por janela (folga de 12 semanas),
 a home do aluno por semana, a reposição só com crédito e
 o prazo de 4h / validade de 30 dias a partir da aula
-estão em `main`. A VPS ainda executa a imagem do `d062228`,
-anterior a todos esses ajustes. Ainda não houve deploy.
+estão em `main` e na VPS (`IMAGE_TAG=63f2c41`, 2026-09-08).
+O Caddy não foi alterado. As imagens `d062228` permanecem no
+host para rollback.
 
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
@@ -269,8 +270,8 @@ por janela, home do aluno por semana, reposição só com crédito
 da aula cancelada).
 
 A semana da agenda e da home (aluno e treinador) usa
-`GET /health.now`. Essa fatia está em `main`; a VPS continua
-no `d062228`.
+`GET /health.now`. Essa fatia está em `main` e na VPS
+(`63f2c41`).
 
 Fazer os próximos ajustes primeiro apenas localmente. Não
 alterar a VPS, o Caddy nem os dados de homologação sem pedido
@@ -284,12 +285,20 @@ pnpm build:web
 pnpm test:e2e
 ```
 
-Na última validação, `pnpm test`, `pnpm lint`, `pnpm build:api`
+Na última validação local, `pnpm test`, `pnpm lint`, `pnpm build:api`
 e `pnpm test:e2e` (28) passaram com home por semana, reposição
 condicionada a crédito e RN-012/RN-013. Encerrar `pnpm dev:web`
 antes de `pnpm build:web` ou de relançar o e2e.
 
-As migrations abaixo estão aplicadas no banco local:
+Deploy na VPS em 2026-09-08: backup
+`studioemar-20260908-141505.sql.gz`, `git pull --ff-only`,
+rebuild api/web com `IMAGE_TAG=63f2c41`, sete migrations
+aplicadas, schema up to date. Validado: health `{ status, now }`,
+HTTPS, CORS, login 200, Swagger 200. Caddy intacto. Login dos
+quatro papéis na homologação depende das senhas exibidas no
+seed original e não foi refeito neste deploy.
+
+As migrations abaixo estão aplicadas no banco local e na VPS:
 
 - `20260905214000_access_hierarchy`
 - `20260907210000_studio_hours`
@@ -339,16 +348,8 @@ Checklist para publicar na VPS (somente com autorização):
    docker compose -f infrastructure/docker-compose.prod.yml ps
    ```
 
-   A API aplica `prisma migrate deploy` no entrypoint. Pendentes
-   na VPS (imagem `d062228`):
-
-   - `20260905214000_access_hierarchy`
-   - `20260907210000_studio_hours`
-   - `20260908103000_studio_hour_name`
-   - `20260908120000_class_types`
-   - `20260908140000_plan_metrics`
-   - `20260908160000_student_regular_slots`
-   - `20260908180000_timeslot_studio_hour_unique`
+   A API aplica `prisma migrate deploy` no entrypoint. As sete
+   migrations acima já estão aplicadas na VPS (`63f2c41`).
 
 6. Validar: `GET https://api.studioemar.com.br/health`
    (`status` e, após o merge desta fatia, `now`); HTTPS; CORS;
@@ -361,12 +362,8 @@ Checklist para publicar na VPS (somente com autorização):
 Não alterar o Caddyfile compartilhado neste deploy. Preservar
 os blocos do Studio em `/opt/genius-certify/proxy/Caddyfile`.
 
-As imagens atualmente em execução foram construídas no commit
-`d062228`. Hierarquia de acesso, horários, identificação, tipos
-de aula, planos, cadastro de aluno, grade contínua, home por
-semana e regras de crédito/reposição são mudanças funcionais
-posteriores e exigem migration, rebuild e validação antes de
-entrarem na VPS.
+As imagens em execução foram construídas no commit `63f2c41`.
+As imagens `d062228` ainda existem no host para rollback.
 
 ## Não fazer ainda
 
@@ -382,19 +379,6 @@ entrarem na VPS.
 ## Pendências
 
 - Sem mailer de recuperação.
-- Publicar hierarquia de acesso, horários, identificação, tipos
-  de aula, planos, cadastro de aluno, grade contínua, home por
-  semana e regras de crédito/reposição na VPS após autorização.
-  Backup antes das migrations
-  `20260905214000_access_hierarchy`,
-  `20260907210000_studio_hours`,
-  `20260908103000_studio_hour_name`, `20260908120000_class_types`
-  e `20260908140000_plan_metrics`,
-  `20260908160000_student_regular_slots`,
-  `20260908180000_timeslot_studio_hour_unique`.
-- `GET /health.now`, a semana da agenda e da home, o cadastro
-  de aluno, as listagens por janela e a reposição com crédito
-  estão em `main`; não publicar na VPS sem autorização.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.
