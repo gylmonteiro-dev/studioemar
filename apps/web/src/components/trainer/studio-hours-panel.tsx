@@ -65,10 +65,10 @@ function clockValue(value: string): string {
 function emptyStudioValues(trainerId: string): StudioValues {
   return {
     name: '',
-    weekdays: ['MON', 'WED', 'FRI'],
+    weekdays: [],
     startTime: '07:30',
     endTime: '08:30',
-    capacity: 6,
+    capacity: 4,
     classType: '',
     trainerId,
   };

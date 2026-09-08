@@ -87,7 +87,7 @@ export default function TreinadorAgendaPage() {
     date: '',
     startTime: '18:00',
     endTime: '19:00',
-    capacity: '6',
+    capacity: '4',
     classType: '',
     trainerId: '',
   });

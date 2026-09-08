@@ -106,6 +106,9 @@ test.describe('fluxos do treinador', () => {
     await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
     await page.getByLabel('Identificação').fill('Turma manhã');
     await expect(page.getByLabel('Tipo da aula')).toHaveValue('AULA');
+    await expect(page.getByLabel('Segunda')).not.toBeChecked();
+    await expect(page.getByLabel('Limite de alunos')).toHaveValue('4');
+    await page.getByLabel('Segunda').check();
     await page.getByRole('button', { name: 'Criar horário' }).click();
     await expect(
       page.getByText('Horário criado. As aulas das próximas semanas já estão na agenda.'),
