@@ -138,6 +138,37 @@ describe('CreditsService', () => {
     );
   });
 
+  it('recusa reposição no dia e horário regulares do aluno', async () => {
+    const { credits } = service({
+      studioHours: [
+        {
+          id: 'hour-strength',
+          name: 'Strength',
+          weekdays: ['TUE'],
+          startTime: '18:00',
+          endTime: '19:00',
+          capacity: 6,
+          classType: 'Strength',
+          trainerId: 'user-carlos',
+        },
+      ],
+      studentRegularSlots: [
+        {
+          id: 'reg-1',
+          studentId: 'user-joao',
+          studioHourId: 'hour-strength',
+          weekday: 'TUE',
+        },
+      ],
+    });
+    await assert.rejects(
+      () => credits.redeem('credit-1', 'user-joao', { timeSlotId: 'slot-open' }),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        String(error.message).includes('Horário regular'),
+    );
+  });
+
   it('aluno não usa crédito de outro', async () => {
     const { credits } = service();
     await assert.rejects(

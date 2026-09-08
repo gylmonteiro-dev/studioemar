@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { PageLoadState } from '@/components/ui/load-state';
 import { getTimeSlot, listMyCredits, redeemCredit } from '@/lib/api';
-import { availableCredits, oldestAvailableCredit } from '@/lib/booking-views';
+import {
+  availableCredits,
+  isRegularTrainingSlot,
+  oldestAvailableCredit,
+} from '@/lib/booking-views';
 import { clockTime, formatDateHeading } from '@/lib/format';
 import { useStudent } from '@/lib/student-context';
 import { useToast } from '@/components/ui/toast';
@@ -38,9 +42,13 @@ export default function ConfirmarReposicaoPage() {
   const slot = data?.slot;
   const credits = availableCredits(data?.credits ?? []).length;
   const credit = oldestAvailableCredit(data?.credits ?? []);
+  const isRegular = slot
+    ? isRegularTrainingSlot(slot, student.regularSlots ?? [])
+    : false;
+  const canConfirm = credits >= 1 && Boolean(credit) && !isRegular;
 
   async function confirm() {
-    if (!slot || !credit) {
+    if (!slot || !credit || isRegular) {
       return;
     }
     setBusy(true);
@@ -134,9 +142,11 @@ export default function ConfirmarReposicaoPage() {
 
           <Card className="bg-muted">
             <p className="text-sm text-muted-foreground">
-              Você possui <strong className="text-foreground">{credits} crédito{credits === 1 ? '' : 's'}</strong>{' '}
-              disponível{credits === 1 ? '' : 'eis'}. Esta reserva utilizará{' '}
-              <strong className="text-foreground">1 crédito</strong>.
+              {isRegular
+                ? 'Este é o seu horário regular. A reposição usa crédito só em outro dia ou horário com vaga.'
+                : credits < 1
+                  ? 'Você não possui crédito disponível para agendar esta reposição.'
+                  : `Você possui ${credits} crédito${credits === 1 ? '' : 's'} disponível${credits === 1 ? '' : 'eis'}. Esta reserva utilizará 1 crédito.`}
             </p>
           </Card>
 
@@ -146,7 +156,7 @@ export default function ConfirmarReposicaoPage() {
             variant="cta"
             className="w-full py-4"
             onClick={confirm}
-            disabled={credits < 1 || busy}
+            disabled={!canConfirm || busy}
           >
             Confirmar agendamento
           </Button>

@@ -68,7 +68,7 @@ export class BookingsService {
             source,
             generatedAt: now,
             originBookingId: booking.id,
-            expiresAt: creditExpiresAt(now),
+            expiresAt: creditExpiresAt(booking.timeSlot.startsAt),
             status: 'AVAILABLE',
           },
         });

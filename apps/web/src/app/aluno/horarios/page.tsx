@@ -5,7 +5,10 @@ import { TimeSlotCard } from '@/components/student/time-slot-card';
 import { Button } from '@/components/ui/button';
 import { PageLoadState } from '@/components/ui/load-state';
 import { listMyBookings, listMyCredits, listTimeSlots } from '@/lib/api';
-import { availableCredits } from '@/lib/booking-views';
+import {
+  availableCredits,
+  isRegularTrainingSlot,
+} from '@/lib/booking-views';
 import { getClientNow } from '@/lib/clock';
 import { calendarDate, dayNumber, weekdayShort } from '@/lib/format';
 import { useStudent } from '@/lib/student-context';
@@ -60,6 +63,7 @@ export default function HorariosPage() {
   }
 
   const credits = availableCredits(data?.credits ?? []).length;
+  const canSchedule = credits > 0;
   const bookedSlotIds = new Set(
     (data?.bookings ?? [])
       .filter((booking) => booking.status === 'CONFIRMED')
@@ -72,8 +76,9 @@ export default function HorariosPage() {
         <section>
           <h1 className="text-3xl font-bold text-foreground">Agendar horário</h1>
           <p className="mt-1 text-muted-foreground">
-            Selecione uma data e um horário disponível. {credits}{' '}
-            {credits === 1 ? 'crédito' : 'créditos'} para usar nesta semana — sem teto.
+            {canSchedule
+              ? `Selecione uma data e um horário com vaga. ${credits} ${credits === 1 ? 'crédito' : 'créditos'} para usar — 1 crédito por reposição.`
+              : 'Você precisa de um crédito disponível para agendar reposição.'}
           </p>
         </section>
 
@@ -115,6 +120,8 @@ export default function HorariosPage() {
                 key={slot.id}
                 slot={slot}
                 alreadyBooked={bookedSlotIds.has(slot.id)}
+                isRegular={isRegularTrainingSlot(slot, student.regularSlots ?? [])}
+                canSchedule={canSchedule}
                 onSchedule={() => {
                   router.push(`/aluno/horarios/${slot.id}/confirmar`);
                 }}

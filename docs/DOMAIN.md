@@ -81,4 +81,5 @@ erDiagram
 ## Fora deste documento
 
 Regras de cancelamento, crédito e capacidade estão no
-backend. Helpers no shared só repetem a fórmula (12h / 30d).
+backend. Helpers no shared só repetem a fórmula (4h / 30d a
+partir do início da aula).

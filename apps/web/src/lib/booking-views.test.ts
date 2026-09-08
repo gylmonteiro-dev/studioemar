@@ -4,6 +4,7 @@ import type { Booking, Credit, TimeSlot } from '@studioemar/shared';
 import {
   availableCredits,
   isEligibleToCredit,
+  isRegularTrainingSlot,
   oldestAvailableCredit,
   upcomingConfirmed,
   viewsForStudent,
@@ -15,8 +16,8 @@ const now = new Date('2026-09-03T15:00:00.000Z');
 const slots: TimeSlot[] = [
   {
     id: 'slot-today-18',
-    startsAt: '2026-09-03T21:00:00.000Z',
-    endsAt: '2026-09-03T22:00:00.000Z',
+    startsAt: '2026-09-03T18:00:00.000Z',
+    endsAt: '2026-09-03T19:00:00.000Z',
     capacity: 6,
     enrolledCount: 4,
     status: 'OPEN',
@@ -120,7 +121,28 @@ describe('créditos disponíveis', () => {
 
 describe('isEligibleToCredit', () => {
   it('espelha RN-012 no preview do cancelamento', () => {
-    assert.equal(isEligibleToCredit('2026-09-03T21:00:00.000Z', now), false);
+    assert.equal(isEligibleToCredit('2026-09-03T18:00:00.000Z', now), false);
+    assert.equal(isEligibleToCredit('2026-09-03T21:00:00.000Z', now), true);
     assert.equal(isEligibleToCredit('2026-09-07T21:00:00.000Z', now), true);
+  });
+});
+
+describe('isRegularTrainingSlot', () => {
+  it('bloqueia o dia e o horário da agenda regular', () => {
+    assert.equal(
+      isRegularTrainingSlot(slots[1], [
+        {
+          studioHourId: 'hour-1',
+          weekday: 'MON',
+          name: 'Strength',
+          startTime: '18:00',
+          endTime: '19:00',
+          classType: 'Strength',
+          trainerId: 'user-carlos',
+        },
+      ]),
+      true,
+    );
+    assert.equal(isRegularTrainingSlot(slots[1], []), false);
   });
 });

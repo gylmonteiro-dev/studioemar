@@ -447,7 +447,7 @@ export class SchedulesService {
               generatedAt: now,
               originBookingId: booking.id,
               originClosureId: closure.id,
-              expiresAt: creditExpiresAt(now),
+              expiresAt: creditExpiresAt(booking.timeSlot.startsAt),
               status: 'AVAILABLE',
             },
           });

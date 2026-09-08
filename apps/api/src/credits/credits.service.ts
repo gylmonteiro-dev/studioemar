@@ -4,8 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { RedeemCreditRequest } from '@studioemar/shared';
+import {
+  isOwnRegularTrainingSlot,
+  type RedeemCreditRequest,
+  type Weekday,
+} from '@studioemar/shared';
 import type { AuthUser } from '../auth/auth.types';
+import {
+  calendarDate,
+  clockTimeSaoPaulo,
+  weekdayFromCalendarDate,
+} from '../common/calendar-date';
 import { Clock } from '../common/clock';
 import { toBooking, toCredit } from '../common/mappers';
 import { StudentAccessService } from '../common/student-access.service';
@@ -91,6 +100,23 @@ export class CreditsService {
       });
       if (alreadyBooked) {
         throw new ConflictException('Você já está neste horário');
+      }
+
+      const regulars = await tx.studentRegularSlot.findMany({
+        where: { studentId },
+      });
+      if (regulars.length > 0) {
+        const hours = await tx.studioHour.findMany();
+        const hourById = new Map(hours.map((hour) => [hour.id, hour]));
+        const matches = regulars.map((row) => ({
+          weekday: row.weekday as Weekday,
+          startTime: hourById.get(row.studioHourId)?.startTime ?? '',
+        }));
+        const weekday = weekdayFromCalendarDate(calendarDate(slot.startsAt));
+        const startTime = clockTimeSaoPaulo(slot.startsAt);
+        if (isOwnRegularTrainingSlot(weekday, startTime, matches)) {
+          throw new ConflictException('Horário regular não usa crédito');
+        }
       }
 
       const booking = await tx.booking.create({

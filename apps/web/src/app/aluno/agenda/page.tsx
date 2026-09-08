@@ -2,20 +2,13 @@
 
 import { PageCanvas } from '@/components/layout/page-canvas';
 import { ScheduleCard } from '@/components/student/schedule-card';
-import { Button } from '@/components/ui/button';
+import { WeekSwitcher } from '@/components/student/week-switcher';
 import { PageLoadState } from '@/components/ui/load-state';
 import { listMyBookings, listTimeSlots, getServerNow } from '@/lib/api';
 import { viewsForStudent } from '@/lib/booking-views';
-import {
-  addDays,
-  calendarDate,
-  formatWeekRange,
-  isInWeek,
-  startOfWeekMonday,
-} from '@/lib/format';
+import { addDays, calendarDate, isInWeek, startOfWeekMonday } from '@/lib/format';
 import { useStudent } from '@/lib/student-context';
 import { useAsync } from '@/lib/use-async';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export default function AgendaPage() {
@@ -67,31 +60,15 @@ export default function AgendaPage() {
               Sua programação semanal de treinos.
             </p>
           </div>
-          <div className="flex items-center justify-between rounded-lg bg-muted p-1 md:w-auto">
-            <Button
-              variant="ghost"
-              aria-label="Semana anterior"
-              className="h-10 w-10 px-0 py-0"
-              onClick={() => {
-                setWeekOffset((offset) => offset - 1);
-              }}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <span className="px-4 font-semibold uppercase tracking-widest text-foreground">
-              {formatWeekRange(weekStart)}
-            </span>
-            <Button
-              variant="ghost"
-              aria-label="Próxima semana"
-              className="h-10 w-10 px-0 py-0"
-              onClick={() => {
-                setWeekOffset((offset) => offset + 1);
-              }}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
+          <WeekSwitcher
+            weekStart={weekStart}
+            onPrev={() => {
+              setWeekOffset((offset) => offset - 1);
+            }}
+            onNext={() => {
+              setWeekOffset((offset) => offset + 1);
+            }}
+          />
         </section>
 
         <section className="flex flex-col gap-4">

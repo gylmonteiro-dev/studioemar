@@ -134,8 +134,8 @@ export const mockTimeSlots: TimeSlot[] = [
   }),
   timeSlotSchema.parse({
     id: 'slot-2026-09-03-18',
-    startsAt: '2026-09-03T21:00:00.000Z',
-    endsAt: '2026-09-03T22:00:00.000Z',
+    startsAt: '2026-09-03T18:00:00.000Z',
+    endsAt: '2026-09-03T19:00:00.000Z',
     capacity: 6,
     enrolledCount: 5,
     status: 'OPEN',

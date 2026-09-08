@@ -7,14 +7,23 @@ test.describe('fluxos do aluno', () => {
     await injectSession(page, joao);
   });
 
-  test('home mostra próximo treino e créditos', async ({ page }) => {
+  test('home mostra treinos da semana e créditos', async ({ page }) => {
     await page.goto('/aluno');
     await expect(page.getByRole('heading', { name: /Olá, João/ })).toBeVisible();
     await expect(page.getByText('Seu próximo treino')).toBeVisible();
+    await expect(page.getByText('Treinos da semana')).toBeVisible();
+    await expect(page.getByText('31 – 06 SET')).toBeVisible();
     await expect(page.getByText('reposição disponível')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Agendar reposição' })).toBeEnabled();
   });
 
-  test('cancelamento com 12h+ avisa que gera crédito', async ({ page }) => {
+  test('home desabilita reposição sem crédito', async ({ page }) => {
+    await mockApi(page, { user: joao, credits: [] });
+    await page.goto('/aluno');
+    await expect(page.getByRole('button', { name: 'Agendar reposição' })).toBeDisabled();
+  });
+
+  test('cancelamento com 4h+ oferece agendar reposição agora', async ({ page }) => {
     await page.goto('/aluno/agenda/booking-seg-com-credito');
     await page.getByRole('button', { name: 'Desmarcar treino' }).click();
     await expect(
@@ -24,6 +33,10 @@ test.describe('fluxos do aluno', () => {
     await expect(
       page.getByText('Treino desmarcado. Você ganhou 1 crédito de reposição.'),
     ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Agendar reposição agora' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Usar depois' })).toBeVisible();
   });
 
   test('cancelamento fora do prazo avisa que não gera crédito', async ({
@@ -50,6 +63,14 @@ test.describe('fluxos do aluno', () => {
     await expect(page.getByRole('button', { name: 'Agendar' })).toBeVisible();
     await expect(page.getByText(/\d+\/\d+ alunos/)).toBeVisible();
     await expect(page.getByText('Ana', { exact: true })).toHaveCount(0);
+  });
+
+  test('créditos mostram os mais próximos de vencer e os dias restantes', async ({
+    page,
+  }) => {
+    await page.goto('/aluno/creditos');
+    await expect(page.getByText('Faltam 28 dias').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Usar crédito' })).toBeEnabled();
   });
 
   test('agenda abre na semana do relógio do servidor', async ({ page }) => {

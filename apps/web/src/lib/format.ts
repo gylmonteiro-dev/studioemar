@@ -133,6 +133,30 @@ export function formatWeekRange(weekStart: Date): string {
   return `${dayNumber(weekStart.toISOString())} – ${dayNumber(end.toISOString())} ${monthShort(end.toISOString())}`;
 }
 
+const WEEKDAYS: Weekday[] = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+export function weekdayCode(iso: string): Weekday {
+  return WEEKDAYS[weekdayIndex(iso)] ?? 'MON';
+}
+
+export function calendarDaysUntil(iso: string, nowIso: string): number {
+  const end = calendarDate(iso);
+  const start = calendarDate(nowIso);
+  const endMs = Date.parse(`${end}T12:00:00.000Z`);
+  const startMs = Date.parse(`${start}T12:00:00.000Z`);
+  return Math.round((endMs - startMs) / 86_400_000);
+}
+
+export function creditDaysRemainingLabel(days: number): string {
+  if (days <= 0) {
+    return 'Vence hoje';
+  }
+  if (days === 1) {
+    return 'Falta 1 dia';
+  }
+  return `Faltam ${days} dias`;
+}
+
 export function spotsLeft(enrolledCount: number, capacity: number): number {
   return Math.max(0, capacity - enrolledCount);
 }

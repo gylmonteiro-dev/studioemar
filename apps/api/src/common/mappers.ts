@@ -35,7 +35,9 @@ import {
   type TimeSlot,
   type User,
   type WaitlistEntry,
+  type Weekday,
 } from '@studioemar/shared';
+import { WEEKDAY_ORDER } from '../domain/studio-hours';
 
 function dateOnly(value: Date): string {
   return value.toISOString().slice(0, 10);
@@ -67,6 +69,43 @@ export function toUser(
     mustSetPassword: row.mustSetPassword,
     isActive: row.isActive,
   });
+}
+
+export function toRegularSlotsFromRows(
+  rows: Array<{
+    studioHourId: string;
+    weekday: string;
+    studioHour?: {
+      name: string;
+      startTime: string;
+      endTime: string;
+      classType: string;
+      trainerId: string;
+    } | null;
+  }>,
+): StudentRegularSlot[] {
+  return rows
+    .filter(
+      (
+        row,
+      ): row is typeof row & {
+        studioHour: NonNullable<(typeof row)['studioHour']>;
+      } => Boolean(row.studioHour),
+    )
+    .map((row) => ({
+      studioHourId: row.studioHourId,
+      weekday: row.weekday as Weekday,
+      name: row.studioHour.name,
+      startTime: row.studioHour.startTime,
+      endTime: row.studioHour.endTime,
+      classType: row.studioHour.classType,
+      trainerId: row.studioHour.trainerId,
+    }))
+    .sort(
+      (left, right) =>
+        WEEKDAY_ORDER.indexOf(left.weekday) -
+        WEEKDAY_ORDER.indexOf(right.weekday),
+    );
 }
 
 export function toPlan(row: PrismaPlan): Plan {

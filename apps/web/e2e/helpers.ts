@@ -10,6 +10,7 @@ export const joao: User = {
   role: 'STUDENT',
   planId: 'plan-3x',
   mustSetPassword: false,
+  regularSlots: [],
 };
 
 export const carlos: User = {
@@ -18,6 +19,7 @@ export const carlos: User = {
   email: 'carlos@studioemar.local',
   role: 'TRAINER',
   mustSetPassword: false,
+  regularSlots: [],
 };
 
 export const marina: User = {
@@ -26,6 +28,7 @@ export const marina: User = {
   email: 'marina@studioemar.local',
   role: 'ADMIN',
   mustSetPassword: false,
+  regularSlots: [],
 };
 
 export function authSession(user: User): AuthSession {
@@ -41,8 +44,8 @@ export function authSession(user: User): AuthSession {
 export const timeSlots = [
   {
     id: 'slot-today-18',
-    startsAt: '2026-09-03T21:00:00.000Z',
-    endsAt: '2026-09-03T22:00:00.000Z',
+    startsAt: '2026-09-03T18:00:00.000Z',
+    endsAt: '2026-09-03T19:00:00.000Z',
     capacity: 6,
     enrolledCount: 4,
     status: 'OPEN' as const,
@@ -126,6 +129,7 @@ export type ApiMocks = {
   loginUser?: User;
   loginError?: { status: number; body: unknown };
   now?: string;
+  credits?: typeof joaoCredits;
 };
 
 export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
@@ -189,7 +193,7 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
     }
 
     if (method === 'GET' && path === '/me/credits') {
-      return json(200, joaoCredits);
+      return json(200, mocks.credits ?? (user.role === 'STUDENT' ? joaoCredits : []));
     }
 
     if (method === 'GET' && path === '/dashboard') {

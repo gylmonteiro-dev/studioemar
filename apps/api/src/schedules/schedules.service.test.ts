@@ -1,3 +1,4 @@
+import { creditExpiresAt } from '@studioemar/shared';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
@@ -126,6 +127,10 @@ describe('SchedulesService', () => {
     );
     assert.equal(store.credits[0]?.source, 'CLOSURE_COMPENSATION');
     assert.equal(store.credits[0]?.originClosureId, store.closures[0]?.id);
+    assert.equal(
+      store.credits[0]?.expiresAt.toISOString(),
+      creditExpiresAt(slotToday.startsAt).toISOString(),
+    );
     assert.equal(store.cancellations[0]?.generatedCredit, true);
   });
 

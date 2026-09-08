@@ -37,6 +37,7 @@ export default function BookingDetailPage() {
   }, []);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [lateOpen, setLateOpen] = useState(false);
+  const [makeupOpen, setMakeupOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const view = useMemo(() => {
@@ -61,11 +62,12 @@ export default function BookingDetailPage() {
       const result = await cancelBooking(view.booking.id);
       setSheetOpen(false);
       setLateOpen(false);
-      toast(
-        result.generatedCredit
-          ? 'Treino desmarcado. Você ganhou 1 crédito de reposição.'
-          : 'Treino desmarcado. Sem crédito de reposição.',
-      );
+      if (result.generatedCredit) {
+        toast('Treino desmarcado. Você ganhou 1 crédito de reposição.');
+        setMakeupOpen(true);
+        return;
+      }
+      toast('Treino desmarcado. Sem crédito de reposição.');
       router.replace('/aluno/agenda');
     } catch (caught) {
       toast(
@@ -91,9 +93,17 @@ export default function BookingDetailPage() {
           busy={busy}
           sheetOpen={sheetOpen}
           lateOpen={lateOpen}
+          makeupOpen={makeupOpen}
           onSheet={setSheetOpen}
           onLate={setLateOpen}
+          onMakeup={setMakeupOpen}
           onConfirm={confirmCancel}
+          onScheduleNow={() => {
+            router.replace('/aluno/horarios');
+          }}
+          onScheduleLater={() => {
+            router.replace('/aluno/agenda');
+          }}
         />
       )}
     </PageLoadState>
@@ -105,17 +115,25 @@ function BookingDetail({
   busy,
   sheetOpen,
   lateOpen,
+  makeupOpen,
   onSheet,
   onLate,
+  onMakeup,
   onConfirm,
+  onScheduleNow,
+  onScheduleLater,
 }: {
   view: NonNullable<ReturnType<typeof viewsForStudent>[number]>;
   busy: boolean;
   sheetOpen: boolean;
   lateOpen: boolean;
+  makeupOpen: boolean;
   onSheet: (open: boolean) => void;
   onLate: (open: boolean) => void;
+  onMakeup: (open: boolean) => void;
   onConfirm: () => void;
+  onScheduleNow: () => void;
+  onScheduleLater: () => void;
 }) {
   const { booking, slot } = view;
   const eligible = isEligibleToCredit(slot.startsAt);
@@ -270,6 +288,28 @@ function BookingDetail({
           </Button>
           <Button variant="ghost" className="w-full" onClick={onConfirm} disabled={busy}>
             Cancelar mesmo assim
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={makeupOpen}
+        title="Agendar reposição?"
+        onClose={() => {
+          onMakeup(false);
+          onScheduleLater();
+        }}
+      >
+        <p className="mb-6 text-center text-muted-foreground">
+          Você ganhou 1 crédito. Pode marcar a reposição agora ou usar o crédito
+          depois, enquanto ele estiver válido.
+        </p>
+        <div className="flex flex-col gap-3">
+          <Button variant="cta" className="w-full" onClick={onScheduleNow}>
+            Agendar reposição agora
+          </Button>
+          <Button variant="ghost" className="w-full" onClick={onScheduleLater}>
+            Usar depois
           </Button>
         </div>
       </Modal>

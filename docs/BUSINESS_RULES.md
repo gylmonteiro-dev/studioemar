@@ -121,11 +121,11 @@ O sistema deverá preservar histórico de:
 Status: ACEITO
 
 O aluno só recebe crédito se cancelar com antecedência mínima de
-12 horas em relação ao início da aula.
+4 horas em relação ao início da aula.
 
 Constante compartilhada:
 
-CANCELLATION_CREDIT_DEADLINE_HOURS = 12
+CANCELLATION_CREDIT_DEADLINE_HOURS = 4
 
 ---
 
@@ -133,7 +133,11 @@ CANCELLATION_CREDIT_DEADLINE_HOURS = 12
 
 Status: ACEITO
 
-O crédito possui validade de 30 dias a partir da data de geração.
+O crédito possui validade de 30 dias a partir do início da aula
+cancelada, não do momento do cancelamento.
+
+Exemplo: o aluno cancela na terça uma aula de sexta; o crédito
+vence 30 dias depois dessa sexta.
 
 Constante compartilhada:
 

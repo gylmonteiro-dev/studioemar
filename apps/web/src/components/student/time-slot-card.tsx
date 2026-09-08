@@ -8,17 +8,21 @@ import type { TimeSlot } from '@studioemar/shared';
 type TimeSlotCardProps = {
   slot: TimeSlot;
   alreadyBooked?: boolean;
+  isRegular?: boolean;
+  canSchedule?: boolean;
   onSchedule: () => void;
 };
 
 export function TimeSlotCard({
   slot,
   alreadyBooked = false,
+  isRegular = false,
+  canSchedule = true,
   onSchedule,
 }: TimeSlotCardProps) {
   const free = spotsLeft(slot.enrolledCount, slot.capacity);
   const full = slot.status === 'FULL' || free <= 0;
-  const blocked = full || alreadyBooked;
+  const blocked = full || alreadyBooked || isRegular || !canSchedule;
 
   return (
     <Card
@@ -47,12 +51,16 @@ export function TimeSlotCard({
         <Button variant="ghost" disabled>
           Já inscrito
         </Button>
+      ) : isRegular ? (
+        <Button variant="ghost" disabled>
+          Horário regular
+        </Button>
       ) : full ? (
         <Button variant="ghost" disabled>
           Lotado
         </Button>
       ) : (
-        <Button variant="cta" onClick={onSchedule}>
+        <Button variant="cta" onClick={onSchedule} disabled={!canSchedule}>
           Agendar
         </Button>
       )}

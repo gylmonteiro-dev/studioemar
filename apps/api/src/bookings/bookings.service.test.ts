@@ -1,3 +1,4 @@
+import { creditExpiresAt } from '@studioemar/shared';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
@@ -44,8 +45,8 @@ const carlos = {
 
 const slotToday = {
   id: 'slot-today-18',
-  startsAt: new Date('2026-09-03T21:00:00.000Z'),
-  endsAt: new Date('2026-09-03T22:00:00.000Z'),
+  startsAt: new Date('2026-09-03T18:00:00.000Z'),
+  endsAt: new Date('2026-09-03T19:00:00.000Z'),
   capacity: 6,
   enrolledCount: 6,
   status: 'FULL' as const,
@@ -92,7 +93,7 @@ function service(seed: Partial<MemoryStore> = {}) {
 }
 
 describe('BookingsService.cancel', () => {
-  it('não gera crédito com menos de 12h (RN-012)', async () => {
+  it('não gera crédito com menos de 4h (RN-012)', async () => {
     const { bookings, store } = service();
     const result = await bookings.cancel('booking-hoje-sem-credito', {
       id: 'user-joao',
@@ -113,7 +114,7 @@ describe('BookingsService.cancel', () => {
     assert.equal(slot?.status, 'OPEN');
   });
 
-  it('gera crédito CANCELLATION com 12h ou mais', async () => {
+  it('gera crédito CANCELLATION com 4h ou mais', async () => {
     const { bookings, store } = service();
     const result = await bookings.cancel('booking-seg-com-credito', {
       id: 'user-joao',
@@ -124,6 +125,10 @@ describe('BookingsService.cancel', () => {
     assert.equal(store.credits[0]?.source, 'CANCELLATION');
     assert.equal(store.credits[0]?.studentId, 'user-joao');
     assert.equal(store.credits[0]?.originBookingId, 'booking-seg-com-credito');
+    assert.equal(
+      store.credits[0]?.expiresAt.toISOString(),
+      creditExpiresAt(slotMonday.startsAt).toISOString(),
+    );
     assert.equal(result.creditId, store.credits[0]?.id);
   });
 

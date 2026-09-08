@@ -18,7 +18,9 @@ export {
 export {
   creditExpiresAt,
   isCancellationEligibleForCredit,
+  isOwnRegularTrainingSlot,
 } from './rules/credit-policy.js';
+export type { RegularTrainingMatch } from './rules/credit-policy.js';
 export {
   canActAsRole,
   isOperatorRole,

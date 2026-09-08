@@ -8,8 +8,10 @@ está publicada e disponível para feedback do cliente.
 A hierarquia de acesso (RN-023 / RN-024), a gestão de
 turmas/horários (RN-025), a identificação das turmas, o
 catálogo de tipos de aula, os modelos de plano (RN-026),
-o cadastro de aluno com agenda regular, a grade contínua e
-as listagens/dashboard por janela (folga de 12 semanas)
+o cadastro de aluno com agenda regular, a grade contínua,
+as listagens/dashboard por janela (folga de 12 semanas),
+a home do aluno por semana, a reposição só com crédito e
+o prazo de 4h / validade de 30 dias a partir da aula
 estão em `main`. A VPS ainda executa a imagem do `d062228`,
 anterior a todos esses ajustes. Ainda não houve deploy.
 
@@ -77,6 +79,14 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - GET /health público: `{ status: "ok", now }`. `now` segue
   `CLOCK_NOW` quando definido. As agendas do aluno e do
   treinador abrem a semana desse relógio, não do browser.
+  A home do aluno também lista os treinos por semana.
+- Reposição: 1 crédito por aula, só em horário com vaga e fora
+  do dia/horário regular do aluno. Sem crédito, o botão
+  Agendar reposição fica desabilitado. Após cancelar com
+  crédito, o aluno pode marcar a reposição na hora ou depois.
+- RN-012: antecedência de 4 horas. RN-013: validade de 30 dias
+  a partir do início da aula cancelada. A área de créditos
+  destaca os que vencem primeiro e os dias restantes.
 - Testes: `pnpm test` (shared + API + web unitário)
 - E2E: `pnpm test:e2e` (Playwright, Chromium, API mockada)
 - Stack de produção em containers (FASE 8)
@@ -130,7 +140,8 @@ http://localhost:3000 — senha `studioemar`:
 - Carlos: carlos@studioemar.local / studioemar
 - Marina (ADMIN/proprietária): marina@studioemar.local / studioemar
 - Administrador (SUPERADMIN): admin@studioemar.local / studioemar
-- Cancelar `booking-hoje-sem-credito` = sem crédito
+- Cancelar `booking-hoje-sem-credito` = sem crédito (aula a
+  menos de 4h do `CLOCK_NOW`)
 - Cancelar `booking-seg-com-credito` = com crédito
 - Swagger: http://localhost:3001/docs
 
@@ -167,9 +178,10 @@ Cobertura:
 - Permissões (hierarquia dos quatro papéis, escopo do treinador,
   prevenção de escalada e rotas aluno/operador)
 - Responsividade 390 / 768 / 1024 / 1440
-- Fluxos: login, cancelar, dashboard, Ajustes (horários, tipo de
-  aula, cadastro de plano), agenda na semana do relógio do
-  servidor, cadastro de aluno (CPF e horários do plano)
+- Fluxos: login, cancelar (com opção de reposição imediata),
+  dashboard, Ajustes (horários, tipo de aula, cadastro de plano),
+  agenda e home na semana do relógio do servidor, cadastro de
+  aluno (CPF e horários do plano), créditos por vencimento
 - Contrato Zod × docs/openapi.yaml
 
 ## Produção em containers (FASE 8)
@@ -251,11 +263,14 @@ diretamente `docker compose`.
 Começar a próxima conversa lendo este arquivo e os feedbacks
 do cliente. `main` contém identificação de turmas, catálogo
 de tipos de aula, planos (RN-026), hub Ajustes, cadastro de
-aluno com agenda regular, grade contínua e listagens/dashboard
-por janela.
+aluno com agenda regular, grade contínua, listagens/dashboard
+por janela, home do aluno por semana, reposição só com crédito
+(fora do horário regular) e RN-012/RN-013 (4h; 30 dias a partir
+da aula cancelada).
 
-A semana da agenda (aluno e treinador) usa `GET /health.now`.
-Essa fatia está em `main`; a VPS continua no `d062228`.
+A semana da agenda e da home (aluno e treinador) usa
+`GET /health.now`. Essa fatia está em `main`; a VPS continua
+no `d062228`.
 
 Fazer os próximos ajustes primeiro apenas localmente. Não
 alterar a VPS, o Caddy nem os dados de homologação sem pedido
@@ -270,10 +285,9 @@ pnpm test:e2e
 ```
 
 Na última validação, `pnpm test`, `pnpm lint`, `pnpm build:api`
-e `pnpm build:web` passaram com cadastro de aluno, grade
-contínua e listagens por janela. O e2e do cadastro de aluno
-(CPF e horários do plano) e da semana do relógio existe; não
-relançar com `pnpm dev:web` ativo.
+e `pnpm test:e2e` (28) passaram com home por semana, reposição
+condicionada a crédito e RN-012/RN-013. Encerrar `pnpm dev:web`
+antes de `pnpm build:web` ou de relançar o e2e.
 
 As migrations abaixo estão aplicadas no banco local:
 
@@ -315,8 +329,8 @@ Checklist para publicar na VPS (somente com autorização):
 
 5. Rebuild das imagens afetadas. Troca de
    `NEXT_PUBLIC_API_URL` exige rebuild da web. Esta fatia
-   (horários, papéis, planos, cadastro de aluno, grade contínua
-   e `health.now`) exige api e web:
+   (horários, papéis, planos, cadastro de aluno, grade contínua,
+   `health.now`, home por semana e créditos) exige api e web:
 
    ```
    docker compose -f infrastructure/docker-compose.prod.yml build api
@@ -339,18 +353,20 @@ Checklist para publicar na VPS (somente com autorização):
 6. Validar: `GET https://api.studioemar.com.br/health`
    (`status` e, após o merge desta fatia, `now`); HTTPS; CORS;
    login dos quatro papéis; Ajustes (horários, tipos, planos)
-   como ADMIN; TRAINER sem configuração global; agendas na
-   semana do relógio do servidor; cadastro de aluno (CPF e
-   horários do plano).
+   como ADMIN; TRAINER sem configuração global; agendas e home
+   na semana do relógio do servidor; cadastro de aluno (CPF e
+   horários do plano); cancelamento com 4h; créditos com dias
+   restantes; reposição desabilitada sem crédito.
 
 Não alterar o Caddyfile compartilhado neste deploy. Preservar
 os blocos do Studio em `/opt/genius-certify/proxy/Caddyfile`.
 
 As imagens atualmente em execução foram construídas no commit
 `d062228`. Hierarquia de acesso, horários, identificação, tipos
-de aula, planos, cadastro de aluno e grade contínua são
-mudanças funcionais posteriores e exigem migration, rebuild e
-validação antes de entrarem na VPS.
+de aula, planos, cadastro de aluno, grade contínua, home por
+semana e regras de crédito/reposição são mudanças funcionais
+posteriores e exigem migration, rebuild e validação antes de
+entrarem na VPS.
 
 ## Não fazer ainda
 
@@ -367,17 +383,18 @@ validação antes de entrarem na VPS.
 
 - Sem mailer de recuperação.
 - Publicar hierarquia de acesso, horários, identificação, tipos
-  de aula, planos, cadastro de aluno e grade contínua na VPS
-  após autorização. Backup antes das migrations
+  de aula, planos, cadastro de aluno, grade contínua, home por
+  semana e regras de crédito/reposição na VPS após autorização.
+  Backup antes das migrations
   `20260905214000_access_hierarchy`,
   `20260907210000_studio_hours`,
   `20260908103000_studio_hour_name`, `20260908120000_class_types`
   e `20260908140000_plan_metrics`,
   `20260908160000_student_regular_slots`,
   `20260908180000_timeslot_studio_hour_unique`.
-- `GET /health.now`, a semana da agenda, o cadastro de aluno e
-  as listagens por janela estão em `main`; não publicar na VPS
-  sem autorização.
+- `GET /health.now`, a semana da agenda e da home, o cadastro
+  de aluno, as listagens por janela e a reposição com crédito
+  estão em `main`; não publicar na VPS sem autorização.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.

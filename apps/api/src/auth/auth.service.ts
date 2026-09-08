@@ -16,7 +16,7 @@ import {
 } from '@studioemar/shared';
 import { compare, hash } from 'bcrypt';
 import { createHash, randomBytes } from 'node:crypto';
-import { toUser } from '../common/mappers';
+import { toUser, toRegularSlotsFromRows } from '../common/mappers';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RefreshTokenPayload } from './auth.types';
 
@@ -55,7 +55,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    return this.issueSession(user);
+    return this.issueSession(user.id);
   }
 
   async firstAccess(input: FirstAccessRequest): Promise<AuthSession> {
@@ -79,7 +79,7 @@ export class AuthService {
         passwordResetExpiresAt: null,
       },
     });
-    return this.issueSession(updated);
+    return this.issueSession(updated.id);
   }
 
   async recover(input: RecoverRequest): Promise<{ ok: true }> {
@@ -123,7 +123,7 @@ export class AuthService {
         passwordResetExpiresAt: null,
       },
     });
-    return this.issueSession(updated);
+    return this.issueSession(updated.id);
   }
 
   async refresh(refreshToken: string): Promise<AuthSession> {
@@ -145,15 +145,15 @@ export class AuthService {
     if (!user || !user.isActive || user.mustSetPassword) {
       throw new UnauthorizedException('Sessão inválida');
     }
-    return this.issueSession(user);
+    return this.issueSession(user.id);
   }
 
   async me(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user || !user.isActive) {
+    const user = await this.loadPublicUser(userId);
+    if (!user) {
       throw new UnauthorizedException('Sessão inválida');
     }
-    return toUser(user);
+    return user;
   }
 
   private async findByEmail(email: string) {
@@ -162,22 +162,34 @@ export class AuthService {
     });
   }
 
-  private issueSession(user: {
-    id: string;
-    email: string;
-    role: AuthSession['user']['role'];
-    name: string;
-    planId: string | null;
-    mustSetPassword: boolean;
-    isActive: boolean;
-    passwordHash?: string | null;
-    cpf?: string | null;
-  }): AuthSession {
+  private async loadPublicUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        studentTrainerLinks: { select: { trainerId: true } },
+        studentRegularSlots: { include: { studioHour: true } },
+      },
+    });
+    if (!user || !user.isActive) {
+      return null;
+    }
+    return toUser(
+      user,
+      user.studentTrainerLinks.map((link) => link.trainerId),
+      toRegularSlotsFromRows(user.studentRegularSlots),
+    );
+  }
+
+  private async issueSession(userId: string): Promise<AuthSession> {
+    const publicUser = await this.loadPublicUser(userId);
+    if (!publicUser) {
+      throw new UnauthorizedException('Sessão inválida');
+    }
     const accessToken = this.jwt.sign(
       {
-        sub: user.id,
-        email: user.email,
-        role: user.role,
+        sub: publicUser.id,
+        email: publicUser.email,
+        role: publicUser.role,
         typ: 'access',
       },
       {
@@ -186,7 +198,7 @@ export class AuthService {
       },
     );
     const refreshToken = this.jwt.sign(
-      { sub: user.id, typ: 'refresh' },
+      { sub: publicUser.id, typ: 'refresh' },
       {
         secret: this.refreshSecret(),
         expiresIn: REFRESH_TTL_SECONDS,
@@ -198,7 +210,7 @@ export class AuthService {
       refreshToken,
       tokenType: 'Bearer',
       expiresIn: ACCESS_TTL_SECONDS,
-      user: toUser(user),
+      user: publicUser,
     });
   }
 

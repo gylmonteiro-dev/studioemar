@@ -12,7 +12,6 @@ import {
   type CreateStudentRequest,
   type RegularAvailabilitySlot,
   type RegularSlotSelection,
-  type StudentRegularSlot,
   type UpdatePlanRequest,
   type UpdateStudentRequest,
   type UpdateStudentTrainersRequest,
@@ -25,7 +24,7 @@ import {
   weekdayFromCalendarDate,
 } from '../common/calendar-date';
 import { Clock } from '../common/clock';
-import { toBooking, toCredit, toPlan, toUser } from '../common/mappers';
+import { toBooking, toCredit, toPlan, toRegularSlotsFromRows, toUser } from '../common/mappers';
 import { StudentAccessService } from '../common/student-access.service';
 import { remainingSpotsForRegularPair } from '../domain/regular-availability';
 import { applySeatChange, isSlotBookable } from '../domain/slot-occupancy';
@@ -414,17 +413,7 @@ export class StudentsService {
     return toUser(
       user,
       user.studentTrainerLinks.map((link) => link.trainerId),
-      sortRegularSlots(
-        user.studentRegularSlots.map((slot) => ({
-          studioHourId: slot.studioHourId,
-          weekday: slot.weekday,
-          name: slot.studioHour.name,
-          startTime: slot.studioHour.startTime,
-          endTime: slot.studioHour.endTime,
-          classType: slot.studioHour.classType,
-          trainerId: slot.studioHour.trainerId,
-        })),
-      ),
+      toRegularSlotsFromRows(user.studentRegularSlots),
     );
   }
 
@@ -514,11 +503,4 @@ export class StudentsService {
 function sortWeekdays(days: readonly Weekday[]): Weekday[] {
   const selected = new Set(days);
   return WEEKDAY_ORDER.filter((day) => selected.has(day));
-}
-
-function sortRegularSlots(slots: StudentRegularSlot[]): StudentRegularSlot[] {
-  return [...slots].sort(
-    (left, right) =>
-      WEEKDAY_ORDER.indexOf(left.weekday) - WEEKDAY_ORDER.indexOf(right.weekday),
-  );
 }

@@ -72,8 +72,8 @@ STATUS: CONCLUÍDA
 
 Constantes de regra no shared:
 
-- CANCELLATION_CREDIT_DEADLINE_HOURS = 12 (RN-012)
-- CREDIT_VALIDITY_DAYS = 30 (RN-013)
+- CANCELLATION_CREDIT_DEADLINE_HOURS = 4 (RN-012)
+- CREDIT_VALIDITY_DAYS = 30 (RN-013), a partir do início da aula
 
 OpenAPI estático em docs/openapi.yaml.
 Mocks em @studioemar/shared/mocks.

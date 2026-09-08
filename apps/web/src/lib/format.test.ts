@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   calendarDate,
+  calendarDaysUntil,
+  creditDaysRemainingLabel,
   formatCpf,
   formatWeekRange,
   isInWeek,
@@ -36,5 +38,21 @@ describe('semana da agenda', () => {
     assert.equal(isInWeek('2026-09-13T21:00:00.000Z', weekStart), true);
     assert.equal(isInWeek('2026-09-06T21:00:00.000Z', weekStart), false);
     assert.equal(isInWeek('2026-09-14T10:30:00.000Z', weekStart), false);
+  });
+});
+
+describe('validade do crédito', () => {
+  it('conta dias civis até o vencimento', () => {
+    assert.equal(
+      calendarDaysUntil('2026-10-03T21:00:00.000Z', '2026-09-03T15:00:00.000Z'),
+      30,
+    );
+    assert.equal(
+      calendarDaysUntil('2026-09-03T21:00:00.000Z', '2026-09-03T15:00:00.000Z'),
+      0,
+    );
+    assert.equal(creditDaysRemainingLabel(0), 'Vence hoje');
+    assert.equal(creditDaysRemainingLabel(1), 'Falta 1 dia');
+    assert.equal(creditDaysRemainingLabel(12), 'Faltam 12 dias');
   });
 });

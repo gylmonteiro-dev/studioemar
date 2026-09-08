@@ -1,10 +1,13 @@
 import {
   isCancellationEligibleForCredit,
+  isOwnRegularTrainingSlot,
   type Booking,
   type Credit,
+  type StudentRegularSlot,
   type TimeSlot,
 } from '@studioemar/shared';
 import { getClientNow } from './clock';
+import { clockTime, weekdayCode } from './format';
 
 export type BookingView = {
   booking: Booking;
@@ -63,4 +66,15 @@ export function oldestAvailableCredit(credits: Credit[]): Credit | undefined {
 
 export function isEligibleToCredit(startsAt: string, now = getClientNow()): boolean {
   return isCancellationEligibleForCredit(now, new Date(startsAt));
+}
+
+export function isRegularTrainingSlot(
+  slot: TimeSlot,
+  regularSlots: readonly StudentRegularSlot[],
+): boolean {
+  return isOwnRegularTrainingSlot(
+    weekdayCode(slot.startsAt),
+    clockTime(slot.startsAt),
+    regularSlots,
+  );
 }
