@@ -67,16 +67,40 @@ test.describe('fluxos do treinador', () => {
     await expect(page.getByText('Olá, João')).toHaveCount(0);
   });
 
-  test('admin cria horário do estúdio em /treinador/horarios', async ({
+  test('admin cria horário do estúdio em Ajustes', async ({
     page,
   }) => {
     await mockApi(page, { user: marina });
     await injectSession(page, marina);
-    await page.goto('/treinador/horarios');
-    await expect(page.getByRole('heading', { name: 'Horários', exact: true })).toBeVisible();
+    await page.goto('/treinador/configuracoes?secao=horarios');
+    await expect(page.getByRole('heading', { name: 'Ajustes', exact: true })).toBeVisible();
+    await page.getByLabel('Identificação').fill('Turma manhã');
+    await expect(page.getByLabel('Tipo da aula')).toHaveValue('AULA');
     await page.getByRole('button', { name: 'Criar horário' }).click();
     await expect(
       page.getByText('Horário criado. As aulas das próximas semanas já estão na agenda.'),
     ).toBeVisible();
+  });
+
+  test('admin cadastra tipo de aula pelo modal em Ajustes', async ({
+    page,
+  }) => {
+    await mockApi(page, { user: marina });
+    await injectSession(page, marina);
+    await page.goto('/treinador/configuracoes?secao=horarios');
+    await page.getByRole('button', { name: 'Cadastrar tipo' }).click();
+    await page.getByLabel('Nome do tipo').fill('Pilates');
+    await page.getByRole('button', { name: 'Salvar tipo' }).click();
+    await expect(page.getByText('Tipo de aula cadastrado.')).toBeVisible();
+    await expect(page.getByLabel('Tipo da aula')).toHaveValue('PILATES');
+  });
+
+  test('admin cadastra modelo de plano em Ajustes', async ({ page }) => {
+    await mockApi(page, { user: marina });
+    await injectSession(page, marina);
+    await page.goto('/treinador/configuracoes?secao=planos');
+    await page.getByLabel('Nome do plano').fill('2x manhã');
+    await page.getByRole('button', { name: 'Cadastrar plano' }).click();
+    await expect(page.getByText('Plano cadastrado.')).toBeVisible();
   });
 });

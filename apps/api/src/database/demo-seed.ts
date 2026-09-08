@@ -11,6 +11,7 @@ import {
   mockUsers,
   mockWaitlistEntry,
 } from '@studioemar/shared/mocks';
+import { normalizeClassTypeName } from '@studioemar/shared';
 
 type DemoUserOverride = {
   name?: string;
@@ -56,6 +57,7 @@ export async function replaceWithDemoData(
   await prisma.studioClosure.deleteMany();
   await prisma.timeSlot.deleteMany();
   await prisma.studioHour.deleteMany();
+  await prisma.classType.deleteMany();
   await prisma.recurringSlot.deleteMany();
   await prisma.studentTrainer.deleteMany();
   await prisma.user.deleteMany();
@@ -66,6 +68,8 @@ export async function replaceWithDemoData(
       id: mockPlan.id,
       name: mockPlan.name,
       weeklyFrequency: mockPlan.weeklyFrequency,
+      sessionMinutes: mockPlan.sessionMinutes,
+      price: mockPlan.price,
     },
   });
 
@@ -82,15 +86,25 @@ export async function replaceWithDemoData(
     })),
   });
 
+  const classTypeNames = [
+    ...new Set(
+      mockTimeSlots.map((slot) => normalizeClassTypeName(slot.classType)),
+    ),
+  ];
+  await prisma.classType.createMany({
+    data: classTypeNames.map((name) => ({ name })),
+  });
+
   await prisma.timeSlot.createMany({
     data: mockTimeSlots.map((slot) => ({
       id: slot.id,
+      name: slot.name,
       startsAt: new Date(slot.startsAt),
       endsAt: new Date(slot.endsAt),
       capacity: slot.capacity,
       enrolledCount: slot.enrolledCount,
       status: slot.status,
-      classType: slot.classType,
+      classType: normalizeClassTypeName(slot.classType),
       trainerId: slot.trainerId,
     })),
   });

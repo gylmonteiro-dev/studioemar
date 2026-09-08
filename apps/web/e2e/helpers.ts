@@ -46,6 +46,7 @@ export const timeSlots = [
     capacity: 6,
     enrolledCount: 4,
     status: 'OPEN' as const,
+    name: 'Strength',
     classType: 'Strength',
     trainerId: 'user-carlos',
   },
@@ -56,6 +57,7 @@ export const timeSlots = [
     capacity: 6,
     enrolledCount: 6,
     status: 'FULL' as const,
+    name: 'Strength',
     classType: 'Strength',
     trainerId: 'user-carlos',
   },
@@ -66,6 +68,7 @@ export const timeSlots = [
     capacity: 6,
     enrolledCount: 3,
     status: 'OPEN' as const,
+    name: 'Strength',
     classType: 'Strength',
     trainerId: 'user-carlos',
   },
@@ -191,7 +194,45 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
     }
 
     if (method === 'GET' && path === '/plans') {
-      return json(200, [{ id: 'plan-3x', name: '3x semana', weeklyFrequency: 3 }]);
+      return json(200, [
+        {
+          id: 'plan-3x',
+          name: '3X POR SEMANA',
+          weeklyFrequency: 3,
+          sessionMinutes: 60,
+          price: null,
+          monthlyClasses: 12,
+          monthlyHours: 12,
+        },
+      ]);
+    }
+
+    if (method === 'POST' && path === '/plans') {
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        name?: string;
+        weeklyFrequency?: number;
+        sessionMinutes?: number;
+        price?: number | null;
+      };
+      const name = (body.name ?? '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLocaleUpperCase('pt-BR');
+      const weeklyFrequency = body.weeklyFrequency ?? 3;
+      const sessionMinutes = body.sessionMinutes ?? 60;
+      return json(201, {
+        id: 'plan-new',
+        name,
+        weeklyFrequency,
+        sessionMinutes,
+        price: body.price ?? null,
+        monthlyClasses: weeklyFrequency * 4,
+        monthlyHours: (weeklyFrequency * 4 * sessionMinutes) / 60,
+      });
+    }
+
+    if (method === 'GET' && path === '/closures') {
+      return json(200, []);
     }
 
     if (method === 'GET' && path === '/recurring-slots') {
@@ -202,8 +243,22 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
       return json(200, []);
     }
 
+    if (method === 'GET' && path === '/class-types') {
+      return json(200, [{ id: 'type-aula', name: 'AULA' }]);
+    }
+
+    if (method === 'POST' && path === '/class-types') {
+      const body = JSON.parse(request.postData() ?? '{}') as { name?: string };
+      const name = (body.name ?? '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
+      if (name === 'AULA') {
+        return json(409, { message: 'Já existe um tipo de aula com este nome' });
+      }
+      return json(201, { id: 'type-new', name });
+    }
+
     if (method === 'POST' && path === '/studio-hours') {
       const body = JSON.parse(request.postData() ?? '{}') as {
+        name: string;
         weekdays: string[];
         startTime: string;
         endTime: string;
@@ -213,6 +268,7 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
       };
       return json(201, {
         id: 'hour-1',
+        name: body.name,
         weekdays: body.weekdays,
         startTime: body.startTime,
         endTime: body.endTime,

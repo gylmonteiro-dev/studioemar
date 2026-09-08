@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import type { Clock } from '../common/clock';
 import { createMemoryPrisma, fixedClock } from '../test/memory-prisma';
@@ -17,9 +17,16 @@ const carlos = {
   passwordHash: 'hash',
 };
 
-const plan = { id: 'plan-3x', name: '3x', weeklyFrequency: 3 };
+const plan = { id: 'plan-3x', name: '3x semana', weeklyFrequency: 3 };
+
+const classTypes = [
+  { id: 'type-funcional', name: 'FUNCIONAL' },
+  { id: 'type-strength', name: 'STRENGTH' },
+  { id: 'type-recovery', name: 'RECOVERY' },
+];
 const slotToday = {
   id: 'slot-today-18',
+  name: 'Strength',
   startsAt: new Date('2026-09-03T21:00:00.000Z'),
   endsAt: new Date('2026-09-03T22:00:00.000Z'),
   capacity: 6,
@@ -155,9 +162,11 @@ describe('SchedulesService', () => {
   it('cria turma seg/qua/sex e materializa as aulas das 12 semanas', async () => {
     const { prisma, store } = createMemoryPrisma({
       users: [carlos],
+      classTypes,
     });
     const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
     const hour = await schedules.createStudioHour({
+      name: 'Manhã funcional',
       weekdays: ['FRI', 'MON', 'WED'],
       startTime: '07:30',
       endTime: '08:30',
@@ -166,7 +175,9 @@ describe('SchedulesService', () => {
       trainerId: 'user-carlos',
     });
     assert.deepEqual(hour.weekdays, ['MON', 'WED', 'FRI']);
+    assert.equal(hour.name, 'Manhã funcional');
     assert.equal(store.timeSlots.length, 36);
+    assert.equal(store.timeSlots[0]?.name, 'Manhã funcional');
     assert.equal(
       store.timeSlots[0]?.startsAt.toISOString(),
       '2026-09-04T10:30:00.000Z',
@@ -177,9 +188,11 @@ describe('SchedulesService', () => {
   it('permite turmas paralelas no mesmo intervalo', async () => {
     const { prisma, store } = createMemoryPrisma({
       users: [carlos],
+      classTypes,
       timeSlots: [
         {
           id: 'slot-fri',
+          name: 'Strength',
           startsAt: new Date('2026-09-04T10:30:00.000Z'),
           endsAt: new Date('2026-09-04T11:30:00.000Z'),
           capacity: 6,
@@ -192,6 +205,7 @@ describe('SchedulesService', () => {
     });
     const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
     const hour = await schedules.createStudioHour({
+      name: 'Funcional paralelo',
       weekdays: ['FRI'],
       startTime: '07:30',
       endTime: '08:30',
@@ -206,9 +220,11 @@ describe('SchedulesService', () => {
   it('recusa excluir horário com alunos inscritos', async () => {
     const { prisma, store } = createMemoryPrisma({
       users: [carlos],
+      classTypes,
     });
     const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
     await schedules.createStudioHour({
+      name: 'Funcional sexta',
       weekdays: ['FRI'],
       startTime: '07:30',
       endTime: '08:30',
@@ -228,9 +244,13 @@ describe('SchedulesService', () => {
   });
 
   it('inclui horário pontual futuro', async () => {
-    const { prisma, store } = createMemoryPrisma({ users: [carlos] });
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      classTypes,
+    });
     const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
     const slot = await schedules.createTimeSlot({
+      name: 'Recovery extra',
       date: '2026-09-10',
       startTime: '19:00',
       endTime: '20:00',
@@ -241,5 +261,35 @@ describe('SchedulesService', () => {
     assert.equal(slot.capacity, 8);
     assert.equal(store.timeSlots.length, 1);
     assert.equal(slot.startsAt, '2026-09-10T22:00:00.000Z');
+  });
+
+  it('grava tipo de aula em maiúsculas e recusa nome duplicado', async () => {
+    const { prisma, store } = createMemoryPrisma();
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const created = await schedules.createClassType({ name: ' funcional ' });
+    assert.equal(created.name, 'FUNCIONAL');
+    assert.equal(store.classTypes.length, 1);
+    await assert.rejects(
+      () => schedules.createClassType({ name: 'FUNCIONAL' }),
+      ConflictException,
+    );
+  });
+
+  it('recusa horário com tipo de aula não cadastrado', async () => {
+    const { prisma } = createMemoryPrisma({ users: [carlos] });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    await assert.rejects(
+      () =>
+        schedules.createStudioHour({
+          name: 'Manhã',
+          weekdays: ['MON'],
+          startTime: '07:30',
+          endTime: '08:30',
+          capacity: 6,
+          classType: 'Inexistente',
+          trainerId: 'user-carlos',
+        }),
+      BadRequestException,
+    );
   });
 });

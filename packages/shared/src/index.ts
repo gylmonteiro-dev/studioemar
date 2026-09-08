@@ -1,3 +1,11 @@
+export { normalizeClassTypeName } from './rules/class-types.js';
+export {
+  PLAN_MONTH_WEEKS,
+  monthlyClassCount,
+  monthlyTrainingHours,
+  normalizePlanName,
+} from './rules/plan-metrics.js';
+export { normalizeClockTime, toClockMinutes } from './clock-time.js';
 export {
   CANCELLATION_CREDIT_DEADLINE_HOURS,
   CREDIT_VALIDITY_DAYS,

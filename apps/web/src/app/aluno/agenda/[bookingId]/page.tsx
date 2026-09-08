@@ -153,7 +153,7 @@ function BookingDetail({
               <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
                 Modalidade
               </p>
-              <h2 className="mt-1 text-xl font-semibold">{slot.classType}</h2>
+              <h2 className="mt-1 text-xl font-semibold">{slot.name}</h2>
             </div>
             <Badge variant={booking.status === 'CONFIRMED' ? 'success' : 'default'}>
               {booking.status === 'CONFIRMED'

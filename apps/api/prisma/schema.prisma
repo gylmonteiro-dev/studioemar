@@ -67,8 +67,10 @@ enum WaitlistStatus {
 
 model Plan {
   id              String          @id @default(cuid())
-  name            String
+  name            String          @unique
   weeklyFrequency Int
+  sessionMinutes  Int             @default(60)
+  price           Decimal?        @db.Decimal(10, 2)
   users           User[]
   recurringSlots  RecurringSlot[]
 }
@@ -118,8 +120,14 @@ model RecurringSlot {
   @@unique([planId, weekday, time])
 }
 
+model ClassType {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
 model StudioHour {
   id        String    @id @default(cuid())
+  name      String
   weekdays  Weekday[]
   startTime String
   endTime   String
@@ -132,6 +140,7 @@ model StudioHour {
 
 model TimeSlot {
   id            String          @id @default(cuid())
+  name          String
   startsAt      DateTime
   endsAt        DateTime
   capacity      Int

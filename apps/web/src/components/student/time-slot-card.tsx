@@ -35,7 +35,7 @@ export function TimeSlotCard({
         </div>
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <span className="font-semibold text-foreground">{slot.classType}</span>
+            <span className="font-semibold text-foreground">{slot.name}</span>
             <AvailabilityBadge status={slot.status} spotsLeft={free} />
           </div>
           <p className="text-sm text-muted-foreground">

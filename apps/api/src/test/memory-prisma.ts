@@ -15,10 +15,13 @@ export type MemoryPlan = {
   id: string;
   name: string;
   weeklyFrequency: number;
+  sessionMinutes: number;
+  price: number | null;
 };
 
 export type MemoryTimeSlot = {
   id: string;
+  name: string;
   startsAt: Date;
   endsAt: Date;
   capacity: number;
@@ -70,6 +73,7 @@ export type MemoryRecurringSlot = {
 
 export type MemoryStudioHour = {
   id: string;
+  name: string;
   weekdays: string[];
   startTime: string;
   endTime: string;
@@ -96,6 +100,11 @@ export type MemoryWaitlist = {
   status: 'WAITING' | 'PROMOTED' | 'CANCELLED';
 };
 
+export type MemoryClassType = {
+  id: string;
+  name: string;
+};
+
 export type MemoryStore = {
   users: MemoryUser[];
   plans: MemoryPlan[];
@@ -105,6 +114,7 @@ export type MemoryStore = {
   cancellations: MemoryCancellation[];
   recurringSlots: MemoryRecurringSlot[];
   studioHours: MemoryStudioHour[];
+  classTypes: MemoryClassType[];
   closures: MemoryClosure[];
   waitlist: MemoryWaitlist[];
 };
@@ -229,13 +239,20 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
 } {
   const store: MemoryStore = {
     users: structuredClone(seed.users ?? []),
-    plans: structuredClone(seed.plans ?? []),
+    plans: structuredClone(
+      (seed.plans ?? []).map((plan) => ({
+        sessionMinutes: 60,
+        price: null as number | null,
+        ...plan,
+      })),
+    ),
     timeSlots: structuredClone(seed.timeSlots ?? []),
     bookings: structuredClone(seed.bookings ?? []),
     credits: structuredClone(seed.credits ?? []),
     cancellations: structuredClone(seed.cancellations ?? []),
     recurringSlots: structuredClone(seed.recurringSlots ?? []),
     studioHours: structuredClone(seed.studioHours ?? []),
+    classTypes: structuredClone(seed.classTypes ?? []),
     closures: structuredClone(seed.closures ?? []),
     waitlist: structuredClone(seed.waitlist ?? []),
   };
@@ -292,6 +309,9 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         Object.assign(row, args.data);
         return row;
       },
+      async count(args: { where?: Where } = {}) {
+        return store.users.filter((row) => matches(row, args.where)).length;
+      },
     },
     plan: {
       async findMany(args: { orderBy?: unknown } = {}) {
@@ -299,6 +319,38 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
       },
       async findUnique(args: { where: Where }) {
         return store.plans.find((row) => matches(row, args.where)) ?? null;
+      },
+      async create(args: {
+        data: Omit<MemoryPlan, 'id'> & { id?: string };
+      }) {
+        const row: MemoryPlan = {
+          id: args.data.id ?? nextId('plan'),
+          name: args.data.name,
+          weeklyFrequency: args.data.weeklyFrequency,
+          sessionMinutes: args.data.sessionMinutes,
+          price: args.data.price ?? null,
+        };
+        store.plans.push(row);
+        return row;
+      },
+      async update(args: { where: Where; data: Partial<MemoryPlan> }) {
+        const row = store.plans.find((item) => matches(item, args.where));
+        if (!row) {
+          throw new Error('Plan not found');
+        }
+        Object.assign(row, args.data);
+        return row;
+      },
+      async delete(args: { where: Where }) {
+        const index = store.plans.findIndex((row) => matches(row, args.where));
+        if (index < 0) {
+          throw new Error('Plan not found');
+        }
+        const [removed] = store.plans.splice(index, 1);
+        if (!removed) {
+          throw new Error('Plan not found');
+        }
+        return removed;
       },
     },
     timeSlot: {
@@ -326,6 +378,7 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
       }) {
         const row: MemoryTimeSlot = {
           id: args.data.id ?? nextId('slot'),
+          name: args.data.name,
           startsAt: args.data.startsAt,
           endsAt: args.data.endsAt,
           capacity: args.data.capacity,
@@ -480,6 +533,14 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         store.recurringSlots.push(row);
         return row;
       },
+      async deleteMany(args: { where?: Where } = {}) {
+        const kept = store.recurringSlots.filter(
+          (row) => !matches(row, args.where),
+        );
+        const count = store.recurringSlots.length - kept.length;
+        store.recurringSlots.splice(0, store.recurringSlots.length, ...kept);
+        return { count };
+      },
       async delete(args: { where: Where }) {
         const index = store.recurringSlots.findIndex((row) =>
           matches(row, args.where),
@@ -506,6 +567,7 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
       }) {
         const row: MemoryStudioHour = {
           id: args.data.id ?? nextId('hour'),
+          name: args.data.name,
           weekdays: [...args.data.weekdays],
           startTime: args.data.startTime,
           endTime: args.data.endTime,
@@ -534,6 +596,24 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
           throw new Error('StudioHour not found');
         }
         return removed;
+      },
+    },
+    classType: {
+      async findMany(args: { orderBy?: unknown } = {}) {
+        return sortRows(store.classTypes, args.orderBy);
+      },
+      async findUnique(args: { where: Where }) {
+        return store.classTypes.find((row) => matches(row, args.where)) ?? null;
+      },
+      async create(args: {
+        data: Omit<MemoryClassType, 'id'> & { id?: string };
+      }) {
+        const row: MemoryClassType = {
+          id: args.data.id ?? nextId('classtype'),
+          name: args.data.name,
+        };
+        store.classTypes.push(row);
+        return row;
       },
     },
     studioClosure: {
@@ -600,6 +680,11 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
           0,
           store.studioHours.length,
           ...snapshot.studioHours,
+        );
+        store.classTypes.splice(
+          0,
+          store.classTypes.length,
+          ...snapshot.classTypes,
         );
         store.closures.splice(0, store.closures.length, ...snapshot.closures);
         store.waitlist.splice(0, store.waitlist.length, ...snapshot.waitlist);

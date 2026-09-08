@@ -5,17 +5,16 @@
 FASE 0 a 9 concluídas e mergeadas em main. A homologação
 está publicada e disponível para feedback do cliente.
 
-A hierarquia de acesso (RN-023 / RN-024) já está em `main`
-(`b994ab5`). A VPS ainda executa a imagem do `d062228`, anterior
-a esses ajustes e à gestão de horários do estúdio.
-
-A gestão de turmas/horários (RN-025) foi implementada e validada
-no commit `26567e6`, integrado em `main`. Ainda não houve deploy.
+A hierarquia de acesso (RN-023 / RN-024), a gestão de
+turmas/horários (RN-025), a identificação das turmas, o
+catálogo de tipos de aula e os modelos de plano (RN-026)
+estão em `main`. A VPS ainda executa a imagem do `d062228`,
+anterior a todos esses ajustes. Ainda não houve deploy.
 
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
 
-RN-017 a RN-025 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
+RN-017 a RN-026 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
 e STUDENT. SUPERADMIN herda ADMIN e TRAINER; ADMIN herda
 TRAINER; STUDENT permanece isolado (ADR-009). Prisma em
 apps/api; passwordHash só no banco (ADR-013). JWT no JSON
@@ -27,22 +26,36 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - Cliente `apps/web/src/lib/api-client.ts` (Bearer + refresh
   em 401)
 - Contrato Zod + OpenAPI (auth, students, operators, schedules,
-  bookings, credits, dashboard)
-- Prisma com vínculo N:N `StudentTrainer` e turmas `StudioHour`
+  bookings, credits, dashboard, class-types, plans)
+- Prisma com vínculo N:N `StudentTrainer`, turmas `StudioHour`,
+  catálogo `ClassType` e métricas de `Plan`
 - Prisma schema, migrations e seed
 - Compose só do banco: infrastructure/docker-compose.dev.yml
 - Nest: auth, students, operators, schedules, bookings, credits,
   dashboard
 - Controle de acessos em `/treinador/acessos`
-- Horários do estúdio em `/treinador/horarios` (ADMIN/SUPERADMIN)
-- Turmas recorrentes escolhem dias de segunda a domingo, intervalo,
-  capacidade e treinador; geram aulas para as próximas 12 semanas
+- Hub Ajustes em `/treinador/configuracoes` (ADMIN/SUPERADMIN):
+  accordion Horários / Planos / Fechamento; query
+  `?secao=horarios|planos|fechamento` abre a seção
+- Horários saiu da nav do treinador; `/treinador/horarios` e
+  `/treinador/agenda-recorrente` redirecionam para Ajustes
+- Turmas recorrentes exigem identificação, tipo de aula,
+  dias de segunda a domingo, intervalo, capacidade e treinador;
+  geram aulas para as próximas 12 semanas
+- Tipo de aula vem de catálogo (`GET/POST /class-types`); nome
+  único em maiúsculas; o admin cadastra o tipo se ainda não
+  existir
 - Horários pontuais podem ser incluídos pela agenda
 - Turmas paralelas são permitidas; a web alerta sobre coincidência
   de dias/intervalos, mas permite confirmar o cadastro
+- Planos (RN-026): nome único em maiúsculas, aulas/semana (1–7),
+  duração em passos de 30 min (padrão 60), totais com mês = 4
+  semanas, preço opcional. CRUD ADMIN; DELETE 409 se houver aluno
+- Agenda recorrente do plano (`RecurringSlot`) permanece na API;
+  a UI saiu do accordion Horários
 - TRAINER vê alunos vinculados ou com reserva em aula ministrada
   por ele; ADMIN e SUPERADMIN mantêm visão global
-- Configuração global de horários e fechamentos restrita a
+- Configuração global (horários, planos, fechamentos) restrita a
   ADMIN/SUPERADMIN
 - Swagger: http://localhost:3001/docs
 - GET /health intacto
@@ -69,7 +82,8 @@ para não colidir com o `studio-postgres` de produção.
 Seed: João, Carlos, Marina e Administrador com senha
 `studioemar`; Ana em primeiro acesso (`passwordHash` null);
 créditos nas 3 origens; fechamento sem crédito;
-waitlist FIFO no slot lotado.
+waitlist FIFO no slot lotado. Plano de exemplo:
+`3X POR SEMANA`.
 
 Prisma Studio: `pnpm prisma:studio`
 
@@ -134,7 +148,8 @@ Cobertura:
 - Permissões (hierarquia dos quatro papéis, escopo do treinador,
   prevenção de escalada e rotas aluno/operador)
 - Responsividade 390 / 768 / 1024 / 1440
-- Fluxos: login, cancelar, dashboard, horários sem nomes
+- Fluxos: login, cancelar, dashboard, Ajustes (horários, tipo de
+  aula, cadastro de plano)
 - Contrato Zod × docs/openapi.yaml
 
 ## Produção em containers (FASE 8)
@@ -214,7 +229,8 @@ diretamente `docker compose`.
 ## Ajustes locais após homologação
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
-do cliente. `main` contém a gestão de horários do estúdio.
+do cliente. `main` contém identificação de turmas, catálogo
+de tipos de aula, planos (RN-026) e o hub Ajustes.
 
 Fazer os próximos ajustes primeiro apenas localmente. Não
 alterar a VPS, o Caddy nem os dados de homologação sem pedido
@@ -228,21 +244,25 @@ pnpm build:web
 pnpm test:e2e
 ```
 
-Na última validação, `pnpm test`, `pnpm lint`, builds da API/web
-e os 21 testes E2E passaram. O build web também revelou e corrigiu
-a tipagem de `trainerIds` no cadastro de aluno.
+Na última validação, `pnpm test`, `pnpm lint` e os testes E2E
+do hub Ajustes (horários, tipo de aula, cadastro de plano)
+passaram.
 
-As migrations `20260905214000_access_hierarchy` e
-`20260907210000_studio_hours` estão aplicadas no banco local.
+As migrations abaixo estão aplicadas no banco local:
+
+- `20260905214000_access_hierarchy`
+- `20260907210000_studio_hours`
+- `20260908103000_studio_hour_name`
+- `20260908120000_class_types`
+- `20260908140000_plan_metrics`
+
 As aulas, reservas, créditos, waitlist e turmas de demonstração
 foram removidos, preservando os cinco usuários, senhas, plano e
 vínculos. Depois da limpeza foi cadastrada uma turma manual para
 teste. Não executar o seed para preservar esse estado.
 
-O arquivo não rastreado `apps/api/prisma/seed.js` é artefato
-gerado e não deve entrar no commit. Revisar/remover antes de
-versionar. `pnpm format:check` ainda aponta arquivos antigos;
-não formatar o repositório inteiro como efeito colateral.
+`pnpm format:check` ainda aponta arquivos antigos; não formatar
+o repositório inteiro como efeito colateral.
 
 Se uma alteração aprovada precisar ser publicada:
 
@@ -256,9 +276,9 @@ Se uma alteração aprovada precisar ser publicada:
 6. validar health, HTTPS, CORS e os quatro perfis.
 
 As imagens atualmente em execução foram construídas no commit
-`d062228`. Hierarquia de acesso e horários do estúdio são mudanças
-funcionais posteriores e exigem migration, rebuild e validação
-antes de entrarem na VPS.
+`d062228`. Hierarquia de acesso, horários, identificação, tipos
+de aula e planos são mudanças funcionais posteriores e exigem
+migration, rebuild e validação antes de entrarem na VPS.
 
 ## Não fazer ainda
 
@@ -267,14 +287,18 @@ antes de entrarem na VPS.
   tela de reset com token não existe);
 - Expo / apps/mobile;
 - alterações na VPS / Caddy fora do escopo da FASE 9;
-- perfil do aluno.
+- perfil do aluno;
+- cobrança / uso do preço do plano;
+- reexpor a agenda recorrente do plano na UI (API permanece).
 
 ## Pendências
 
 - Sem mailer de recuperação.
-- Publicar hierarquia de acesso e horários do estúdio na VPS
-  após autorização; backup antes da migration
-  `20260907210000_studio_hours`.
+- Publicar hierarquia de acesso, horários, identificação, tipos
+  de aula e planos na VPS após autorização; backup antes das
+  migrations `20260907210000_studio_hours`,
+  `20260908103000_studio_hour_name`, `20260908120000_class_types`
+  e `20260908140000_plan_metrics`.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.

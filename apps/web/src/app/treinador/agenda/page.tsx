@@ -2,6 +2,7 @@
 
 import { PageCanvas } from '@/components/layout/page-canvas';
 import { AvailabilityBadge } from '@/components/student/availability-badge';
+import { ClassTypeFields } from '@/components/trainer/class-type-fields';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,7 +11,13 @@ import { PageLoadState } from '@/components/ui/load-state';
 import { Modal } from '@/components/ui/modal';
 import { SelectField } from '@/components/ui/select-field';
 import { useToast } from '@/components/ui/toast';
-import { createTimeSlot, listOperators, listSlotBookings, listTimeSlots } from '@/lib/api';
+import {
+  createTimeSlot,
+  listClassTypes,
+  listOperators,
+  listSlotBookings,
+  listTimeSlots,
+} from '@/lib/api';
 import { canManageAccess } from '@/lib/auth-routing';
 import { getClientNow } from '@/lib/clock';
 import {
@@ -24,10 +31,14 @@ import {
 } from '@/lib/format';
 import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
-import { clockIntervalsOverlap } from '@studioemar/shared';
+import {
+  clockIntervalsOverlap,
+  normalizeClockTime,
+  type ClassType,
+} from '@studioemar/shared';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 function dateInput(value: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
@@ -44,18 +55,24 @@ export default function TreinadorAgendaPage() {
     async () => (canManage ? listOperators() : []),
     [canManage],
   );
+  const { data: catalogTypes } = useAsync(
+    async () => (canManage ? listClassTypes() : []),
+    [canManage],
+  );
   const [weekStart, setWeekStart] = useState(() =>
     startOfWeekMonday(getClientNow().toISOString()),
   );
   const [openCreate, setOpenCreate] = useState(false);
   const [busy, setBusy] = useState(false);
   const [overlapAck, setOverlapAck] = useState(false);
+  const [classTypes, setClassTypes] = useState<ClassType[]>([]);
   const [form, setForm] = useState({
+    name: '',
     date: dateInput(getClientNow()),
     startTime: '18:00',
     endTime: '19:00',
     capacity: '6',
-    classType: 'Aula',
+    classType: '',
     trainerId: '',
   });
 
@@ -66,6 +83,24 @@ export default function TreinadorAgendaPage() {
     }
     return items;
   }, [operators, trainer]);
+
+  useEffect(() => {
+    if (catalogTypes) {
+      setClassTypes(catalogTypes);
+    }
+  }, [catalogTypes]);
+
+  useEffect(() => {
+    if (form.classType) {
+      return;
+    }
+    const first = classTypes[0];
+    if (first) {
+      setForm((current) =>
+        current.classType ? current : { ...current, classType: first.name },
+      );
+    }
+  }, [classTypes, form.classType]);
 
   const slots = useMemo(
     () =>
@@ -165,8 +200,11 @@ export default function TreinadorAgendaPage() {
                         {formatDateHeading(slot.startsAt)} · {clockTime(slot.startsAt)}
                       </p>
                       <p className="mt-1 text-lg font-semibold text-foreground">
-                        {slot.classType}
+                        {slot.name}
                       </p>
+                      {slot.classType !== slot.name ? (
+                        <p className="text-sm text-muted-foreground">{slot.classType}</p>
+                      ) : null}
                       <p className="mt-1 text-sm text-muted-foreground">
                         {participants.length === 0
                           ? 'Sem alunos confirmados'
@@ -209,8 +247,8 @@ export default function TreinadorAgendaPage() {
                   return false;
                 }
                 return clockIntervalsOverlap(
-                  form.startTime,
-                  form.endTime,
+                  normalizeClockTime(form.startTime) ?? form.startTime,
+                  normalizeClockTime(form.endTime) ?? form.endTime,
                   clockTime(slot.startsAt),
                   clockTime(slot.endsAt),
                 );
@@ -221,10 +259,15 @@ export default function TreinadorAgendaPage() {
               }
               setBusy(true);
               try {
+                if (!form.classType.trim()) {
+                  toast('Selecione o tipo da aula');
+                  return;
+                }
                 await createTimeSlot({
+                  name: form.name.trim(),
                   date: form.date,
-                  startTime: form.startTime,
-                  endTime: form.endTime,
+                  startTime: normalizeClockTime(form.startTime) ?? form.startTime,
+                  endTime: normalizeClockTime(form.endTime) ?? form.endTime,
                   capacity: Number(form.capacity),
                   classType: form.classType,
                   trainerId: form.trainerId || trainers[0]?.id || '',
@@ -247,6 +290,15 @@ export default function TreinadorAgendaPage() {
             }}
           >
             <Input
+              label="Identificação"
+              placeholder="Ex.: Turma A"
+              required
+              value={form.name}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, name: event.target.value }))
+              }
+            />
+            <Input
               label="Data"
               type="date"
               value={form.date}
@@ -258,6 +310,8 @@ export default function TreinadorAgendaPage() {
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Início"
+                type="time"
+                step={60}
                 value={form.startTime}
                 onChange={(event) => {
                   setOverlapAck(false);
@@ -266,6 +320,8 @@ export default function TreinadorAgendaPage() {
               />
               <Input
                 label="Término"
+                type="time"
+                step={60}
                 value={form.endTime}
                 onChange={(event) => {
                   setOverlapAck(false);
@@ -282,12 +338,20 @@ export default function TreinadorAgendaPage() {
                 setForm((current) => ({ ...current, capacity: event.target.value }))
               }
             />
-            <Input
-              label="Tipo da aula"
+            <ClassTypeFields
               value={form.classType}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, classType: event.target.value }))
+              types={classTypes}
+              onChange={(classType) =>
+                setForm((current) => ({ ...current, classType }))
               }
+              onCreated={(type) => {
+                setClassTypes((current) =>
+                  [...current.filter((item) => item.id !== type.id), type].sort(
+                    (left, right) =>
+                      left.name.localeCompare(right.name, 'pt-BR'),
+                  ),
+                );
+              }}
             />
             <SelectField
               label="Treinador"

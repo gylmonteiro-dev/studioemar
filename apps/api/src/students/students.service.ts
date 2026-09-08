@@ -4,9 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type {
-  CreateStudentRequest,
-  UpdateStudentTrainersRequest,
+import {
+  normalizePlanName,
+  type CreatePlanRequest,
+  type CreateStudentRequest,
+  type UpdatePlanRequest,
+  type UpdateStudentTrainersRequest,
 } from '@studioemar/shared';
 import type { AuthUser } from '../auth/auth.types';
 import { toBooking, toCredit, toPlan, toUser } from '../common/mappers';
@@ -95,6 +98,66 @@ export class StudentsService {
       orderBy: { name: 'asc' },
     });
     return plans.map(toPlan);
+  }
+
+  async createPlan(input: CreatePlanRequest) {
+    const name = normalizePlanName(input.name);
+    const existing = await this.prisma.plan.findUnique({ where: { name } });
+    if (existing) {
+      throw new ConflictException('Já existe um plano com este nome');
+    }
+    const created = await this.prisma.plan.create({
+      data: {
+        name,
+        weeklyFrequency: input.weeklyFrequency,
+        sessionMinutes: input.sessionMinutes,
+        price: input.price ?? null,
+      },
+    });
+    return toPlan(created);
+  }
+
+  async updatePlan(id: string, input: UpdatePlanRequest) {
+    const plan = await this.prisma.plan.findUnique({ where: { id } });
+    if (!plan) {
+      throw new NotFoundException('Plano não encontrado');
+    }
+    const name = input.name ? normalizePlanName(input.name) : plan.name;
+    if (name !== plan.name) {
+      const clash = await this.prisma.plan.findUnique({ where: { name } });
+      if (clash) {
+        throw new ConflictException('Já existe um plano com este nome');
+      }
+    }
+    const updated = await this.prisma.plan.update({
+      where: { id },
+      data: {
+        name,
+        weeklyFrequency: input.weeklyFrequency ?? plan.weeklyFrequency,
+        sessionMinutes: input.sessionMinutes ?? plan.sessionMinutes,
+        ...(input.price !== undefined ? { price: input.price } : {}),
+      },
+    });
+    return toPlan(updated);
+  }
+
+  async deletePlan(id: string) {
+    const plan = await this.prisma.plan.findUnique({ where: { id } });
+    if (!plan) {
+      throw new NotFoundException('Plano não encontrado');
+    }
+    const enrolled = await this.prisma.user.count({
+      where: { planId: id },
+    });
+    if (enrolled > 0) {
+      throw new ConflictException(
+        'Não é possível excluir um plano com alunos vinculados',
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.recurringSlot.deleteMany({ where: { planId: id } });
+      await tx.plan.delete({ where: { id } });
+    });
   }
 
   async listBookings(studentId: string, actor: AuthUser) {

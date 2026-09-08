@@ -1,3 +1,4 @@
+import { toClockMinutes } from '../clock-time.js';
 import type { Weekday } from '../schemas/enums.js';
 
 export type StudioHourOverlapInput = {
@@ -13,7 +14,19 @@ export function clockIntervalsOverlap(
   rightStart: string,
   rightEnd: string,
 ): boolean {
-  return leftStart < rightEnd && rightStart < leftEnd;
+  const leftStartMin = toClockMinutes(leftStart);
+  const leftEndMin = toClockMinutes(leftEnd);
+  const rightStartMin = toClockMinutes(rightStart);
+  const rightEndMin = toClockMinutes(rightEnd);
+  if (
+    leftStartMin === null ||
+    leftEndMin === null ||
+    rightStartMin === null ||
+    rightEndMin === null
+  ) {
+    return false;
+  }
+  return leftStartMin < rightEndMin && rightStartMin < leftEndMin;
 }
 
 export function studioHoursCoincide(

@@ -7,6 +7,8 @@ import {
   createStudentRequestSchema,
   createStudioClosureRequestSchema,
   createStudioHourRequestSchema,
+  createClassTypeRequestSchema,
+  createPlanRequestSchema,
   creditSchema,
   firstAccessRequestSchema,
   loginRequestSchema,
@@ -206,6 +208,7 @@ describe('timeSlotSchema', () => {
       capacity: 0,
       enrolledCount: 0,
       status: 'OPEN',
+      name: 'Strength',
       classType: 'Strength',
       trainerId: 'user-carlos',
     });
@@ -216,6 +219,7 @@ describe('timeSlotSchema', () => {
 describe('createStudioHourRequestSchema', () => {
   it('ordena os dias e rejeita intervalo invertido', () => {
     const hour = createStudioHourRequestSchema.parse({
+      name: 'Manhã funcional',
       weekdays: ['FRI', 'MON', 'WED'],
       startTime: '07:30',
       endTime: '08:30',
@@ -224,8 +228,21 @@ describe('createStudioHourRequestSchema', () => {
       trainerId: 'user-carlos',
     });
     assert.deepEqual(hour.weekdays, ['MON', 'WED', 'FRI']);
-    assert.equal(hour.classType, 'Funcional');
+    assert.equal(hour.classType, 'FUNCIONAL');
+    assert.equal(hour.name, 'Manhã funcional');
+    const withSeconds = createStudioHourRequestSchema.parse({
+      name: 'Turma 06:20',
+      weekdays: ['MON'],
+      startTime: '06:20:00',
+      endTime: '07:20:00',
+      capacity: 6,
+      classType: 'Aula',
+      trainerId: 'user-carlos',
+    });
+    assert.equal(withSeconds.startTime, '06:20');
+    assert.equal(withSeconds.endTime, '07:20');
     const inverted = createStudioHourRequestSchema.safeParse({
+      name: 'Invertido',
       weekdays: ['MON'],
       startTime: '08:30',
       endTime: '07:30',
@@ -234,6 +251,24 @@ describe('createStudioHourRequestSchema', () => {
       trainerId: 'user-carlos',
     });
     assert.equal(inverted.success, false);
+  });
+});
+
+describe('createClassTypeRequestSchema', () => {
+  it('grava o nome em maiúsculas', () => {
+    const type = createClassTypeRequestSchema.parse({ name: ' funcional ' });
+    assert.equal(type.name, 'FUNCIONAL');
+  });
+});
+
+describe('createPlanRequestSchema', () => {
+  it('grava o nome em maiúsculas e assume 60 minutos', () => {
+    const plan = createPlanRequestSchema.parse({
+      name: ' 3x por semana ',
+      weeklyFrequency: 3,
+    });
+    assert.equal(plan.name, '3X POR SEMANA');
+    assert.equal(plan.sessionMinutes, 60);
   });
 });
 

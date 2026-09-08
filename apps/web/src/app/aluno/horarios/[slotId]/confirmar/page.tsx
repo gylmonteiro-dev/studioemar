@@ -120,7 +120,7 @@ export default function ConfirmarReposicaoPage() {
                 </p>
                 <p className="text-xl font-semibold">{formatDateHeading(slot.startsAt)}</p>
                 <p className="text-xl font-semibold">{clockTime(slot.startsAt)}</p>
-                <p className="text-muted-foreground">{slot.classType}</p>
+                <p className="text-muted-foreground">{slot.name}</p>
               </div>
             </div>
             <div className="h-px bg-border" />

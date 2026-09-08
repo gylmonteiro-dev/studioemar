@@ -279,10 +279,19 @@ ADMIN e SUPERADMIN acessam todos os alunos.
 Status: ACEITO
 
 O ADMIN (e o SUPERADMIN, por herança) cadastra as turmas do
-estúdio: um ou mais dias da semana (segunda a domingo) e o
-intervalo de funcionamento, com limite de alunos por turma.
+estúdio: uma identificação obrigatória, um ou mais dias da semana
+(segunda a domingo) e o intervalo de funcionamento, com limite de
+alunos por turma.
 
-Exemplo: segunda, quarta e sexta, das 07:30 às 08:30.
+A identificação distingue turmas paralelas (exemplo: "Turma A" e
+"Turma B" no mesmo intervalo).
+
+O tipo de aula é escolhido em um catálogo gerenciado pelo
+administrador. O nome é gravado em maiúsculas e não pode
+repetir. Se o tipo ainda não existir, o admin cadastra antes de
+usar no horário.
+
+Exemplo: "Manhã 1", segunda, quarta e sexta, das 07:30 às 08:30.
 
 Esses cadastros geram as aulas (`TimeSlot`) usadas em reserva,
 cancelamento e reposição por crédito. O admin pode incluir um
@@ -295,6 +304,24 @@ não é recusado.
 
 TRAINER puro não gerencia a grade. ADMIN herda as operações de
 treinador (RN-023).
+
+---
+
+## RN-026 — Modelos de plano
+
+Status: ACEITO
+
+O ADMIN cadastra o pacote do aluno com um nome obrigatório
+(maiúsculas, sem repetir), a quantidade de aulas por semana
+(1 a 7) e a duração de cada aula (padrão 1h, em intervalos de
+30 minutos).
+
+O mês do plano são 4 semanas. Aulas mensais = aulas/semana × 4.
+Horas de treino no mês = aulas mensais × duração da aula.
+
+O preço é opcional e não entra em cobrança neste módulo.
+
+Não é possível excluir um plano que ainda tenha aluno vinculado.
 
 ---
 

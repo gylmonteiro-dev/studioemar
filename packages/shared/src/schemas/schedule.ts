@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeClassTypeName } from '../rules/class-types.js';
 import {
   timeSlotStatusSchema,
   waitlistStatusSchema,
@@ -12,8 +13,33 @@ import {
   isoDateTimeSchema,
 } from './ids.js';
 
+const hourNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Informe a identificação')
+  .max(80);
+
+export const classTypeNameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Informe o tipo da aula')
+  .max(80)
+  .transform((value) => normalizeClassTypeName(value));
+
+export const classTypeSchema = z.object({
+  id: idSchema,
+  name: classTypeNameSchema,
+});
+export type ClassType = z.infer<typeof classTypeSchema>;
+
+export const createClassTypeRequestSchema = z.object({
+  name: classTypeNameSchema,
+});
+export type CreateClassTypeRequest = z.infer<typeof createClassTypeRequestSchema>;
+
 export const timeSlotSchema = z.object({
   id: idSchema,
+  name: hourNameSchema,
   startsAt: isoDateTimeSchema,
   endsAt: isoDateTimeSchema,
   capacity: z.number().int().positive(),
@@ -90,11 +116,12 @@ function uniqueSortedWeekdays(days: Weekday[]) {
 export const studioHourSchema = z
   .object({
     id: idSchema,
+    name: hourNameSchema,
     weekdays: weekdaysFieldSchema,
     startTime: clockTimeSchema,
     endTime: clockTimeSchema,
     capacity: z.number().int().positive(),
-    classType: z.string().min(1),
+    classType: classTypeNameSchema,
     trainerId: idSchema,
   })
   .refine((values) => values.endTime > values.startTime, {
@@ -105,11 +132,12 @@ export type StudioHour = z.infer<typeof studioHourSchema>;
 
 export const createStudioHourRequestSchema = z
   .object({
+    name: hourNameSchema,
     weekdays: weekdaysFieldSchema,
     startTime: clockTimeSchema,
     endTime: clockTimeSchema,
     capacity: z.number().int().positive(),
-    classType: z.string().min(1),
+    classType: classTypeNameSchema,
     trainerId: idSchema,
   })
   .refine((values) => values.endTime > values.startTime, {
@@ -119,7 +147,6 @@ export const createStudioHourRequestSchema = z
   .transform((values) => ({
     ...values,
     weekdays: uniqueSortedWeekdays(values.weekdays),
-    classType: values.classType.trim(),
   }));
 export type CreateStudioHourRequest = z.infer<
   typeof createStudioHourRequestSchema
@@ -127,11 +154,12 @@ export type CreateStudioHourRequest = z.infer<
 
 export const updateStudioHourRequestSchema = z
   .object({
+    name: hourNameSchema.optional(),
     weekdays: weekdaysFieldSchema.optional(),
     startTime: clockTimeSchema.optional(),
     endTime: clockTimeSchema.optional(),
     capacity: z.number().int().positive().optional(),
-    classType: z.string().min(1).optional(),
+    classType: classTypeNameSchema.optional(),
     trainerId: idSchema.optional(),
   })
   .transform((values) => ({
@@ -139,7 +167,6 @@ export const updateStudioHourRequestSchema = z
     ...(values.weekdays
       ? { weekdays: uniqueSortedWeekdays(values.weekdays) }
       : {}),
-    ...(values.classType ? { classType: values.classType.trim() } : {}),
   }))
   .refine(
     (values) => {
@@ -161,34 +188,28 @@ export type UpdateStudioHourRequest = z.infer<
 
 export const createTimeSlotRequestSchema = z
   .object({
+    name: hourNameSchema,
     date: isoDateSchema,
     startTime: clockTimeSchema,
     endTime: clockTimeSchema,
     capacity: z.number().int().positive(),
-    classType: z.string().min(1),
+    classType: classTypeNameSchema,
     trainerId: idSchema,
   })
   .refine((values) => values.endTime > values.startTime, {
     message: 'O término deve ser depois do início',
     path: ['endTime'],
-  })
-  .transform((values) => ({
-    ...values,
-    classType: values.classType.trim(),
-  }));
+  });
 export type CreateTimeSlotRequest = z.infer<typeof createTimeSlotRequestSchema>;
 
 export const updateTimeSlotRequestSchema = z
   .object({
+    name: hourNameSchema.optional(),
     date: isoDateSchema.optional(),
     startTime: clockTimeSchema.optional(),
     endTime: clockTimeSchema.optional(),
     capacity: z.number().int().positive().optional(),
-    classType: z.string().min(1).optional(),
+    classType: classTypeNameSchema.optional(),
     trainerId: idSchema.optional(),
-  })
-  .transform((values) => ({
-    ...values,
-    ...(values.classType ? { classType: values.classType.trim() } : {}),
-  }));
+  });
 export type UpdateTimeSlotRequest = z.infer<typeof updateTimeSlotRequestSchema>;

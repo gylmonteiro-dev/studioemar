@@ -49,6 +49,7 @@ const slotToday = {
   capacity: 6,
   enrolledCount: 6,
   status: 'FULL' as const,
+  name: 'Strength',
   classType: 'Strength',
   trainerId: 'user-carlos',
 };

@@ -93,7 +93,10 @@ export default function TreinadorSlotPage() {
             <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               {formatDateHeading(slot.startsAt)} · {clockTime(slot.startsAt)}
             </p>
-            <h1 className="mt-2 text-3xl font-bold text-foreground">{slot.classType}</h1>
+            <h1 className="mt-2 text-3xl font-bold text-foreground">{slot.name}</h1>
+            {slot.classType !== slot.name ? (
+              <p className="mt-1 text-muted-foreground">{slot.classType}</p>
+            ) : null}
             <div className="mt-3">
               {slot.status === 'CLOSED' ? (
                 <Badge variant="full">Fechado</Badge>

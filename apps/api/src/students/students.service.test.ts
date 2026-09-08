@@ -92,4 +92,32 @@ describe('StudentsService', () => {
       NotFoundException,
     );
   });
+
+  it('grava plano em maiúsculas e recusa nome duplicado', async () => {
+    const { students, store } = createStudents();
+    const created = await students.createPlan({
+      name: '  2x  manhã ',
+      weeklyFrequency: 2,
+      sessionMinutes: 60,
+    });
+    assert.equal(created.name, '2X MANHÃ');
+    assert.equal(created.monthlyClasses, 8);
+    assert.equal(created.monthlyHours, 8);
+    assert.equal(created.price, null);
+    await assert.rejects(
+      () =>
+        students.createPlan({
+          name: '2x manhã',
+          weeklyFrequency: 3,
+          sessionMinutes: 60,
+        }),
+      ConflictException,
+    );
+    assert.equal(store.plans.length, 2);
+  });
+
+  it('recusa excluir plano com aluno vinculado', async () => {
+    const { students } = createStudents();
+    await assert.rejects(() => students.deletePlan('plan-3x'), ConflictException);
+  });
 });

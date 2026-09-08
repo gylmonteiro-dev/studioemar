@@ -142,6 +142,58 @@ paths:
       responses:
         '200':
           description: Planos para cadastro de aluno
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+    post:
+      summary: Cadastrar modelo de plano
+      operationId: createPlan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanRequest'
+      responses:
+        '201':
+          description: Plano criado
+        '409':
+          description: Nome duplicado
+
+  /plans/{id}:
+    patch:
+      summary: Alterar modelo de plano
+      operationId: updatePlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlanRequest'
+      responses:
+        '200':
+          description: Plano atualizado
+    delete:
+      summary: Excluir modelo de plano sem alunos
+      operationId: deletePlan
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Excluído
+        '409':
+          description: Plano com alunos vinculados
 
   /students:
     get:
@@ -342,6 +394,38 @@ paths:
       responses:
         '200':
           description: Fila. Sem join nesta fase.
+
+  /class-types:
+    get:
+      summary: Tipos de aula cadastrados
+      operationId: listClassTypes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Catálogo de tipos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClassType'
+    post:
+      summary: Cadastrar tipo de aula
+      operationId: createClassType
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClassTypeRequest'
+      responses:
+        '201':
+          description: Tipo criado
+        '409':
+          description: Nome duplicado
 
   /studio-hours:
     get:
@@ -844,9 +928,11 @@ components:
     TimeSlot:
       type: object
       required:
-        [id, startsAt, endsAt, capacity, enrolledCount, status, classType, trainerId]
+        [id, name, startsAt, endsAt, capacity, enrolledCount, status, classType, trainerId]
       properties:
         id:
+          type: string
+        name:
           type: string
         startsAt:
           type: string
@@ -866,12 +952,30 @@ components:
         trainerId:
           type: string
 
+    ClassType:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    CreateClassTypeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
     StudioHour:
       type: object
       required:
-        [id, weekdays, startTime, endTime, capacity, classType, trainerId]
+        [id, name, weekdays, startTime, endTime, capacity, classType, trainerId]
       properties:
         id:
+          type: string
+        name:
           type: string
         weekdays:
           type: array
@@ -891,8 +995,10 @@ components:
 
     CreateStudioHourRequest:
       type: object
-      required: [weekdays, startTime, endTime, capacity, classType, trainerId]
+      required: [name, weekdays, startTime, endTime, capacity, classType, trainerId]
       properties:
+        name:
+          type: string
         weekdays:
           type: array
           items:
@@ -912,6 +1018,8 @@ components:
     UpdateStudioHourRequest:
       type: object
       properties:
+        name:
+          type: string
         weekdays:
           type: array
           items:
@@ -930,8 +1038,10 @@ components:
 
     CreateTimeSlotRequest:
       type: object
-      required: [date, startTime, endTime, capacity, classType, trainerId]
+      required: [name, date, startTime, endTime, capacity, classType, trainerId]
       properties:
+        name:
+          type: string
         date:
           type: string
           format: date
@@ -949,6 +1059,8 @@ components:
     UpdateTimeSlotRequest:
       type: object
       properties:
+        name:
+          type: string
         date:
           type: string
           format: date
@@ -1001,6 +1113,54 @@ components:
         status:
           type: string
           enum: [WAITING, PROMOTED, CANCELLED]
+
+    Plan:
+      type: object
+      required:
+        [id, name, weeklyFrequency, sessionMinutes, price, monthlyClasses, monthlyHours]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        weeklyFrequency:
+          type: integer
+        sessionMinutes:
+          type: integer
+        price:
+          type: number
+          nullable: true
+        monthlyClasses:
+          type: integer
+        monthlyHours:
+          type: number
+
+    CreatePlanRequest:
+      type: object
+      required: [name, weeklyFrequency]
+      properties:
+        name:
+          type: string
+        weeklyFrequency:
+          type: integer
+        sessionMinutes:
+          type: integer
+        price:
+          type: number
+          nullable: true
+
+    UpdatePlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        weeklyFrequency:
+          type: integer
+        sessionMinutes:
+          type: integer
+        price:
+          type: number
+          nullable: true
 
     OccupancyDashboard:
       type: object

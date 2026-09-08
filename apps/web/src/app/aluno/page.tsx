@@ -76,7 +76,7 @@ function HomeContent({
               featured
               href={`/aluno/agenda/${next.booking.id}`}
               startsAt={next.slot.startsAt}
-              classType={next.slot.classType}
+              classType={next.slot.name}
             />
           ) : (
             <Card>
@@ -98,7 +98,7 @@ function HomeContent({
                   key={item.booking.id}
                   href={`/aluno/agenda/${item.booking.id}`}
                   startsAt={item.slot.startsAt}
-                  classType={item.slot.classType}
+                  classType={item.slot.name}
                 />
               ))
             )}

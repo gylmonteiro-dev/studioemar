@@ -177,7 +177,7 @@ export default function TreinadorAlunoDetalhePage() {
           views.map((item) => (
             <Card key={item.booking.id} className="flex items-center justify-between p-4">
               <div>
-                <p className="font-semibold text-foreground">{item.slot.classType}</p>
+                <p className="font-semibold text-foreground">{item.slot.name}</p>
                 <p className="text-sm text-muted-foreground">
                   {formatDateLong(item.slot.startsAt)} · {clockTime(item.slot.startsAt)}
                 </p>

@@ -22,6 +22,7 @@ const openSlot = {
   capacity: 6,
   enrolledCount: 5,
   status: 'OPEN' as const,
+  name: 'Strength',
   classType: 'Strength',
   trainerId: 'user-carlos',
 };

@@ -8,7 +8,9 @@ import {
   bookingParticipantSchema,
   creditExpiresAt,
   isOperatorRole,
+  normalizeClassTypeName,
   type AddRecurringSlotRequest,
+  type CreateClassTypeRequest,
   type CreateStudioClosureRequest,
   type CreateStudioHourRequest,
   type CreateTimeSlotRequest,
@@ -26,6 +28,7 @@ import {
 import { Clock } from '../common/clock';
 import {
   toBooking,
+  toClassType,
   toRecurringSlot,
   toStudioClosure,
   toStudioHour,
@@ -99,6 +102,7 @@ export class SchedulesService {
 
   async createTimeSlot(input: CreateTimeSlotRequest) {
     await this.requireOperator(input.trainerId);
+    const classType = await this.requireClassType(input.classType);
     const startsAt = saoPauloDateTime(input.date, input.startTime);
     const endsAt = saoPauloDateTime(input.date, input.endTime);
     if (startsAt <= this.clock.now()) {
@@ -106,12 +110,13 @@ export class SchedulesService {
     }
     const slot = await this.prisma.timeSlot.create({
       data: {
+        name: input.name,
         startsAt,
         endsAt,
         capacity: input.capacity,
         enrolledCount: 0,
         status: 'OPEN',
-        classType: input.classType,
+        classType,
         trainerId: input.trainerId,
       },
     });
@@ -125,6 +130,9 @@ export class SchedulesService {
     }
     if (input.trainerId) {
       await this.requireOperator(input.trainerId);
+    }
+    if (input.classType) {
+      await this.requireClassType(input.classType);
     }
     if (input.capacity !== undefined && input.capacity < slot.enrolledCount) {
       throw new BadRequestException(
@@ -160,8 +168,11 @@ export class SchedulesService {
           capacity,
           enrolledCount: next.enrolledCount,
           status: slot.status === 'CLOSED' ? 'CLOSED' : next.status,
-          classType: input.classType ?? slot.classType,
+          classType: input.classType
+            ? normalizeClassTypeName(input.classType)
+            : slot.classType,
           trainerId: input.trainerId ?? slot.trainerId,
+          name: input.name ?? slot.name,
         },
       });
       return toTimeSlot(updated);
@@ -178,6 +189,27 @@ export class SchedulesService {
     });
   }
 
+  async listClassTypes() {
+    const types = await this.prisma.classType.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return types.map(toClassType);
+  }
+
+  async createClassType(input: CreateClassTypeRequest) {
+    const name = normalizeClassTypeName(input.name);
+    const existing = await this.prisma.classType.findUnique({
+      where: { name },
+    });
+    if (existing) {
+      throw new ConflictException('Já existe um tipo de aula com este nome');
+    }
+    const created = await this.prisma.classType.create({
+      data: { name },
+    });
+    return toClassType(created);
+  }
+
   async listStudioHours() {
     const hours = await this.prisma.studioHour.findMany({
       orderBy: [{ startTime: 'asc' }, { id: 'asc' }],
@@ -187,14 +219,16 @@ export class SchedulesService {
 
   async createStudioHour(input: CreateStudioHourRequest) {
     await this.requireOperator(input.trainerId);
+    const classType = await this.requireClassType(input.classType);
     return this.prisma.$transaction(async (tx) => {
       const hour = await tx.studioHour.create({
         data: {
+          name: input.name,
           weekdays: sortWeekdays(input.weekdays),
           startTime: input.startTime,
           endTime: input.endTime,
           capacity: input.capacity,
-          classType: input.classType,
+          classType,
           trainerId: input.trainerId,
         },
       });
@@ -210,6 +244,9 @@ export class SchedulesService {
     }
     if (input.trainerId) {
       await this.requireOperator(input.trainerId);
+    }
+    if (input.classType) {
+      await this.requireClassType(input.classType);
     }
 
     const weekdays = sortWeekdays((input.weekdays ?? hour.weekdays) as Weekday[]);
@@ -232,11 +269,14 @@ export class SchedulesService {
       const updated = await tx.studioHour.update({
         where: { id },
         data: {
+          name: input.name ?? hour.name,
           weekdays,
           startTime,
           endTime,
           capacity: input.capacity ?? hour.capacity,
-          classType: input.classType ?? hour.classType,
+          classType: input.classType
+            ? normalizeClassTypeName(input.classType)
+            : hour.classType,
           trainerId: input.trainerId ?? hour.trainerId,
         },
       });
@@ -397,6 +437,19 @@ export class SchedulesService {
     });
   }
 
+  private async requireClassType(name: string) {
+    const normalized = normalizeClassTypeName(name);
+    const type = await this.prisma.classType.findUnique({
+      where: { name: normalized },
+    });
+    if (!type) {
+      throw new BadRequestException(
+        'Cadastre o tipo de aula antes de usar neste horário',
+      );
+    }
+    return normalized;
+  }
+
   private async requireOperator(trainerId: string) {
     const trainer = await this.prisma.user.findUnique({
       where: { id: trainerId },
@@ -414,6 +467,7 @@ export class SchedulesService {
     tx: DbClient,
     hour: {
       id: string;
+      name: string;
       weekdays: Weekday[];
       startTime: string;
       endTime: string;
@@ -443,6 +497,7 @@ export class SchedulesService {
       }
       await tx.timeSlot.create({
         data: {
+          name: hour.name,
           startsAt: occurrence.startsAt,
           endsAt: occurrence.endsAt,
           capacity: hour.capacity,
@@ -460,6 +515,7 @@ export class SchedulesService {
     tx: DbClient,
     hour: {
       id: string;
+      name: string;
       capacity: number;
       classType: string;
       trainerId: string;
@@ -479,6 +535,7 @@ export class SchedulesService {
       await tx.timeSlot.update({
         where: { id: slot.id },
         data: {
+          name: hour.name,
           capacity: hour.capacity,
           classType: hour.classType,
           trainerId: hour.trainerId,

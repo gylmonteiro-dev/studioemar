@@ -62,7 +62,7 @@ export default function TreinadorOcupacaoPage() {
               <Link key={slot.id} href={`/treinador/agenda/${slot.id}`}>
                 <Card className="flex items-center justify-between p-4 transition-colors hover:border-border-hover">
                   <div>
-                    <p className="font-semibold text-foreground">{slot.classType}</p>
+                    <p className="font-semibold text-foreground">{slot.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {formatDateHeading(slot.startsAt)} · {clockTime(slot.startsAt)} ·{' '}
                       {slot.enrolledCount}/{slot.capacity}

@@ -3,6 +3,7 @@ import {
   bookingParticipantSchema,
   bookingSchema,
   cancellationSchema,
+  classTypeSchema,
   creditSchema,
   occupancyDashboardSchema,
   planSchema,
@@ -18,6 +19,9 @@ import {
   type Booking,
   type BookingParticipant,
   type Cancellation,
+  type ClassType,
+  type CreateClassTypeRequest,
+  type CreatePlanRequest,
   type CreateStudentRequest,
   type CreateOperatorRequest,
   type CreateStudioClosureRequest,
@@ -34,6 +38,7 @@ import {
   type StudioHour,
   type TimeSlot,
   type User,
+  type UpdatePlanRequest,
   type UpdateOperatorRequest,
   type UpdateStudioHourRequest,
   type UpdateTimeSlotRequest,
@@ -47,6 +52,7 @@ const bookingsSchema = z.array(bookingSchema);
 const creditsSchema = z.array(creditSchema);
 const timeSlotsSchema = z.array(timeSlotSchema);
 const plansSchema = z.array(planSchema);
+const classTypesSchema = z.array(classTypeSchema);
 const participantsSchema = z.array(bookingParticipantSchema);
 const waitlistSchema = z.array(waitlistEntrySchema);
 const recurringSlotsSchema = z.array(recurringSlotSchema);
@@ -174,6 +180,18 @@ export function removeRecurringSlot(id: string): Promise<void> {
   return apiRequest(`/recurring-slots/${id}`, { method: 'DELETE' });
 }
 
+export function listClassTypes(): Promise<ClassType[]> {
+  return apiRequest('/class-types').then((data) => classTypesSchema.parse(data));
+}
+
+export function createClassType(
+  body: CreateClassTypeRequest,
+): Promise<ClassType> {
+  return apiRequest('/class-types', { method: 'POST', body }).then((data) =>
+    classTypeSchema.parse(data),
+  );
+}
+
 export function listStudioHours(): Promise<StudioHour[]> {
   return apiRequest('/studio-hours').then((data) =>
     studioHoursSchema.parse(data),
@@ -215,6 +233,22 @@ export function createClosure(
 
 export function listPlans(): Promise<Plan[]> {
   return apiRequest('/plans').then((data) => plansSchema.parse(data));
+}
+
+export function createPlan(body: CreatePlanRequest): Promise<Plan> {
+  return apiRequest('/plans', { method: 'POST', body }).then((data) =>
+    planSchema.parse(data),
+  );
+}
+
+export function updatePlan(id: string, body: UpdatePlanRequest): Promise<Plan> {
+  return apiRequest(`/plans/${id}`, { method: 'PATCH', body }).then((data) =>
+    planSchema.parse(data),
+  );
+}
+
+export function deletePlan(id: string): Promise<void> {
+  return apiRequest(`/plans/${id}`, { method: 'DELETE' });
 }
 
 export function listStudents(): Promise<User[]> {

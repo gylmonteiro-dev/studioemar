@@ -34,10 +34,11 @@ erDiagram
 
 | Tabela | Contrato Zod | Observação |
 |---|---|---|
-| Plan | Plan | Frequência semanal do pacote |
+| Plan | Plan | Pacote: aulas/semana, duração, totais mensais (4 semanas) |
 | User | User | `passwordHash` e reset token só no banco (ADR-013 / ADR-014) |
 | RecurringSlot | RecurringSlot | Agenda regular do plano |
-| StudioHour | StudioHour | Turma recorrente do estúdio (dias + intervalo) |
+| ClassType | ClassType | Catálogo de tipos de aula; nome único em maiúsculas |
+| StudioHour | StudioHour | Turma recorrente do estúdio (`name` + dias + intervalo) |
 | TimeSlot | TimeSlot | `enrolledCount` denormalizado; `studioHourId` opcional |
 | StudentTrainer | — | Vínculo N:N aluno–treinador (RN-024) |
 | StudioClosure | StudioClosure | Férias/recesso (RN-014 / RN-019) |
@@ -57,6 +58,11 @@ erDiagram
 - `Cancellation.bookingId` é único.
 - `WaitlistEntry` é único em `(timeSlotId, studentId)`.
 - Recorrência do plano é única em `(planId, weekday, time)`.
+- `Plan.name` é único e gravado em maiúsculas.
+- Totais mensais do plano: aulas/semana × 4; horas = aulas do mês × duração.
+- `ClassType.name` é único e gravado em maiúsculas.
+- `StudioHour.classType` e `TimeSlot.classType` repetem o nome
+  do catálogo (sem FK nesta fase).
 - `StudioHour` gera `TimeSlot`s futuros; aula pontual não tem
   `studioHourId`.
 - Reserva confirmada no mesmo horário: a FASE 5 valida.

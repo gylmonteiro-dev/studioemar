@@ -122,10 +122,10 @@ export default function TreinadorDashboardPage() {
             <Link href="/treinador/alunos" className="font-semibold text-accent">
               Cadastrar aluno
             </Link>
-            <Link href="/treinador/horarios" className="font-semibold text-accent">
+            <Link href="/treinador/configuracoes?secao=horarios" className="font-semibold text-accent">
               Horários do estúdio
             </Link>
-            <Link href="/treinador/configuracoes" className="font-semibold text-accent">
+            <Link href="/treinador/configuracoes?secao=fechamento" className="font-semibold text-accent">
               Fechamento do Studio
             </Link>
           </section>

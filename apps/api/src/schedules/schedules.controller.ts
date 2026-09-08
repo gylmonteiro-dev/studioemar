@@ -11,12 +11,14 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   addRecurringSlotRequestSchema,
+  createClassTypeRequestSchema,
   createStudioClosureRequestSchema,
   createStudioHourRequestSchema,
   createTimeSlotRequestSchema,
   updateStudioHourRequestSchema,
   updateTimeSlotRequestSchema,
   type AddRecurringSlotRequest,
+  type CreateClassTypeRequest,
   type CreateStudioClosureRequest,
   type CreateStudioHourRequest,
   type CreateTimeSlotRequest,
@@ -88,6 +90,23 @@ export class SchedulesController {
   @ApiOperation({ summary: 'Lista de espera FIFO (treinador)' })
   listWaitlist(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.schedules.listWaitlist(id, user);
+  }
+
+  @Get('class-types')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Tipos de aula cadastrados' })
+  listClassTypes() {
+    return this.schedules.listClassTypes();
+  }
+
+  @Post('class-types')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Cadastrar tipo de aula' })
+  createClassType(
+    @Body(new ZodValidationPipe(createClassTypeRequestSchema))
+    body: CreateClassTypeRequest,
+  ) {
+    return this.schedules.createClassType(body);
   }
 
   @Get('studio-hours')

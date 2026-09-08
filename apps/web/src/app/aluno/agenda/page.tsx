@@ -92,7 +92,7 @@ export default function AgendaPage() {
                 key={item.booking.id}
                 href={`/aluno/agenda/${item.booking.id}`}
                 startsAt={item.slot.startsAt}
-                classType={item.slot.classType}
+                classType={item.slot.name}
                 kind={item.booking.kind}
                 status={item.booking.status}
               />

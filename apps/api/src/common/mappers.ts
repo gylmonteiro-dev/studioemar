@@ -1,6 +1,7 @@
 import type {
   Booking as PrismaBooking,
   Cancellation as PrismaCancellation,
+  ClassType as PrismaClassType,
   Credit as PrismaCredit,
   Plan as PrismaPlan,
   RecurringSlot as PrismaRecurringSlot,
@@ -13,7 +14,9 @@ import type {
 import {
   bookingSchema,
   cancellationSchema,
+  classTypeSchema,
   creditSchema,
+  planMetrics,
   planSchema,
   recurringSlotSchema,
   studioClosureSchema,
@@ -23,6 +26,7 @@ import {
   waitlistEntrySchema,
   type Booking,
   type Cancellation,
+  type ClassType,
   type Credit,
   type Plan,
   type RecurringSlot,
@@ -63,10 +67,15 @@ export function toUser(
 }
 
 export function toPlan(row: PrismaPlan): Plan {
+  const sessionMinutes = row.sessionMinutes;
+  const weeklyFrequency = row.weeklyFrequency;
   return planSchema.parse({
     id: row.id,
     name: row.name,
-    weeklyFrequency: row.weeklyFrequency,
+    weeklyFrequency,
+    sessionMinutes,
+    price: row.price === null ? null : Number(row.price),
+    ...planMetrics({ weeklyFrequency, sessionMinutes }),
   });
 }
 
@@ -79,9 +88,17 @@ export function toRecurringSlot(row: PrismaRecurringSlot): RecurringSlot {
   });
 }
 
+export function toClassType(row: PrismaClassType): ClassType {
+  return classTypeSchema.parse({
+    id: row.id,
+    name: row.name,
+  });
+}
+
 export function toStudioHour(row: PrismaStudioHour): StudioHour {
   return studioHourSchema.parse({
     id: row.id,
+    name: row.name,
     weekdays: row.weekdays,
     startTime: row.startTime,
     endTime: row.endTime,
@@ -94,6 +111,7 @@ export function toStudioHour(row: PrismaStudioHour): StudioHour {
 export function toTimeSlot(row: PrismaTimeSlot): TimeSlot {
   return timeSlotSchema.parse({
     id: row.id,
+    name: row.name,
     startsAt: row.startsAt.toISOString(),
     endsAt: row.endsAt.toISOString(),
     capacity: row.capacity,

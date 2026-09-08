@@ -11,7 +11,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/treinador/agenda-recorrente',
-        destination: '/treinador/horarios',
+        destination: '/treinador/configuracoes?secao=horarios',
+        permanent: false,
+      },
+      {
+        source: '/treinador/horarios',
+        destination: '/treinador/configuracoes?secao=horarios',
         permanent: false,
       },
     ];

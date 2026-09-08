@@ -1,9 +1,23 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
+  createPlanRequestSchema,
   createStudentRequestSchema,
+  updatePlanRequestSchema,
   updateStudentTrainersRequestSchema,
+  type CreatePlanRequest,
   type CreateStudentRequest,
+  type UpdatePlanRequest,
   type UpdateStudentTrainersRequest,
 } from '@studioemar/shared';
 import type { AuthUser } from '../auth/auth.types';
@@ -23,6 +37,35 @@ export class StudentsController {
   @ApiOperation({ summary: 'Planos (cadastro de aluno)' })
   listPlans() {
     return this.students.listPlans();
+  }
+
+  @Post('plans')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Cadastrar modelo de plano' })
+  createPlan(
+    @Body(new ZodValidationPipe(createPlanRequestSchema))
+    body: CreatePlanRequest,
+  ) {
+    return this.students.createPlan(body);
+  }
+
+  @Patch('plans/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Alterar modelo de plano' })
+  updatePlan(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updatePlanRequestSchema))
+    body: UpdatePlanRequest,
+  ) {
+    return this.students.updatePlan(id, body);
+  }
+
+  @Delete('plans/:id')
+  @HttpCode(204)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Excluir modelo de plano sem alunos' })
+  async deletePlan(@Param('id') id: string) {
+    await this.students.deletePlan(id);
   }
 
   @Get('students')
