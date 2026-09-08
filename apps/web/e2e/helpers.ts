@@ -20,6 +20,14 @@ export const carlos: User = {
   mustSetPassword: false,
 };
 
+export const marina: User = {
+  id: 'user-marina',
+  name: 'Marina',
+  email: 'marina@studioemar.local',
+  role: 'ADMIN',
+  mustSetPassword: false,
+};
+
 export function authSession(user: User): AuthSession {
   return {
     accessToken: `access-${user.id}`,
@@ -180,6 +188,42 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
         return json(403, { message: 'Sem permissão' });
       }
       return json(200, dashboard);
+    }
+
+    if (method === 'GET' && path === '/plans') {
+      return json(200, [{ id: 'plan-3x', name: '3x semana', weeklyFrequency: 3 }]);
+    }
+
+    if (method === 'GET' && path === '/recurring-slots') {
+      return json(200, []);
+    }
+
+    if (method === 'GET' && path === '/studio-hours') {
+      return json(200, []);
+    }
+
+    if (method === 'POST' && path === '/studio-hours') {
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        weekdays: string[];
+        startTime: string;
+        endTime: string;
+        capacity: number;
+        classType: string;
+        trainerId: string;
+      };
+      return json(201, {
+        id: 'hour-1',
+        weekdays: body.weekdays,
+        startTime: body.startTime,
+        endTime: body.endTime,
+        capacity: body.capacity,
+        classType: body.classType,
+        trainerId: body.trainerId,
+      });
+    }
+
+    if (method === 'GET' && path === '/operators') {
+      return json(200, [carlos]);
     }
 
     const cancel = /^\/bookings\/([^/]+)\/cancellations$/.exec(path);

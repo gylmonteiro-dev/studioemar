@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -6,22 +7,43 @@ import {
 import {
   bookingParticipantSchema,
   creditExpiresAt,
+  isOperatorRole,
   type AddRecurringSlotRequest,
   type CreateStudioClosureRequest,
+  type CreateStudioHourRequest,
+  type CreateTimeSlotRequest,
+  type UpdateStudioHourRequest,
+  type UpdateTimeSlotRequest,
+  type Weekday,
 } from '@studioemar/shared';
 import type { AuthUser } from '../auth/auth.types';
-import { calendarDate, dateInRange } from '../common/calendar-date';
+import {
+  calendarDate,
+  clockTimeSaoPaulo,
+  dateInRange,
+  saoPauloDateTime,
+} from '../common/calendar-date';
 import { Clock } from '../common/clock';
 import {
   toBooking,
   toRecurringSlot,
   toStudioClosure,
+  toStudioHour,
   toTimeSlot,
   toUser,
   toWaitlistEntry,
 } from '../common/mappers';
 import { applySeatChange } from '../domain/slot-occupancy';
+import {
+  enumerateStudioHourOccurrences,
+  sortWeekdays,
+} from '../domain/studio-hours';
 import { PrismaService } from '../prisma/prisma.service';
+
+type DbClient = Pick<
+  PrismaService,
+  'timeSlot' | 'studioHour' | 'studioClosure' | 'waitlistEntry' | 'booking'
+>;
 
 @Injectable()
 export class SchedulesService {
@@ -73,6 +95,171 @@ export class SchedulesService {
       orderBy: { position: 'asc' },
     });
     return entries.map(toWaitlistEntry);
+  }
+
+  async createTimeSlot(input: CreateTimeSlotRequest) {
+    await this.requireOperator(input.trainerId);
+    const startsAt = saoPauloDateTime(input.date, input.startTime);
+    const endsAt = saoPauloDateTime(input.date, input.endTime);
+    if (startsAt <= this.clock.now()) {
+      throw new BadRequestException('Informe um horário futuro');
+    }
+    const slot = await this.prisma.timeSlot.create({
+      data: {
+        startsAt,
+        endsAt,
+        capacity: input.capacity,
+        enrolledCount: 0,
+        status: 'OPEN',
+        classType: input.classType,
+        trainerId: input.trainerId,
+      },
+    });
+    return toTimeSlot(slot);
+  }
+
+  async updateTimeSlot(id: string, input: UpdateTimeSlotRequest) {
+    const slot = await this.prisma.timeSlot.findUnique({ where: { id } });
+    if (!slot) {
+      throw new NotFoundException('Horário não encontrado');
+    }
+    if (input.trainerId) {
+      await this.requireOperator(input.trainerId);
+    }
+    if (input.capacity !== undefined && input.capacity < slot.enrolledCount) {
+      throw new BadRequestException(
+        'A capacidade não pode ser menor que os alunos já inscritos',
+      );
+    }
+
+    const nextDate = input.date ?? calendarDate(slot.startsAt);
+    const nextStart = input.startTime ?? clockTimeSaoPaulo(slot.startsAt);
+    const nextEnd = input.endTime ?? clockTimeSaoPaulo(slot.endsAt);
+    const startsAt = saoPauloDateTime(nextDate, nextStart);
+    const endsAt = saoPauloDateTime(nextDate, nextEnd);
+    const scheduleChanged =
+      startsAt.getTime() !== slot.startsAt.getTime() ||
+      endsAt.getTime() !== slot.endsAt.getTime();
+
+    if (scheduleChanged && slot.enrolledCount > 0) {
+      throw new ConflictException(
+        'Há alunos inscritos neste horário. Cancele as reservas antes de alterar o dia ou a hora.',
+      );
+    }
+    if (scheduleChanged && endsAt <= startsAt) {
+      throw new BadRequestException('O término deve ser depois do início');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const capacity = input.capacity ?? slot.capacity;
+      const next = applySeatChange({ ...slot, capacity }, 0);
+      const updated = await tx.timeSlot.update({
+        where: { id },
+        data: {
+          ...(scheduleChanged ? { startsAt, endsAt } : {}),
+          capacity,
+          enrolledCount: next.enrolledCount,
+          status: slot.status === 'CLOSED' ? 'CLOSED' : next.status,
+          classType: input.classType ?? slot.classType,
+          trainerId: input.trainerId ?? slot.trainerId,
+        },
+      });
+      return toTimeSlot(updated);
+    });
+  }
+
+  async deleteTimeSlot(id: string) {
+    const slot = await this.prisma.timeSlot.findUnique({ where: { id } });
+    if (!slot) {
+      throw new NotFoundException('Horário não encontrado');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.removeEmptySlot(tx, slot);
+    });
+  }
+
+  async listStudioHours() {
+    const hours = await this.prisma.studioHour.findMany({
+      orderBy: [{ startTime: 'asc' }, { id: 'asc' }],
+    });
+    return hours.map(toStudioHour);
+  }
+
+  async createStudioHour(input: CreateStudioHourRequest) {
+    await this.requireOperator(input.trainerId);
+    return this.prisma.$transaction(async (tx) => {
+      const hour = await tx.studioHour.create({
+        data: {
+          weekdays: sortWeekdays(input.weekdays),
+          startTime: input.startTime,
+          endTime: input.endTime,
+          capacity: input.capacity,
+          classType: input.classType,
+          trainerId: input.trainerId,
+        },
+      });
+      await this.materializeStudioHour(tx, hour);
+      return toStudioHour(hour);
+    });
+  }
+
+  async updateStudioHour(id: string, input: UpdateStudioHourRequest) {
+    const hour = await this.prisma.studioHour.findUnique({ where: { id } });
+    if (!hour) {
+      throw new NotFoundException('Horário do estúdio não encontrado');
+    }
+    if (input.trainerId) {
+      await this.requireOperator(input.trainerId);
+    }
+
+    const weekdays = sortWeekdays((input.weekdays ?? hour.weekdays) as Weekday[]);
+    const startTime = input.startTime ?? hour.startTime;
+    const endTime = input.endTime ?? hour.endTime;
+    if (endTime <= startTime) {
+      throw new BadRequestException('O término deve ser depois do início');
+    }
+
+    const scheduleChanged =
+      startTime !== hour.startTime ||
+      endTime !== hour.endTime ||
+      weekdays.join() !== hour.weekdays.join();
+
+    return this.prisma.$transaction(async (tx) => {
+      if (scheduleChanged) {
+        await this.clearFutureGeneratedSlots(tx, id, true);
+      }
+
+      const updated = await tx.studioHour.update({
+        where: { id },
+        data: {
+          weekdays,
+          startTime,
+          endTime,
+          capacity: input.capacity ?? hour.capacity,
+          classType: input.classType ?? hour.classType,
+          trainerId: input.trainerId ?? hour.trainerId,
+        },
+      });
+
+      if (scheduleChanged) {
+        await this.materializeStudioHour(tx, updated);
+      } else {
+        await this.propagateStudioHourDetails(tx, updated);
+      }
+
+      return toStudioHour(updated);
+    });
+  }
+
+  async deleteStudioHour(id: string) {
+    const hour = await this.prisma.studioHour.findUnique({ where: { id } });
+    if (!hour) {
+      throw new NotFoundException('Horário do estúdio não encontrado');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.clearFutureGeneratedSlots(tx, id, true);
+      await tx.studioHour.delete({ where: { id } });
+    });
   }
 
   async listRecurringSlots() {
@@ -209,4 +396,145 @@ export class SchedulesService {
       return toStudioClosure(closure);
     });
   }
+
+  private async requireOperator(trainerId: string) {
+    const trainer = await this.prisma.user.findUnique({
+      where: { id: trainerId },
+    });
+    if (
+      !trainer ||
+      !isOperatorRole(trainer.role) ||
+      trainer.isActive === false
+    ) {
+      throw new NotFoundException('Treinador não encontrado');
+    }
+  }
+
+  private async materializeStudioHour(
+    tx: DbClient,
+    hour: {
+      id: string;
+      weekdays: Weekday[];
+      startTime: string;
+      endTime: string;
+      capacity: number;
+      classType: string;
+      trainerId: string;
+    },
+  ) {
+    const closures = await tx.studioClosure.findMany();
+    const occurrences = enumerateStudioHourOccurrences({
+      weekdays: hour.weekdays,
+      startTime: hour.startTime,
+      endTime: hour.endTime,
+      from: this.clock.now(),
+    });
+
+    for (const occurrence of occurrences) {
+      const closed = closures.some((closure) =>
+        dateInRange(
+          occurrence.date,
+          dateOnly(closure.startsOn),
+          dateOnly(closure.endsOn),
+        ),
+      );
+      if (closed) {
+        continue;
+      }
+      await tx.timeSlot.create({
+        data: {
+          startsAt: occurrence.startsAt,
+          endsAt: occurrence.endsAt,
+          capacity: hour.capacity,
+          enrolledCount: 0,
+          status: 'OPEN',
+          classType: hour.classType,
+          trainerId: hour.trainerId,
+          studioHourId: hour.id,
+        },
+      });
+    }
+  }
+
+  private async propagateStudioHourDetails(
+    tx: DbClient,
+    hour: {
+      id: string;
+      capacity: number;
+      classType: string;
+      trainerId: string;
+    },
+  ) {
+    const now = this.clock.now();
+    const slots = (await tx.timeSlot.findMany()).filter(
+      (slot) => slot.studioHourId === hour.id && slot.startsAt > now,
+    );
+    for (const slot of slots) {
+      if (hour.capacity < slot.enrolledCount) {
+        throw new BadRequestException(
+          'A capacidade não pode ser menor que os alunos já inscritos',
+        );
+      }
+      const next = applySeatChange({ ...slot, capacity: hour.capacity }, 0);
+      await tx.timeSlot.update({
+        where: { id: slot.id },
+        data: {
+          capacity: hour.capacity,
+          classType: hour.classType,
+          trainerId: hour.trainerId,
+          enrolledCount: next.enrolledCount,
+          status: slot.status === 'CLOSED' ? 'CLOSED' : next.status,
+        },
+      });
+    }
+  }
+
+  private async clearFutureGeneratedSlots(
+    tx: DbClient,
+    studioHourId: string,
+    requireEmpty: boolean,
+  ) {
+    const now = this.clock.now();
+    const slots = (await tx.timeSlot.findMany()).filter(
+      (slot) => slot.studioHourId === studioHourId && slot.startsAt > now,
+    );
+    for (const slot of slots) {
+      if (requireEmpty && slot.enrolledCount > 0) {
+        throw new ConflictException(
+          'Há aulas futuras com alunos inscritos. Cancele as reservas antes de alterar os dias ou o horário.',
+        );
+      }
+      if (slot.enrolledCount > 0) {
+        continue;
+      }
+      await this.removeEmptySlot(tx, slot);
+    }
+  }
+
+  private async removeEmptySlot(
+    tx: DbClient,
+    slot: { id: string; enrolledCount: number },
+  ) {
+    if (slot.enrolledCount > 0) {
+      throw new ConflictException(
+        'Há alunos inscritos neste horário. Cancele as reservas antes de excluir.',
+      );
+    }
+    const booking = await tx.booking.findFirst({
+      where: { timeSlotId: slot.id },
+    });
+    await tx.waitlistEntry.deleteMany({ where: { timeSlotId: slot.id } });
+    if (booking) {
+      await tx.timeSlot.update({
+        where: { id: slot.id },
+        data: { status: 'CLOSED', studioHourId: null },
+      });
+      return;
+    }
+    await tx.timeSlot.delete({ where: { id: slot.id } });
+  }
+}
+
+function dateOnly(value: Date): string {
+  return value.toISOString().slice(0, 10);
 }

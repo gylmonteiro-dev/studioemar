@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { carlos, injectSession, joao, mockApi } from './helpers';
+import { carlos, injectSession, joao, marina, mockApi } from './helpers';
 
 test.describe('fluxos do aluno', () => {
   test.beforeEach(async ({ page }) => {
@@ -65,5 +65,18 @@ test.describe('fluxos do treinador', () => {
     ).toBeVisible();
     await expect(page.getByText('67%').first()).toBeVisible();
     await expect(page.getByText('Olá, João')).toHaveCount(0);
+  });
+
+  test('admin cria horário do estúdio em /treinador/horarios', async ({
+    page,
+  }) => {
+    await mockApi(page, { user: marina });
+    await injectSession(page, marina);
+    await page.goto('/treinador/horarios');
+    await expect(page.getByRole('heading', { name: 'Horários', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Criar horário' }).click();
+    await expect(
+      page.getByText('Horário criado. As aulas das próximas semanas já estão na agenda.'),
+    ).toBeVisible();
   });
 });

@@ -5,15 +5,17 @@
 FASE 0 a 9 concluídas e mergeadas em main. A homologação
 está publicada e disponível para feedback do cliente.
 
-Os ajustes de hierarquia de acesso e vínculo de treinadores foram
-implementados apenas localmente na branch
-`docs/alinhar-handoff-main`, ainda sem commit, push ou deploy.
-A VPS continua executando a versão anterior a esses ajustes.
+A hierarquia de acesso (RN-023 / RN-024) já está em `main`
+(`b994ab5`). A VPS ainda executa a imagem do `d062228`, anterior
+a esses ajustes e à gestão de horários do estúdio.
+
+A gestão de turmas/horários (RN-025) foi implementada e validada
+no commit `26567e6`, integrado em `main`. Ainda não houve deploy.
 
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
 
-RN-017 a RN-024 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
+RN-017 a RN-025 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
 e STUDENT. SUPERADMIN herda ADMIN e TRAINER; ADMIN herda
 TRAINER; STUDENT permanece isolado (ADR-009). Prisma em
 apps/api; passwordHash só no banco (ADR-013). JWT no JSON
@@ -26,16 +28,21 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
   em 401)
 - Contrato Zod + OpenAPI (auth, students, operators, schedules,
   bookings, credits, dashboard)
-- Prisma com vínculo N:N `StudentTrainer`; o ER em
-  docs/DOMAIN.md ainda precisa refletir essa décima tabela
+- Prisma com vínculo N:N `StudentTrainer` e turmas `StudioHour`
 - Prisma schema, migrations e seed
 - Compose só do banco: infrastructure/docker-compose.dev.yml
 - Nest: auth, students, operators, schedules, bookings, credits,
   dashboard
 - Controle de acessos em `/treinador/acessos`
+- Horários do estúdio em `/treinador/horarios` (ADMIN/SUPERADMIN)
+- Turmas recorrentes escolhem dias de segunda a domingo, intervalo,
+  capacidade e treinador; geram aulas para as próximas 12 semanas
+- Horários pontuais podem ser incluídos pela agenda
+- Turmas paralelas são permitidas; a web alerta sobre coincidência
+  de dias/intervalos, mas permite confirmar o cadastro
 - TRAINER vê alunos vinculados ou com reserva em aula ministrada
   por ele; ADMIN e SUPERADMIN mantêm visão global
-- Configuração global de recorrência e fechamentos restrita a
+- Configuração global de horários e fechamentos restrita a
   ADMIN/SUPERADMIN
 - Swagger: http://localhost:3001/docs
 - GET /health intacto
@@ -207,9 +214,7 @@ diretamente `docker compose`.
 ## Ajustes locais após homologação
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
-do cliente. O checkout atual está na branch
-`docs/alinhar-handoff-main`, baseada em `5036fdb`, com toda a
-hierarquia de acesso ainda como alteração não commitada.
+do cliente. `main` contém a gestão de horários do estúdio.
 
 Fazer os próximos ajustes primeiro apenas localmente. Não
 alterar a VPS, o Caddy nem os dados de homologação sem pedido
@@ -223,11 +228,16 @@ pnpm build:web
 pnpm test:e2e
 ```
 
-Na última validação dos ajustes de acesso, `pnpm test`,
-`pnpm lint`, builds da API/web e os 20 testes E2E passaram.
-A migration `20260905214000_access_hierarchy` foi criada; antes
-da validação manual com banco local, executar
-`pnpm prisma:deploy`. Não executar o seed para preservar dados.
+Na última validação, `pnpm test`, `pnpm lint`, builds da API/web
+e os 21 testes E2E passaram. O build web também revelou e corrigiu
+a tipagem de `trainerIds` no cadastro de aluno.
+
+As migrations `20260905214000_access_hierarchy` e
+`20260907210000_studio_hours` estão aplicadas no banco local.
+As aulas, reservas, créditos, waitlist e turmas de demonstração
+foram removidos, preservando os cinco usuários, senhas, plano e
+vínculos. Depois da limpeza foi cadastrada uma turma manual para
+teste. Não executar o seed para preservar esse estado.
 
 O arquivo não rastreado `apps/api/prisma/seed.js` é artefato
 gerado e não deve entrar no commit. Revisar/remover antes de
@@ -246,8 +256,9 @@ Se uma alteração aprovada precisar ser publicada:
 6. validar health, HTTPS, CORS e os quatro perfis.
 
 As imagens atualmente em execução foram construídas no commit
-`d062228`; os commits posteriores alteram somente documentação
-e já estão no checkout da VPS.
+`d062228`. Hierarquia de acesso e horários do estúdio são mudanças
+funcionais posteriores e exigem migration, rebuild e validação
+antes de entrarem na VPS.
 
 ## Não fazer ainda
 
@@ -261,10 +272,9 @@ e já estão no checkout da VPS.
 ## Pendências
 
 - Sem mailer de recuperação.
-- Revisar e versionar os ajustes locais de hierarquia de acesso.
-- Atualizar o ER de docs/DOMAIN.md com `StudentTrainer`.
-- Aplicar e validar a migration de acesso no banco local; na VPS,
-  criar backup antes de permitir a migration do entrypoint.
+- Publicar hierarquia de acesso e horários do estúdio na VPS
+  após autorização; backup antes da migration
+  `20260907210000_studio_hours`.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.

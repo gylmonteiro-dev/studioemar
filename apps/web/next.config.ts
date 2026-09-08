@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: join(import.meta.dirname, '../..'),
   allowedDevOrigins: ['127.0.0.1'],
   transpilePackages: ['@studioemar/shared'],
+  async redirects() {
+    return [
+      {
+        source: '/treinador/agenda-recorrente',
+        destination: '/treinador/horarios',
+        permanent: false,
+      },
+    ];
+  },
   webpack: (config) => {
     config.resolve.extensionAlias = {
       '.js': ['.ts', '.tsx', '.js'],

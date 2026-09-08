@@ -13,6 +13,16 @@ export const WEEKDAY_LABEL: Record<Weekday, string> = {
   FRI: 'SEX',
   SAT: 'SÁB',
 };
+
+export const WEEKDAY_NAME: Record<Weekday, string> = {
+  SUN: 'Domingo',
+  MON: 'Segunda',
+  TUE: 'Terça',
+  WED: 'Quarta',
+  THU: 'Quinta',
+  FRI: 'Sexta',
+  SAT: 'Sábado',
+};
 const WEEKDAYS_LONG = [
   'Domingo',
   'Segunda-feira',

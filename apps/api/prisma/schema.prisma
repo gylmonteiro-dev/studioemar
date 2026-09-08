@@ -87,6 +87,7 @@ model User {
   passwordResetExpiresAt DateTime?
 
   trainedSlots        TimeSlot[]       @relation("TimeSlotTrainer")
+  studioHours         StudioHour[]     @relation("StudioHourTrainer")
   bookings            Booking[]        @relation("BookingStudent")
   waitlistEntries     WaitlistEntry[]  @relation("WaitlistStudent")
   credits             Credit[]         @relation("CreditStudent")
@@ -117,6 +118,18 @@ model RecurringSlot {
   @@unique([planId, weekday, time])
 }
 
+model StudioHour {
+  id        String    @id @default(cuid())
+  weekdays  Weekday[]
+  startTime String
+  endTime   String
+  capacity  Int
+  classType String
+  trainerId String
+  trainer   User      @relation("StudioHourTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
+  timeSlots TimeSlot[]
+}
+
 model TimeSlot {
   id            String          @id @default(cuid())
   startsAt      DateTime
@@ -127,11 +140,14 @@ model TimeSlot {
   classType     String
   trainerId     String
   trainer       User            @relation("TimeSlotTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
+  studioHourId  String?
+  studioHour    StudioHour?     @relation(fields: [studioHourId], references: [id], onDelete: SetNull)
   bookings      Booking[]
   waitlist      WaitlistEntry[]
 
   @@index([startsAt])
   @@index([trainerId])
+  @@index([studioHourId])
 }
 
 model StudioClosure {

@@ -274,6 +274,30 @@ ADMIN e SUPERADMIN acessam todos os alunos.
 
 ---
 
+## RN-025 — Horários do estúdio
+
+Status: ACEITO
+
+O ADMIN (e o SUPERADMIN, por herança) cadastra as turmas do
+estúdio: um ou mais dias da semana (segunda a domingo) e o
+intervalo de funcionamento, com limite de alunos por turma.
+
+Exemplo: segunda, quarta e sexta, das 07:30 às 08:30.
+
+Esses cadastros geram as aulas (`TimeSlot`) usadas em reserva,
+cancelamento e reposição por crédito. O admin pode incluir um
+horário pontual, alterar e excluir, desde que não haja aluno
+inscrito na ocorrência.
+
+Turmas podem funcionar em paralelo no mesmo horário. Se os dias
+e os intervalos coincidirem, o sistema apenas alerta; o cadastro
+não é recusado.
+
+TRAINER puro não gerencia a grade. ADMIN herda as operações de
+treinador (RN-023).
+
+---
+
 # REGRAS PENDENTES
 
 Nenhuma pendência crítica de cancelamento ou crédito permanece

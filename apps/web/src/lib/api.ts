@@ -9,6 +9,7 @@ import {
   recoverAcceptedSchema,
   recurringSlotSchema,
   studioClosureSchema,
+  studioHourSchema,
   timeSlotSchema,
   userSchema,
   waitlistEntrySchema,
@@ -20,6 +21,8 @@ import {
   type CreateStudentRequest,
   type CreateOperatorRequest,
   type CreateStudioClosureRequest,
+  type CreateStudioHourRequest,
+  type CreateTimeSlotRequest,
   type Credit,
   type FirstAccessRequest,
   type LoginRequest,
@@ -28,9 +31,12 @@ import {
   type RecoverRequest,
   type RecurringSlot,
   type StudioClosure,
+  type StudioHour,
   type TimeSlot,
   type User,
   type UpdateOperatorRequest,
+  type UpdateStudioHourRequest,
+  type UpdateTimeSlotRequest,
   type WaitlistEntry,
 } from '@studioemar/shared';
 import { z } from 'zod';
@@ -44,6 +50,7 @@ const plansSchema = z.array(planSchema);
 const participantsSchema = z.array(bookingParticipantSchema);
 const waitlistSchema = z.array(waitlistEntrySchema);
 const recurringSlotsSchema = z.array(recurringSlotSchema);
+const studioHoursSchema = z.array(studioHourSchema);
 const closuresSchema = z.array(studioClosureSchema);
 
 export function login(body: LoginRequest): Promise<AuthSession> {
@@ -118,6 +125,25 @@ export function getTimeSlot(id: string): Promise<TimeSlot> {
   );
 }
 
+export function createTimeSlot(body: CreateTimeSlotRequest): Promise<TimeSlot> {
+  return apiRequest('/time-slots', { method: 'POST', body }).then((data) =>
+    timeSlotSchema.parse(data),
+  );
+}
+
+export function updateTimeSlot(
+  id: string,
+  body: UpdateTimeSlotRequest,
+): Promise<TimeSlot> {
+  return apiRequest(`/time-slots/${id}`, { method: 'PATCH', body }).then(
+    (data) => timeSlotSchema.parse(data),
+  );
+}
+
+export function deleteTimeSlot(id: string): Promise<void> {
+  return apiRequest(`/time-slots/${id}`, { method: 'DELETE' });
+}
+
 export function listSlotBookings(id: string): Promise<BookingParticipant[]> {
   return apiRequest(`/time-slots/${id}/bookings`).then((data) =>
     participantsSchema.parse(data),
@@ -146,6 +172,33 @@ export function addRecurringSlot(
 
 export function removeRecurringSlot(id: string): Promise<void> {
   return apiRequest(`/recurring-slots/${id}`, { method: 'DELETE' });
+}
+
+export function listStudioHours(): Promise<StudioHour[]> {
+  return apiRequest('/studio-hours').then((data) =>
+    studioHoursSchema.parse(data),
+  );
+}
+
+export function createStudioHour(
+  body: CreateStudioHourRequest,
+): Promise<StudioHour> {
+  return apiRequest('/studio-hours', { method: 'POST', body }).then((data) =>
+    studioHourSchema.parse(data),
+  );
+}
+
+export function updateStudioHour(
+  id: string,
+  body: UpdateStudioHourRequest,
+): Promise<StudioHour> {
+  return apiRequest(`/studio-hours/${id}`, { method: 'PATCH', body }).then(
+    (data) => studioHourSchema.parse(data),
+  );
+}
+
+export function deleteStudioHour(id: string): Promise<void> {
+  return apiRequest(`/studio-hours/${id}`, { method: 'DELETE' });
 }
 
 export function listClosures(): Promise<StudioClosure[]> {

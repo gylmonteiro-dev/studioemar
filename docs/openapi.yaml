@@ -288,6 +288,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TimeSlot'
+    patch:
+      summary: Alterar horário
+      operationId: updateTimeSlot
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTimeSlotRequest'
+      responses:
+        '200':
+          description: Horário atualizado
+        '409':
+          description: Há alunos inscritos
+    delete:
+      summary: Excluir horário sem inscritos
+      operationId: deleteTimeSlot
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Removido
+        '409':
+          description: Há alunos inscritos
 
   /time-slots/{id}/bookings:
     get:
@@ -312,6 +342,68 @@ paths:
       responses:
         '200':
           description: Fila. Sem join nesta fase.
+
+  /studio-hours:
+    get:
+      summary: Horários do estúdio
+      operationId: listStudioHours
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Turmas cadastradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudioHour'
+    post:
+      summary: Criar horário/turma do estúdio
+      operationId: createStudioHour
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStudioHourRequest'
+      responses:
+        '201':
+          description: Horário criado
+
+  /studio-hours/{id}:
+    patch:
+      summary: Alterar horário/turma do estúdio
+      operationId: updateStudioHour
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStudioHourRequest'
+      responses:
+        '200':
+          description: Horário atualizado
+        '409':
+          description: Há aulas futuras com inscritos
+    delete:
+      summary: Excluir horário/turma do estúdio
+      operationId: deleteStudioHour
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Removido
+        '409':
+          description: Há aulas futuras com inscritos
 
   /recurring-slots:
     get:
@@ -501,6 +593,20 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TimeSlot'
+    post:
+      summary: Incluir horário pontual
+      operationId: createTimeSlot
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTimeSlotRequest'
+      responses:
+        '201':
+          description: Horário criado
 
 components:
   securitySchemes:
@@ -755,6 +861,103 @@ components:
         status:
           type: string
           enum: [OPEN, FULL, CLOSED]
+        classType:
+          type: string
+        trainerId:
+          type: string
+
+    StudioHour:
+      type: object
+      required:
+        [id, weekdays, startTime, endTime, capacity, classType, trainerId]
+      properties:
+        id:
+          type: string
+        weekdays:
+          type: array
+          items:
+            type: string
+            enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
+        classType:
+          type: string
+        trainerId:
+          type: string
+
+    CreateStudioHourRequest:
+      type: object
+      required: [weekdays, startTime, endTime, capacity, classType, trainerId]
+      properties:
+        weekdays:
+          type: array
+          items:
+            type: string
+            enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
+        classType:
+          type: string
+        trainerId:
+          type: string
+
+    UpdateStudioHourRequest:
+      type: object
+      properties:
+        weekdays:
+          type: array
+          items:
+            type: string
+            enum: [MON, TUE, WED, THU, FRI, SAT, SUN]
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
+        classType:
+          type: string
+        trainerId:
+          type: string
+
+    CreateTimeSlotRequest:
+      type: object
+      required: [date, startTime, endTime, capacity, classType, trainerId]
+      properties:
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
+        classType:
+          type: string
+        trainerId:
+          type: string
+
+    UpdateTimeSlotRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        capacity:
+          type: integer
         classType:
           type: string
         trainerId:

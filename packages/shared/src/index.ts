@@ -10,4 +10,9 @@ export {
   canActAsRole,
   isOperatorRole,
 } from './rules/access-policy.js';
+export {
+  clockIntervalsOverlap,
+  coincidingStudioHours,
+  studioHoursCoincide,
+} from './rules/studio-hours.js';
 export * from './schemas/index.js';

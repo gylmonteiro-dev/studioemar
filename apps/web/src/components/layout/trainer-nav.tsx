@@ -22,7 +22,7 @@ const trainerNav: readonly AppNavItem[] = [
   { href: '/treinador', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/treinador/agenda', label: 'Agenda', icon: CalendarDays },
   { href: '/treinador/alunos', label: 'Alunos', icon: Users },
-  { href: '/treinador/agenda-recorrente', label: 'Recorrente', icon: Repeat },
+  { href: '/treinador/horarios', label: 'Horários', icon: Repeat },
   { href: '/treinador/ocupacao', label: 'Ocupação', icon: CalendarRange },
   { href: '/treinador/creditos', label: 'Créditos', icon: Star },
   { href: '/treinador/configuracoes', label: 'Ajustes', icon: Settings },
@@ -40,7 +40,7 @@ function itemsFor(user: User, mobile = false): readonly AppNavItem[] {
   const items = [...(mobile ? trainerMobileNav : trainerNav)].filter(
     (item) =>
       canManageAccess(user.role) ||
-      (item.href !== '/treinador/agenda-recorrente' &&
+      (item.href !== '/treinador/horarios' &&
         item.href !== '/treinador/configuracoes'),
   );
   if (canManageAccess(user.role)) {

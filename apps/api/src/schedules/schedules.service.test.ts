@@ -7,6 +7,16 @@ import { createMemoryPrisma, fixedClock } from '../test/memory-prisma';
 
 const NOW = '2026-09-03T15:00:00.000Z';
 
+const carlos = {
+  id: 'user-carlos',
+  name: 'Carlos',
+  email: 'carlos@studioemar.local',
+  role: 'TRAINER' as const,
+  planId: null,
+  mustSetPassword: false,
+  passwordHash: 'hash',
+};
+
 const plan = { id: 'plan-3x', name: '3x', weeklyFrequency: 3 };
 const slotToday = {
   id: 'slot-today-18',
@@ -140,5 +150,96 @@ describe('SchedulesService', () => {
       queue.map((entry) => entry.studentId),
       ['user-joao', 'user-ana'],
     );
+  });
+
+  it('cria turma seg/qua/sex e materializa as aulas das 12 semanas', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      weekdays: ['FRI', 'MON', 'WED'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    assert.deepEqual(hour.weekdays, ['MON', 'WED', 'FRI']);
+    assert.equal(store.timeSlots.length, 36);
+    assert.equal(
+      store.timeSlots[0]?.startsAt.toISOString(),
+      '2026-09-04T10:30:00.000Z',
+    );
+    assert.equal(store.timeSlots[0]?.studioHourId, hour.id);
+  });
+
+  it('permite turmas paralelas no mesmo intervalo', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      timeSlots: [
+        {
+          id: 'slot-fri',
+          startsAt: new Date('2026-09-04T10:30:00.000Z'),
+          endsAt: new Date('2026-09-04T11:30:00.000Z'),
+          capacity: 6,
+          enrolledCount: 0,
+          status: 'OPEN',
+          classType: 'Strength',
+          trainerId: 'user-carlos',
+        },
+      ],
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      weekdays: ['FRI'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    assert.equal(hour.startTime, '07:30');
+    assert.ok(store.timeSlots.length > 1);
+  });
+
+  it('recusa excluir horário com alunos inscritos', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    await schedules.createStudioHour({
+      weekdays: ['FRI'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    const first = store.timeSlots[0];
+    if (!first) {
+      throw new Error('slot ausente');
+    }
+    first.enrolledCount = 2;
+    await assert.rejects(
+      () => schedules.deleteTimeSlot(first.id),
+      ConflictException,
+    );
+  });
+
+  it('inclui horário pontual futuro', async () => {
+    const { prisma, store } = createMemoryPrisma({ users: [carlos] });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const slot = await schedules.createTimeSlot({
+      date: '2026-09-10',
+      startTime: '19:00',
+      endTime: '20:00',
+      capacity: 8,
+      classType: 'Recovery',
+      trainerId: 'user-carlos',
+    });
+    assert.equal(slot.capacity, 8);
+    assert.equal(store.timeSlots.length, 1);
+    assert.equal(slot.startsAt, '2026-09-10T22:00:00.000Z');
   });
 });
