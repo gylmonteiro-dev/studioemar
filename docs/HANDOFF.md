@@ -12,11 +12,12 @@ o cadastro de aluno com agenda regular, a grade contínua,
 as listagens/dashboard por janela (folga de 12 semanas),
 a home do aluno por semana, a reposição só com crédito e
 o prazo de 4h / validade de 30 dias a partir da aula
-estão em `main` e na VPS (`IMAGE_TAG=16d8c03`, 2026-09-08),
-com exclusão de aluno (RN-027) e o cadastro de horário
-iniciando dias desmarcados e limite 4. O Caddy não foi
-alterado. Imagens anteriores (`b599ff5`, `63f2c41`, `d062228`)
-permanecem no host para rollback.
+estão em `main` e na VPS (`IMAGE_TAG=36a87e8`, 2026-09-08),
+com exclusão de aluno (RN-027), o cadastro de horário
+iniciando dias desmarcados e limite 4, e ADMIN/SUPERADMIN
+como treinadores elegíveis no mesmo login. O Caddy não foi
+alterado. Imagens anteriores (`16d8c03`, `b599ff5`, `63f2c41`,
+`d062228`) permanecem no host para rollback.
 
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
@@ -43,6 +44,10 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - Nest: auth, students, operators, schedules, bookings, credits,
   dashboard
 - Controle de acessos em `/treinador/acessos`
+- `GET /operators?for=teaching` lista TRAINER, ADMIN e
+  SUPERADMIN ativos para turma e vínculo com aluno. Sem o
+  parâmetro, a lista continua só as contas gerenciáveis.
+  Proprietário/Administrador opera como professor no mesmo login.
 - Hub Ajustes em `/treinador/configuracoes` (ADMIN/SUPERADMIN):
   accordion Horários / Planos / Fechamento; query
   `?secao=horarios|planos|fechamento` abre a seção
@@ -270,14 +275,15 @@ diretamente `docker compose`.
 ## Ajustes locais após homologação
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
-do cliente. `main` e a VPS (`16d8c03`) contêm identificação
+do cliente. `main` e a VPS (`36a87e8`) contêm identificação
 de turmas, catálogo de tipos de aula, planos (RN-026), hub
 Ajustes, cadastro de aluno com agenda regular, grade contínua,
 listagens/dashboard por janela, home do aluno por semana,
 reposição só com crédito (fora do horário regular),
 RN-012/RN-013 (4h; 30 dias a partir da aula cancelada),
-exclusão de aluno (RN-027) e o formulário de horário com dias
-desmarcados e limite 4.
+exclusão de aluno (RN-027), o formulário de horário com dias
+desmarcados e limite 4, e ADMIN/SUPERADMIN como treinadores
+elegíveis (mesmo login).
 
 A semana da agenda e da home (aluno e treinador) usa
 `GET /health.now`.
@@ -308,10 +314,13 @@ Deploys na VPS em 2026-09-08 (Caddy intacto; schema up to date):
   só SUPERADMIN
 - `16d8c03` — dias desmarcados e limite 4 no cadastro de horário;
   backup `studioemar-20260908-150936.sql.gz`
+- `36a87e8` — ADMIN/SUPERADMIN como treinadores elegíveis;
+  backup `studioemar-20260908-182610.sql.gz`
 
 Validado após o último rebuild: health `{ status, now }`, HTTPS,
-site e login 200. Não há mais os quatro papéis de demonstração
-na VPS; o login de homologação é o SUPERADMIN.
+site e login SUPERADMIN 200. `GET /operators?for=teaching`
+inclui o SUPERADMIN. Não há mais os quatro papéis de
+demonstração na VPS; o login de homologação é o SUPERADMIN.
 
 As migrations abaixo estão aplicadas no banco local e na VPS:
 
@@ -365,22 +374,24 @@ Checklist para publicar na VPS (somente com autorização):
    ```
 
    A API aplica `prisma migrate deploy` no entrypoint. As sete
-   migrations acima já estão aplicadas na VPS (`16d8c03`).
+   migrations acima já estão aplicadas na VPS (`36a87e8`).
    Atualize `IMAGE_TAG` no `.env` da VPS para o SHA curto do
    commit publicado.
 
 6. Validar: `GET https://api.studioemar.com.br/health`
    (`status` e `now`); HTTPS; CORS; login SUPERADMIN;
-   Ajustes (horários com dias vazios e limite 4, tipos, planos);
-   Acessos para criar TRAINER; cadastro de aluno; exclusão de
+   Ajustes (horários com dias vazios e limite 4, tipos, planos;
+   SUPERADMIN escolhível como treinador);
+   Acessos para criar TRAINER; cadastro de aluno (mesmo
+   SUPERADMIN na lista de professores); exclusão de
    aluno; agendas e home na semana do relógio do servidor.
 
 Não alterar o Caddyfile compartilhado neste deploy. Preservar
 os blocos do Studio em `/opt/genius-certify/proxy/Caddyfile`.
 
-As imagens em execução foram construídas no commit `16d8c03`.
-Imagens `b599ff5`, `63f2c41` e `d062228` ainda existem no host
-para rollback.
+As imagens em execução foram construídas no commit `36a87e8`.
+Imagens `16d8c03`, `b599ff5`, `63f2c41` e `d062228` ainda
+existem no host para rollback.
 
 ## Não fazer ainda
 
