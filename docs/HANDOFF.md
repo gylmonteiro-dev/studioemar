@@ -7,7 +7,9 @@ está publicada e disponível para feedback do cliente.
 
 A hierarquia de acesso (RN-023 / RN-024), a gestão de
 turmas/horários (RN-025), a identificação das turmas, o
-catálogo de tipos de aula e os modelos de plano (RN-026)
+catálogo de tipos de aula, os modelos de plano (RN-026),
+o cadastro de aluno com agenda regular, a grade contínua e
+as listagens/dashboard por janela (folga de 12 semanas)
 estão em `main`. A VPS ainda executa a imagem do `d062228`,
 anterior a todos esses ajustes. Ainda não houve deploy.
 
@@ -45,9 +47,12 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
   dias de segunda a domingo, intervalo, capacidade e treinador.
   A grade é contínua: gera uma folga de 12 semanas e materializa
   qualquer semana futura ao listar `GET /time-slots?from&to`.
-  Alunos regulares ativos entram nas aulas novas. Aula some da
-  agenda se o aluno for inativado, o horário for excluído da
-  grade ou houver fechamento.
+  Sem `from`/`to`, a listagem e o dashboard devolvem só a folga
+  vigente (hoje até +12 semanas), não o histórico. Único em
+  `(studioHourId, startsAt)`. Alunos regulares ativos entram nas
+  aulas novas (só se a aula for nova ou ainda tiver vaga). Aula
+  some da agenda se o aluno for inativado, o horário for
+  excluído da grade ou houver fechamento.
 - Tipo de aula vem de catálogo (`GET/POST /class-types`); nome
   único em maiúsculas; o admin cadastra o tipo se ainda não
   existir
@@ -245,7 +250,9 @@ diretamente `docker compose`.
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
 do cliente. `main` contém identificação de turmas, catálogo
-de tipos de aula, planos (RN-026) e o hub Ajustes.
+de tipos de aula, planos (RN-026), hub Ajustes, cadastro de
+aluno com agenda regular, grade contínua e listagens/dashboard
+por janela.
 
 A semana da agenda (aluno e treinador) usa `GET /health.now`.
 Essa fatia está em `main`; a VPS continua no `d062228`.
@@ -262,11 +269,10 @@ pnpm build:web
 pnpm test:e2e
 ```
 
-Na última validação, `pnpm test`, `pnpm lint` e os testes E2E
-do hub Ajustes (horários, tipo de aula, cadastro de plano)
-passaram. Depois, `pnpm test` voltou a passar com
-`GET /health.now` e a semana da agenda. O e2e dessa fatia
-existe (`agenda abre na semana do relógio do servidor`); não
+Na última validação, `pnpm test`, `pnpm lint`, `pnpm build:api`
+e `pnpm build:web` passaram com cadastro de aluno, grade
+contínua e listagens por janela. O e2e do cadastro de aluno
+(CPF e horários do plano) e da semana do relógio existe; não
 relançar com `pnpm dev:web` ativo.
 
 As migrations abaixo estão aplicadas no banco local:
@@ -277,6 +283,7 @@ As migrations abaixo estão aplicadas no banco local:
 - `20260908120000_class_types`
 - `20260908140000_plan_metrics`
 - `20260908160000_student_regular_slots`
+- `20260908180000_timeslot_studio_hour_unique`
 
 As aulas, reservas, créditos, waitlist e turmas de demonstração
 foram removidos, preservando os cinco usuários, senhas, plano e
@@ -308,8 +315,8 @@ Checklist para publicar na VPS (somente com autorização):
 
 5. Rebuild das imagens afetadas. Troca de
    `NEXT_PUBLIC_API_URL` exige rebuild da web. Esta fatia
-   (horários, papéis, planos e, quando mergeada, `health.now`)
-   exige api e web:
+   (horários, papéis, planos, cadastro de aluno, grade contínua
+   e `health.now`) exige api e web:
 
    ```
    docker compose -f infrastructure/docker-compose.prod.yml build api
@@ -327,20 +334,23 @@ Checklist para publicar na VPS (somente com autorização):
    - `20260908120000_class_types`
    - `20260908140000_plan_metrics`
    - `20260908160000_student_regular_slots`
+   - `20260908180000_timeslot_studio_hour_unique`
 
 6. Validar: `GET https://api.studioemar.com.br/health`
    (`status` e, após o merge desta fatia, `now`); HTTPS; CORS;
    login dos quatro papéis; Ajustes (horários, tipos, planos)
    como ADMIN; TRAINER sem configuração global; agendas na
-   semana do relógio do servidor.
+   semana do relógio do servidor; cadastro de aluno (CPF e
+   horários do plano).
 
 Não alterar o Caddyfile compartilhado neste deploy. Preservar
 os blocos do Studio em `/opt/genius-certify/proxy/Caddyfile`.
 
 As imagens atualmente em execução foram construídas no commit
 `d062228`. Hierarquia de acesso, horários, identificação, tipos
-de aula e planos são mudanças funcionais posteriores e exigem
-migration, rebuild e validação antes de entrarem na VPS.
+de aula, planos, cadastro de aluno e grade contínua são
+mudanças funcionais posteriores e exigem migration, rebuild e
+validação antes de entrarem na VPS.
 
 ## Não fazer ainda
 
@@ -357,14 +367,17 @@ migration, rebuild e validação antes de entrarem na VPS.
 
 - Sem mailer de recuperação.
 - Publicar hierarquia de acesso, horários, identificação, tipos
-  de aula e planos na VPS após autorização. Backup antes das
-  migrations `20260905214000_access_hierarchy`,
+  de aula, planos, cadastro de aluno e grade contínua na VPS
+  após autorização. Backup antes das migrations
+  `20260905214000_access_hierarchy`,
   `20260907210000_studio_hours`,
   `20260908103000_studio_hour_name`, `20260908120000_class_types`
   e `20260908140000_plan_metrics`,
-  `20260908160000_student_regular_slots`.
-- `GET /health.now` e a semana da agenda estão em `main`; não
-  publicar na VPS sem autorização.
+  `20260908160000_student_regular_slots`,
+  `20260908180000_timeslot_studio_hour_unique`.
+- `GET /health.now`, a semana da agenda, o cadastro de aluno e
+  as listagens por janela estão em `main`; não publicar na VPS
+  sem autorização.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.
