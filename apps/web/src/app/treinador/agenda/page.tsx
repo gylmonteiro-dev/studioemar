@@ -13,13 +13,13 @@ import { SelectField } from '@/components/ui/select-field';
 import { useToast } from '@/components/ui/toast';
 import {
   createTimeSlot,
+  getServerNow,
   listClassTypes,
   listOperators,
   listSlotBookings,
   listTimeSlots,
 } from '@/lib/api';
 import { canManageAccess } from '@/lib/auth-routing';
-import { getClientNow } from '@/lib/clock';
 import {
   addDays,
   clockTime,
@@ -50,7 +50,11 @@ export default function TreinadorAgendaPage() {
   const trainer = useTrainer();
   const { toast } = useToast();
   const canManage = Boolean(trainer && canManageAccess(trainer.role));
-  const { data: timeSlots, error, loading, reload } = useAsync(listTimeSlots, []);
+  const { data, error, loading, reload } = useAsync(async () => {
+    const [timeSlots, now] = await Promise.all([listTimeSlots(), getServerNow()]);
+    return { timeSlots, now };
+  }, []);
+  const timeSlots = data?.timeSlots;
   const { data: operators } = useAsync(
     async () => (canManage ? listOperators() : []),
     [canManage],
@@ -59,8 +63,10 @@ export default function TreinadorAgendaPage() {
     async () => (canManage ? listClassTypes() : []),
     [canManage],
   );
-  const [weekStart, setWeekStart] = useState(() =>
-    startOfWeekMonday(getClientNow().toISOString()),
+  const [weekOffset, setWeekOffset] = useState(0);
+  const weekStart = addDays(
+    startOfWeekMonday((data?.now ?? new Date(0)).toISOString()),
+    weekOffset * 7,
   );
   const [openCreate, setOpenCreate] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -68,7 +74,7 @@ export default function TreinadorAgendaPage() {
   const [classTypes, setClassTypes] = useState<ClassType[]>([]);
   const [form, setForm] = useState({
     name: '',
-    date: dateInput(getClientNow()),
+    date: '',
     startTime: '18:00',
     endTime: '19:00',
     capacity: '6',
@@ -164,7 +170,7 @@ export default function TreinadorAgendaPage() {
               aria-label="Semana anterior"
               className="h-10 w-10 px-0 py-0"
               onClick={() => {
-                setWeekStart(addDays(weekStart, -7));
+                setWeekOffset((offset) => offset - 1);
               }}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -177,7 +183,7 @@ export default function TreinadorAgendaPage() {
               aria-label="Próxima semana"
               className="h-10 w-10 px-0 py-0"
               onClick={() => {
-                setWeekStart(addDays(weekStart, 7));
+                setWeekOffset((offset) => offset + 1);
               }}
             >
               <ChevronRight className="h-5 w-5" />

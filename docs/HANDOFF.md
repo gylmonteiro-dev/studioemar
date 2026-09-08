@@ -25,8 +25,8 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - Telas aluno e treinador contra a API (sem `mock-api.ts`)
 - Cliente `apps/web/src/lib/api-client.ts` (Bearer + refresh
   em 401)
-- Contrato Zod + OpenAPI (auth, students, operators, schedules,
-  bookings, credits, dashboard, class-types, plans)
+- Contrato Zod + OpenAPI (health, auth, students, operators,
+  schedules, bookings, credits, dashboard, class-types, plans)
 - Prisma com vínculo N:N `StudentTrainer`, turmas `StudioHour`,
   catálogo `ClassType` e métricas de `Plan`
 - Prisma schema, migrations e seed
@@ -58,7 +58,9 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - Configuração global (horários, planos, fechamentos) restrita a
   ADMIN/SUPERADMIN
 - Swagger: http://localhost:3001/docs
-- GET /health intacto
+- GET /health público: `{ status: "ok", now }`. `now` segue
+  `CLOCK_NOW` quando definido. As agendas do aluno e do
+  treinador abrem a semana desse relógio, não do browser.
 - Testes: `pnpm test` (shared + API + web unitário)
 - E2E: `pnpm test:e2e` (Playwright, Chromium, API mockada)
 - Stack de produção em containers (FASE 8)
@@ -102,7 +104,8 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
 Alinhar `NEXT_PUBLIC_CLOCK_NOW` com `CLOCK_NOW` na demo
-RN-012 (preview de crédito no cancelamento).
+RN-012 (preview de crédito no cancelamento). A semana da
+agenda não depende disso: ela lê `GET /health`.
 
 http://localhost:3000 — senha `studioemar`:
 
@@ -149,7 +152,8 @@ Cobertura:
   prevenção de escalada e rotas aluno/operador)
 - Responsividade 390 / 768 / 1024 / 1440
 - Fluxos: login, cancelar, dashboard, Ajustes (horários, tipo de
-  aula, cadastro de plano)
+  aula, cadastro de plano), agenda na semana do relógio do
+  servidor
 - Contrato Zod × docs/openapi.yaml
 
 ## Produção em containers (FASE 8)
@@ -232,6 +236,9 @@ Começar a próxima conversa lendo este arquivo e os feedbacks
 do cliente. `main` contém identificação de turmas, catálogo
 de tipos de aula, planos (RN-026) e o hub Ajustes.
 
+A semana da agenda (aluno e treinador) usa `GET /health.now`.
+Essa fatia está em `main`; a VPS continua no `d062228`.
+
 Fazer os próximos ajustes primeiro apenas localmente. Não
 alterar a VPS, o Caddy nem os dados de homologação sem pedido
 explícito. Para validar:
@@ -246,7 +253,10 @@ pnpm test:e2e
 
 Na última validação, `pnpm test`, `pnpm lint` e os testes E2E
 do hub Ajustes (horários, tipo de aula, cadastro de plano)
-passaram.
+passaram. Depois, `pnpm test` voltou a passar com
+`GET /health.now` e a semana da agenda. O e2e dessa fatia
+existe (`agenda abre na semana do relógio do servidor`); não
+relançar com `pnpm dev:web` ativo.
 
 As migrations abaixo estão aplicadas no banco local:
 
@@ -264,16 +274,55 @@ teste. Não executar o seed para preservar esse estado.
 `pnpm format:check` ainda aponta arquivos antigos; não formatar
 o repositório inteiro como efeito colateral.
 
-Se uma alteração aprovada precisar ser publicada:
+Checklist para publicar na VPS (somente com autorização):
 
-1. revisar e testar localmente;
-2. pedir autorização antes de commit/push;
-3. gerar backup na VPS antes de migration;
-4. atualizar `/opt/studioemar` com
-   `git pull --ff-only origin main`;
-5. reconstruir apenas as imagens afetadas e executar
-   `docker compose up -d`;
-6. validar health, HTTPS, CORS e os quatro perfis.
+1. Local: `pnpm test`, `pnpm lint`, `pnpm build:api`,
+   `pnpm build:web`, `pnpm test:e2e`. Encerrar `pnpm dev:web`
+   antes do build/e2e.
+2. Pedir autorização antes de commit/push. Não trabalhar na
+   `main`; mergear a branch aprovada.
+3. Na VPS, backup antes de qualquer migration:
+
+   ```
+   cd /opt/studioemar
+   bash infrastructure/scripts/backup.sh
+   ```
+
+4. Atualizar o checkout só com fast-forward:
+
+   ```
+   git pull --ff-only origin main
+   ```
+
+5. Rebuild das imagens afetadas. Troca de
+   `NEXT_PUBLIC_API_URL` exige rebuild da web. Esta fatia
+   (horários, papéis, planos e, quando mergeada, `health.now`)
+   exige api e web:
+
+   ```
+   docker compose -f infrastructure/docker-compose.prod.yml build api
+   docker compose -f infrastructure/docker-compose.prod.yml build web
+   docker compose -f infrastructure/docker-compose.prod.yml up -d
+   docker compose -f infrastructure/docker-compose.prod.yml ps
+   ```
+
+   A API aplica `prisma migrate deploy` no entrypoint. Pendentes
+   na VPS (imagem `d062228`):
+
+   - `20260905214000_access_hierarchy`
+   - `20260907210000_studio_hours`
+   - `20260908103000_studio_hour_name`
+   - `20260908120000_class_types`
+   - `20260908140000_plan_metrics`
+
+6. Validar: `GET https://api.studioemar.com.br/health`
+   (`status` e, após o merge desta fatia, `now`); HTTPS; CORS;
+   login dos quatro papéis; Ajustes (horários, tipos, planos)
+   como ADMIN; TRAINER sem configuração global; agendas na
+   semana do relógio do servidor.
+
+Não alterar o Caddyfile compartilhado neste deploy. Preservar
+os blocos do Studio em `/opt/genius-certify/proxy/Caddyfile`.
 
 As imagens atualmente em execução foram construídas no commit
 `d062228`. Hierarquia de acesso, horários, identificação, tipos
@@ -295,10 +344,13 @@ migration, rebuild e validação antes de entrarem na VPS.
 
 - Sem mailer de recuperação.
 - Publicar hierarquia de acesso, horários, identificação, tipos
-  de aula e planos na VPS após autorização; backup antes das
-  migrations `20260907210000_studio_hours`,
+  de aula e planos na VPS após autorização. Backup antes das
+  migrations `20260905214000_access_hierarchy`,
+  `20260907210000_studio_hours`,
   `20260908103000_studio_hour_name`, `20260908120000_class_types`
   e `20260908140000_plan_metrics`.
+- `GET /health.now` e a semana da agenda estão em `main`; não
+  publicar na VPS sem autorização.
 - Configurar backup off-site antes do uso definitivo.
 - Após aceite do cliente, autorizar reset do banco fictício e
   criar o primeiro treinador real.

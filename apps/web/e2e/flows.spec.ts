@@ -51,6 +51,15 @@ test.describe('fluxos do aluno', () => {
     await expect(page.getByText(/\d+\/\d+ alunos/)).toBeVisible();
     await expect(page.getByText('Ana', { exact: true })).toHaveCount(0);
   });
+
+  test('agenda abre na semana do relógio do servidor', async ({ page }) => {
+    await mockApi(page, {
+      user: joao,
+      now: '2026-09-08T15:00:00.000Z',
+    });
+    await page.goto('/aluno/agenda');
+    await expect(page.getByText('07 – 13 SET')).toBeVisible();
+  });
 });
 
 test.describe('fluxos do treinador', () => {
@@ -102,5 +111,16 @@ test.describe('fluxos do treinador', () => {
     await page.getByLabel('Nome do plano').fill('2x manhã');
     await page.getByRole('button', { name: 'Cadastrar plano' }).click();
     await expect(page.getByText('Plano cadastrado.')).toBeVisible();
+  });
+
+  test('agenda abre na semana do relógio do servidor', async ({ page }) => {
+    await mockApi(page, {
+      user: marina,
+      now: '2026-09-08T15:00:00.000Z',
+    });
+    await injectSession(page, marina);
+    await page.goto('/treinador/agenda');
+    await expect(page.getByText('07 – 13 SET')).toBeVisible();
+    await expect(page.getByText('Strength').first()).toBeVisible();
   });
 });

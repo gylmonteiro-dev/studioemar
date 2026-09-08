@@ -19,6 +19,7 @@ import {
   creditSourceSchema,
   creditStatusSchema,
   firstAccessRequestSchema,
+  healthSchema,
   loginRequestSchema,
   classTypeSchema,
   createPlanRequestSchema,
@@ -93,6 +94,7 @@ const OPENAPI_PATHS = [
 ] as const;
 
 const SCHEMA_MAP: Record<string, z.ZodTypeAny> = {
+  Health: healthSchema,
   LoginRequest: loginRequestSchema,
   FirstAccessRequest: firstAccessRequestSchema,
   RecoverRequest: recoverRequestSchema,

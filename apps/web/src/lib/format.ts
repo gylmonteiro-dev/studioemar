@@ -122,10 +122,10 @@ export function addDays(date: Date, days: number): Date {
 }
 
 export function isInWeek(iso: string, weekStart: Date): boolean {
-  const start = weekStart.getTime();
-  const end = addDays(weekStart, 7).getTime();
-  const value = new Date(iso).getTime();
-  return value >= start && value < end;
+  const slotDay = calendarDate(iso);
+  const startDay = calendarDate(weekStart.toISOString());
+  const endDay = calendarDate(addDays(weekStart, 7).toISOString());
+  return slotDay >= startDay && slotDay < endDay;
 }
 
 export function formatWeekRange(weekStart: Date): string {

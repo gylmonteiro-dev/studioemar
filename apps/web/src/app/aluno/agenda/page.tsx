@@ -4,9 +4,8 @@ import { PageCanvas } from '@/components/layout/page-canvas';
 import { ScheduleCard } from '@/components/student/schedule-card';
 import { Button } from '@/components/ui/button';
 import { PageLoadState } from '@/components/ui/load-state';
-import { listMyBookings, listTimeSlots } from '@/lib/api';
+import { listMyBookings, listTimeSlots, getServerNow } from '@/lib/api';
 import { viewsForStudent } from '@/lib/booking-views';
-import { getClientNow } from '@/lib/clock';
 import {
   addDays,
   formatWeekRange,
@@ -21,14 +20,17 @@ import { useMemo, useState } from 'react';
 export default function AgendaPage() {
   const student = useStudent();
   const { data, error, loading } = useAsync(async () => {
-    const [bookings, timeSlots] = await Promise.all([
+    const [bookings, timeSlots, now] = await Promise.all([
       listMyBookings(),
       listTimeSlots(),
+      getServerNow(),
     ]);
-    return { bookings, timeSlots };
+    return { bookings, timeSlots, now };
   }, []);
-  const [weekStart, setWeekStart] = useState(() =>
-    startOfWeekMonday(getClientNow().toISOString()),
+  const [weekOffset, setWeekOffset] = useState(0);
+  const weekStart = addDays(
+    startOfWeekMonday((data?.now ?? new Date(0)).toISOString()),
+    weekOffset * 7,
   );
 
   const views = useMemo(() => {
@@ -62,7 +64,7 @@ export default function AgendaPage() {
               aria-label="Semana anterior"
               className="h-10 w-10 px-0 py-0"
               onClick={() => {
-                setWeekStart(addDays(weekStart, -7));
+                setWeekOffset((offset) => offset - 1);
               }}
             >
               <ChevronLeft className="h-5 w-5" />
@@ -75,7 +77,7 @@ export default function AgendaPage() {
               aria-label="Próxima semana"
               className="h-10 w-10 px-0 py-0"
               onClick={() => {
-                setWeekStart(addDays(weekStart, 7));
+                setWeekOffset((offset) => offset + 1);
               }}
             >
               <ChevronRight className="h-5 w-5" />

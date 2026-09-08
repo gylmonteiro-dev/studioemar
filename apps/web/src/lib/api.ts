@@ -5,6 +5,7 @@ import {
   cancellationSchema,
   classTypeSchema,
   creditSchema,
+  healthSchema,
   occupancyDashboardSchema,
   planSchema,
   recoverAcceptedSchema,
@@ -58,6 +59,13 @@ const waitlistSchema = z.array(waitlistEntrySchema);
 const recurringSlotsSchema = z.array(recurringSlotSchema);
 const studioHoursSchema = z.array(studioHourSchema);
 const closuresSchema = z.array(studioClosureSchema);
+
+export function getServerNow(): Promise<Date> {
+  return apiRequest('/health', { auth: false }).then((data) => {
+    const health = healthSchema.parse(data);
+    return new Date(health.now);
+  });
+}
 
 export function login(body: LoginRequest): Promise<AuthSession> {
   return apiRequest('/auth/login', { method: 'POST', body, auth: false }).then(

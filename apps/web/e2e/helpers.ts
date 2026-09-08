@@ -125,6 +125,7 @@ export type ApiMocks = {
   user?: User;
   loginUser?: User;
   loginError?: { status: number; body: unknown };
+  now?: string;
 };
 
 export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
@@ -168,6 +169,10 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
 
     if (method === 'POST' && path === '/auth/recover') {
       return json(200, { ok: true });
+    }
+
+    if (method === 'GET' && path === '/health') {
+      return json(200, { status: 'ok', now: mocks.now ?? CLOCK_NOW });
     }
 
     if (method === 'GET' && path === '/me') {

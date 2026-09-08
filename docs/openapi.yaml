@@ -18,12 +18,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    example: ok
+                $ref: '#/components/schemas/Health'
 
   /auth/login:
     post:
@@ -708,6 +703,18 @@ components:
         type: string
 
   schemas:
+    Health:
+      type: object
+      required: [status, now]
+      properties:
+        status:
+          type: string
+          example: ok
+        now:
+          type: string
+          format: date-time
+          description: Relógio da API (CLOCK_NOW quando definido)
+
     LoginRequest:
       type: object
       required: [email, password]

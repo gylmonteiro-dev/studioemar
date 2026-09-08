@@ -11,6 +11,7 @@ import {
   createPlanRequestSchema,
   creditSchema,
   firstAccessRequestSchema,
+  healthSchema,
   loginRequestSchema,
   occupancyDashboardSchema,
   redeemCreditRequestSchema,
@@ -286,5 +287,20 @@ describe('occupancyDashboardSchema', () => {
       byWeekday: [{ weekday: 'THU', occupancyPercent: 67 }],
     });
     assert.equal(dashboard.metrics.freeSpots, 2);
+  });
+});
+
+describe('healthSchema', () => {
+  it('exige status ok e o relógio da API', () => {
+    const health = healthSchema.parse({
+      status: 'ok',
+      now: '2026-09-08T15:00:00.000Z',
+    });
+    assert.equal(health.now, '2026-09-08T15:00:00.000Z');
+  });
+
+  it('rejeita health sem relógio', () => {
+    const result = healthSchema.safeParse({ status: 'ok' });
+    assert.equal(result.success, false);
   });
 });

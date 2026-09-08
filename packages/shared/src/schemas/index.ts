@@ -2,6 +2,7 @@ export * from './auth.js';
 export * from './booking.js';
 export * from './credit.js';
 export * from './dashboard.js';
+export * from './health.js';
 export * from './enums.js';
 export * from './ids.js';
 export * from './plan.js';
