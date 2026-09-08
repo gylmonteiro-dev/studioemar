@@ -19,7 +19,7 @@ host para rollback.
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
 
-RN-017 a RN-026 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
+RN-017 a RN-027 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
 e STUDENT. SUPERADMIN herda ADMIN e TRAINER; ADMIN herda
 TRAINER; STUDENT permanece isolado (ADR-009). Prisma em
 apps/api; passwordHash só no banco (ADR-013). JWT no JSON
@@ -71,7 +71,8 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
   e-mail, plano, professores e N dias/horários com vaga
   (N = aulas/semana do plano). Gera reservas REGULAR. Senha no
   primeiro acesso pelo e-mail. Inativar (`PATCH /students/:id`)
-  cancela as reservas futuras.
+  cancela as reservas futuras. Excluir (`DELETE /students/:id`)
+  é só ADMIN/SUPERADMIN e apaga o cadastro.
 - TRAINER vê alunos vinculados ou com reserva em aula ministrada
   por ele; ADMIN e SUPERADMIN mantêm visão global
 - Configuração global (horários, planos, fechamentos) restrita a
@@ -182,7 +183,8 @@ Cobertura:
 - Fluxos: login, cancelar (com opção de reposição imediata),
   dashboard, Ajustes (horários, tipo de aula, cadastro de plano),
   agenda e home na semana do relógio do servidor, cadastro de
-  aluno (CPF e horários do plano), créditos por vencimento
+  aluno (CPF e horários do plano), créditos por vencimento,
+  exclusão de aluno (ADMIN)
 - Contrato Zod × docs/openapi.yaml
 
 ## Produção em containers (FASE 8)

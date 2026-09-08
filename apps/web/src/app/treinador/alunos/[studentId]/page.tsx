@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import {
   annulCredit,
+  deleteStudent,
   getStudent,
   listOperators,
   listPlans,
@@ -24,11 +25,12 @@ import { clockTime, formatCpf, formatDateLong, WEEKDAY_NAME } from '@/lib/format
 import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function TreinadorAlunoDetalhePage() {
   const trainer = useTrainer();
+  const router = useRouter();
   const { studentId } = useParams<{ studentId: string }>();
   const { toast } = useToast();
   const { data, error, loading, reload } = useAsync(async () => {
@@ -45,6 +47,7 @@ export default function TreinadorAlunoDetalhePage() {
     return { student, plans, bookings, credits, timeSlots, operators };
   }, [studentId, trainer?.role]);
   const [annulId, setAnnulId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [trainerIds, setTrainerIds] = useState<string[]>([]);
 
@@ -122,34 +125,43 @@ export default function TreinadorAlunoDetalhePage() {
             <Badge variant="success">Ativo</Badge>
           )}
           {canManageAccess(trainer.role) ? (
-            <Button
-              variant={student.isActive === false ? 'cta' : 'danger'}
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await updateStudent(student.id, {
-                    isActive: student.isActive === false,
-                  });
-                  toast(
-                    student.isActive === false
-                      ? 'Aluno reativado. As aulas futuras com vaga voltam na grade.'
-                      : 'Aluno inativado. As aulas futuras saíram da agenda.',
-                  );
-                  reload();
-                } catch (caught) {
-                  toast(
-                    caught instanceof Error
-                      ? caught.message
-                      : 'Não foi possível atualizar',
-                  );
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {student.isActive === false ? 'Reativar' : 'Inativar'}
-            </Button>
+            <>
+              <Button
+                variant={student.isActive === false ? 'cta' : 'danger'}
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await updateStudent(student.id, {
+                      isActive: student.isActive === false,
+                    });
+                    toast(
+                      student.isActive === false
+                        ? 'Aluno reativado. As aulas futuras com vaga voltam na grade.'
+                        : 'Aluno inativado. As aulas futuras saíram da agenda.',
+                    );
+                    reload();
+                  } catch (caught) {
+                    toast(
+                      caught instanceof Error
+                        ? caught.message
+                        : 'Não foi possível atualizar',
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {student.isActive === false ? 'Reativar' : 'Inativar'}
+              </Button>
+              <Button
+                variant="danger"
+                disabled={busy}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Excluir
+              </Button>
+            </>
           ) : null}
         </div>
       </section>
@@ -303,6 +315,49 @@ export default function TreinadorAlunoDetalhePage() {
             disabled={busy}
           >
             Anular
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmDelete}
+        title="Excluir aluno"
+        onClose={() => setConfirmDelete(false)}
+      >
+        <p className="text-muted-foreground">
+          Apaga o cadastro de {student.name}, as reservas, os créditos e a lista
+          de espera. Não dá para desfazer. Se o aluno só saiu do estúdio, use
+          Inativar.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <Button
+            variant="ghost"
+            className="flex-1"
+            onClick={() => setConfirmDelete(false)}
+          >
+            Manter
+          </Button>
+          <Button
+            variant="danger"
+            className="flex-1"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await deleteStudent(student.id);
+                toast('Cadastro excluído.');
+                router.replace('/treinador/alunos');
+              } catch (caught) {
+                toast(
+                  caught instanceof Error
+                    ? caught.message
+                    : 'Não foi possível excluir',
+                );
+                setBusy(false);
+              }
+            }}
+          >
+            Excluir cadastro
           </Button>
         </div>
       </Modal>

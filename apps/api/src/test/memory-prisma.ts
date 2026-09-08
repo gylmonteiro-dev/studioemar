@@ -383,6 +383,17 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
       async count(args: { where?: Where } = {}) {
         return store.users.filter((row) => matches(row, args.where)).length;
       },
+      async delete(args: { where: Where }) {
+        const index = store.users.findIndex((row) => matches(row, args.where));
+        if (index < 0) {
+          throw new Error('User not found');
+        }
+        const [removed] = store.users.splice(index, 1);
+        if (!removed) {
+          throw new Error('User not found');
+        }
+        return removed;
+      },
     },
     plan: {
       async findMany(args: { orderBy?: unknown } = {}) {
@@ -534,6 +545,12 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         Object.assign(row, args.data);
         return row;
       },
+      async deleteMany(args: { where?: Where } = {}) {
+        const kept = store.bookings.filter((row) => !matches(row, args.where));
+        const count = store.bookings.length - kept.length;
+        store.bookings.splice(0, store.bookings.length, ...kept);
+        return { count };
+      },
     },
     credit: {
       async findMany(args: { where?: Where; orderBy?: unknown } = {}) {
@@ -576,6 +593,12 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         matched.forEach((row) => Object.assign(row, args.data));
         return { count: matched.length };
       },
+      async deleteMany(args: { where?: Where } = {}) {
+        const kept = store.credits.filter((row) => !matches(row, args.where));
+        const count = store.credits.length - kept.length;
+        store.credits.splice(0, store.credits.length, ...kept);
+        return { count };
+      },
     },
     cancellation: {
       async create(args: { data: Omit<MemoryCancellation, 'id'> & { id?: string } }) {
@@ -593,6 +616,14 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
       async count(args: { where?: Where } = {}) {
         return store.cancellations.filter((row) => matches(row, args.where))
           .length;
+      },
+      async deleteMany(args: { where?: Where } = {}) {
+        const kept = store.cancellations.filter(
+          (row) => !matches(row, args.where),
+        );
+        const count = store.cancellations.length - kept.length;
+        store.cancellations.splice(0, store.cancellations.length, ...kept);
+        return { count };
       },
     },
     recurringSlot: {

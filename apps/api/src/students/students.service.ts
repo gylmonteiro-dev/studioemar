@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  canActAsRole,
   clockIntervalMinutes,
   normalizePlanName,
   regularAvailabilitySlotSchema,
@@ -366,6 +368,53 @@ export class StudentsService {
     }
 
     return this.getById(studentId, actor);
+  }
+
+  async remove(studentId: string, actor: AuthUser) {
+    if (!canActAsRole(actor.role, ['ADMIN'])) {
+      throw new ForbiddenException('Sem permissão para excluir aluno');
+    }
+    await this.access.assertCanAccess(actor, studentId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: studentId },
+    });
+    if (!user || user.role !== 'STUDENT') {
+      throw new NotFoundException('Aluno não encontrado');
+    }
+
+    const bookings = await this.prisma.booking.findMany({
+      where: { studentId },
+      include: { timeSlot: true },
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const row of bookings) {
+        if (row.status !== 'CONFIRMED' || !row.timeSlot) {
+          continue;
+        }
+        const latest = await tx.timeSlot.findUniqueOrThrow({
+          where: { id: row.timeSlot.id },
+        });
+        const next = applySeatChange(latest, -1);
+        await tx.timeSlot.update({
+          where: { id: latest.id },
+          data: next,
+        });
+      }
+
+      const bookingIds = bookings.map((row) => row.id);
+      await tx.credit.deleteMany({ where: { studentId } });
+      if (bookingIds.length > 0) {
+        await tx.cancellation.deleteMany({
+          where: { bookingId: { in: bookingIds } },
+        });
+      }
+      await tx.booking.deleteMany({ where: { studentId } });
+      await tx.waitlistEntry.deleteMany({ where: { studentId } });
+      await tx.studentTrainer.deleteMany({ where: { studentId } });
+      await tx.studentRegularSlot.deleteMany({ where: { studentId } });
+      await tx.user.delete({ where: { id: studentId } });
+    });
   }
 
   private async cancelFutureBookings(studentId: string) {

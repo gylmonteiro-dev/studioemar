@@ -145,6 +145,27 @@ test.describe('fluxos do treinador', () => {
     await expect(page.getByText('Aguardando primeiro acesso')).toBeVisible();
   });
 
+  test('admin exclui cadastro de aluno na ficha', async ({ page }) => {
+    await mockApi(page, { user: marina });
+    await injectSession(page, marina);
+    await page.goto('/treinador/alunos/user-joao');
+    await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+    await expect(
+      page.getByText(/Apaga o cadastro de João/),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Excluir cadastro' }).click();
+    await expect(page.getByText('Cadastro excluído.')).toBeVisible();
+    await expect(page).toHaveURL(/\/treinador\/alunos$/);
+  });
+
+  test('treinador não vê o botão de excluir aluno', async ({ page }) => {
+    await mockApi(page, { user: carlos });
+    await injectSession(page, carlos);
+    await page.goto('/treinador/alunos/user-joao');
+    await expect(page.getByRole('heading', { name: 'João' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Excluir' })).toHaveCount(0);
+  });
+
   test('admin cadastra modelo de plano em Ajustes', async ({ page }) => {
     await mockApi(page, { user: marina });
     await injectSession(page, marina);

@@ -349,6 +349,22 @@ Não é possível excluir um plano que ainda tenha aluno vinculado.
 
 ---
 
+## RN-027 — Exclusão de aluno
+
+Status: ACEITO
+
+ADMIN e SUPERADMIN podem excluir o cadastro de um aluno
+(por exemplo, cadastro equivocado). TRAINER não exclui.
+
+A exclusão é irreversível: remove a conta, as reservas, os
+créditos, a lista de espera e os vínculos. As vagas das
+reservas confirmadas voltam para a turma.
+
+Para um aluno que deixou o estúdio, use a inativação: as
+aulas futuras saem da agenda e o histórico permanece.
+
+---
+
 # REGRAS PENDENTES
 
 Nenhuma pendência crítica de cancelamento ou crédito permanece

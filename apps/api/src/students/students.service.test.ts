@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
@@ -379,6 +380,126 @@ describe('StudentsService', () => {
     assert.equal(
       store.timeSlots.find((item) => item.id === 'slot-mon')?.enrolledCount,
       2,
+    );
+  });
+
+  it('exclui aluno e devolve as vagas das reservas confirmadas', async () => {
+    const { students, store } = createStudents({
+      timeSlots: [
+        slot('slot-past', '2026-09-02', 1),
+        slot('slot-mon', '2026-09-07', 3),
+      ],
+      bookings: [
+        {
+          id: 'booking-past',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-past',
+          kind: 'REGULAR',
+          status: 'CONFIRMED',
+        },
+        {
+          id: 'booking-future',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-mon',
+          kind: 'REGULAR',
+          status: 'CONFIRMED',
+        },
+        {
+          id: 'booking-cancelled',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-mon',
+          kind: 'MAKEUP',
+          status: 'CANCELLED',
+        },
+      ],
+      cancellations: [
+        {
+          id: 'cancel-1',
+          bookingId: 'booking-cancelled',
+          cancelledAt: new Date(NOW),
+          cancelledBy: 'STUDENT',
+          generatedCredit: true,
+          creditId: 'credit-1',
+        },
+      ],
+      credits: [
+        {
+          id: 'credit-1',
+          studentId: 'user-joao',
+          source: 'CANCELLATION',
+          generatedAt: new Date(NOW),
+          originBookingId: 'booking-cancelled',
+          originClosureId: null,
+          expiresAt: new Date('2026-10-03T15:00:00.000Z'),
+          status: 'AVAILABLE',
+          usedAt: null,
+          usedBookingId: null,
+          annulledAt: null,
+          annulledByUserId: null,
+        },
+      ],
+      waitlist: [
+        {
+          id: 'wait-1',
+          timeSlotId: 'slot-mon',
+          studentId: 'user-joao',
+          position: 1,
+          enqueuedAt: new Date(NOW),
+          status: 'WAITING',
+        },
+      ],
+      studentTrainers: [{ studentId: 'user-joao', trainerId: 'user-carlos' }],
+      studentRegularSlots: [
+        {
+          id: 'regular-joao',
+          studentId: 'user-joao',
+          studioHourId: 'hour-manha',
+          weekday: 'MON',
+        },
+      ],
+    });
+
+    await students.remove('user-joao', admin);
+
+    assert.equal(
+      store.users.find((item) => item.id === 'user-joao'),
+      undefined,
+    );
+    assert.equal(
+      store.bookings.some((item) => item.studentId === 'user-joao'),
+      false,
+    );
+    assert.equal(store.credits.length, 0);
+    assert.equal(store.cancellations.length, 0);
+    assert.equal(store.waitlist.length, 0);
+    assert.equal(store.studentRegularSlots.length, 0);
+    assert.equal(
+      store.studentTrainers.some((item) => item.studentId === 'user-joao'),
+      false,
+    );
+    assert.equal(
+      store.timeSlots.find((item) => item.id === 'slot-past')?.enrolledCount,
+      0,
+    );
+    assert.equal(
+      store.timeSlots.find((item) => item.id === 'slot-mon')?.enrolledCount,
+      2,
+    );
+  });
+
+  it('recusa exclusão de aluno pelo TRAINER', async () => {
+    const { students } = createStudents();
+    await assert.rejects(
+      () => students.remove('user-joao', carlos),
+      ForbiddenException,
+    );
+  });
+
+  it('recusa excluir quem não é aluno', async () => {
+    const { students } = createStudents();
+    await assert.rejects(
+      () => students.remove('user-carlos', admin),
+      NotFoundException,
     );
   });
 });

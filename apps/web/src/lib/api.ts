@@ -308,6 +308,10 @@ export function updateStudent(
   );
 }
 
+export function deleteStudent(id: string): Promise<void> {
+  return apiRequest(`/students/${id}`, { method: 'DELETE' });
+}
+
 export function listOperators(): Promise<User[]> {
   return apiRequest('/operators').then((data) => usersSchema.parse(data));
 }

@@ -279,6 +279,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+    delete:
+      summary: Excluir cadastro de aluno
+      operationId: deleteStudent
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Excluído
+        '403':
+          description: Sem permissão
+        '404':
+          description: Aluno não encontrado
 
   /students/{id}/bookings:
     get:

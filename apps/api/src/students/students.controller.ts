@@ -110,6 +110,14 @@ export class StudentsController {
     return this.students.updateStudent(id, body, user);
   }
 
+  @Delete('students/:id')
+  @HttpCode(204)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Excluir cadastro de aluno' })
+  async remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    await this.students.remove(id, user);
+  }
+
   @Get('students/:id/bookings')
   @ApiOperation({ summary: 'Reservas do aluno' })
   listBookings(@Param('id') id: string, @CurrentUser() user: AuthUser) {

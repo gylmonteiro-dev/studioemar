@@ -368,6 +368,9 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
     }
 
     const studentDetail = /^\/students\/([^/]+)$/.exec(path);
+    if (method === 'DELETE' && studentDetail) {
+      return json(204, {});
+    }
     if (method === 'GET' && studentDetail) {
       const id = studentDetail[1];
       if (id === 'user-new' && createdStudent) {
