@@ -41,7 +41,7 @@ export default function TreinadorAlunoDetalhePage() {
       listStudentCredits(studentId),
       listTimeSlots(),
       trainer && canManageAccess(trainer.role)
-        ? listOperators()
+        ? listOperators({ for: 'teaching' })
         : Promise.resolve([]),
     ]);
     return { student, plans, bookings, credits, timeSlots, operators };

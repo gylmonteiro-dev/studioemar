@@ -90,6 +90,11 @@ export const updateStudentRequestSchema = z.object({
 });
 export type UpdateStudentRequest = z.infer<typeof updateStudentRequestSchema>;
 
+export const listOperatorsQuerySchema = z.object({
+  for: z.enum(['teaching']).optional(),
+});
+export type ListOperatorsQuery = z.infer<typeof listOperatorsQuerySchema>;
+
 export const createOperatorRequestSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),

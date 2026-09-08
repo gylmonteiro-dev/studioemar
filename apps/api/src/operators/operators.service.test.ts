@@ -69,4 +69,83 @@ describe('OperatorsService', () => {
     );
     assert.equal(updated.role, 'TRAINER');
   });
+
+  it('lista gestão do SUPERADMIN sem a própria conta', async () => {
+    let where: unknown;
+    const prisma = {
+      user: {
+        findMany: async (args: { where: unknown }) => {
+          where = args.where;
+          return [
+            {
+              id: 'owner-1',
+              name: 'Dono',
+              email: 'dono@studio.local',
+              role: 'ADMIN',
+              planId: null,
+              mustSetPassword: false,
+              isActive: true,
+            },
+          ];
+        },
+      },
+    } as unknown as PrismaService;
+
+    const listed = await new OperatorsService(prisma).list(superadmin);
+    assert.deepEqual(where, { role: { in: ['ADMIN', 'TRAINER'] } });
+    assert.equal(
+      listed.some((operator) => operator.role === 'SUPERADMIN'),
+      false,
+    );
+  });
+
+  it('lista teaching com SUPERADMIN e ADMIN ativos', async () => {
+    let where: unknown;
+    const prisma = {
+      user: {
+        findMany: async (args: { where: unknown }) => {
+          where = args.where;
+          return [
+            {
+              id: 'super-1',
+              name: 'Administrador',
+              email: 'admin@studio.local',
+              role: 'SUPERADMIN',
+              planId: null,
+              mustSetPassword: false,
+              isActive: true,
+            },
+            {
+              id: 'owner-1',
+              name: 'Dono',
+              email: 'dono@studio.local',
+              role: 'ADMIN',
+              planId: null,
+              mustSetPassword: false,
+              isActive: true,
+            },
+            {
+              id: 'trainer-1',
+              name: 'Carlos',
+              email: 'carlos@studio.local',
+              role: 'TRAINER',
+              planId: null,
+              mustSetPassword: false,
+              isActive: true,
+            },
+          ];
+        },
+      },
+    } as unknown as PrismaService;
+
+    const listed = await new OperatorsService(prisma).list(owner, 'teaching');
+    assert.deepEqual(where, {
+      role: { in: ['TRAINER', 'ADMIN', 'SUPERADMIN'] },
+      isActive: true,
+    });
+    assert.deepEqual(
+      listed.map((operator) => operator.role),
+      ['SUPERADMIN', 'ADMIN', 'TRAINER'],
+    );
+  });
 });

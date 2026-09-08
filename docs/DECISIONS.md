@@ -178,6 +178,9 @@ gerencia contas e papéis de ADMIN e TRAINER. ADMIN herda as
 permissões operacionais de TRAINER. STUDENT não participa dessa
 herança e mantém endpoints pessoais exclusivos.
 
+ADMIN e SUPERADMIN são treinadores elegíveis nas turmas e nos
+vínculos com alunos, com o mesmo login.
+
 Alunos podem ter vários treinadores vinculados. Um TRAINER também
 pode acessar o aluno quando ministra uma aula reservada por ele.
 

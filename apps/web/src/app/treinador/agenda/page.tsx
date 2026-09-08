@@ -65,7 +65,7 @@ export default function TreinadorAgendaPage() {
   }, [weekOffset]);
   const timeSlots = data?.timeSlots;
   const { data: operators } = useAsync(
-    async () => (canManage ? listOperators() : []),
+    async () => (canManage ? listOperators({ for: 'teaching' }) : []),
     [canManage],
   );
   const { data: catalogTypes } = useAsync(

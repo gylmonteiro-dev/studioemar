@@ -312,8 +312,13 @@ export function deleteStudent(id: string): Promise<void> {
   return apiRequest(`/students/${id}`, { method: 'DELETE' });
 }
 
-export function listOperators(): Promise<User[]> {
-  return apiRequest('/operators').then((data) => usersSchema.parse(data));
+export function listOperators(options?: {
+  for?: 'teaching';
+}): Promise<User[]> {
+  const query = options?.for ? `?for=${encodeURIComponent(options.for)}` : '';
+  return apiRequest(`/operators${query}`).then((data) =>
+    usersSchema.parse(data),
+  );
 }
 
 export function createOperator(body: CreateOperatorRequest): Promise<User> {

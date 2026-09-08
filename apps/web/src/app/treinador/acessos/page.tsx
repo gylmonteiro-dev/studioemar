@@ -64,7 +64,9 @@ export default function AcessosPage() {
             Controle de acessos
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Gerencie as contas que operam o Studio.
+            Gerencie as contas que operam o Studio. Proprietário e
+            Administrador também operam como professor, com o mesmo
+            login.
           </p>
         </section>
 

@@ -342,6 +342,17 @@ paths:
       operationId: listOperators
       security:
         - bearerAuth: []
+      parameters:
+        - name: for
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [teaching]
+          description: >
+            teaching devolve TRAINER, ADMIN e SUPERADMIN ativos
+            (quem ministra aula). Sem o parâmetro, devolve as
+            contas gerenciáveis na tela Acessos.
       responses:
         '200':
           description: Operadores

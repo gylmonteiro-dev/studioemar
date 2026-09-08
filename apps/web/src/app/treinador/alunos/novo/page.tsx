@@ -61,7 +61,7 @@ export default function NovoAlunoPage() {
     const [plans, operators] = await Promise.all([
       listPlans(),
       actor && canManageAccess(actor.role)
-        ? listOperators()
+        ? listOperators({ for: 'teaching' })
         : Promise.resolve([]),
     ]);
     return { plans, operators };

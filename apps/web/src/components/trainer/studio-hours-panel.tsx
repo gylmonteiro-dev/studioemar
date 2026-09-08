@@ -81,7 +81,7 @@ export function StudioHoursPanel() {
   const { data, error, loading, reload } = useAsync(async () => {
     const [studioHours, operators, classTypes] = await Promise.all([
       canManage ? listStudioHours() : Promise.resolve([]),
-      canManage ? listOperators() : Promise.resolve([]),
+      canManage ? listOperators({ for: 'teaching' }) : Promise.resolve([]),
       canManage ? listClassTypes() : Promise.resolve([]),
     ]);
     return { studioHours, operators, classTypes };

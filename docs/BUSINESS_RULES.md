@@ -271,6 +271,8 @@ permissões de TRAINER. As permissões pessoais de STUDENT não são
 herdadas pelos operadores.
 
 SUPERADMIN gerencia contas e papéis de ADMIN e TRAINER.
+ADMIN e SUPERADMIN são treinadores elegíveis nas turmas e nos
+vínculos com alunos, com o mesmo login.
 
 ---
 

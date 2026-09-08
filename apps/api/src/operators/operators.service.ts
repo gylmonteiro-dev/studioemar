@@ -16,7 +16,18 @@ import { PrismaService } from '../prisma/prisma.service';
 export class OperatorsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(actor: AuthUser) {
+  async list(actor: AuthUser, purpose?: 'teaching') {
+    if (purpose === 'teaching') {
+      const users = await this.prisma.user.findMany({
+        where: {
+          role: { in: ['TRAINER', 'ADMIN', 'SUPERADMIN'] },
+          isActive: true,
+        },
+        orderBy: { name: 'asc' },
+      });
+      return users.map((user) => toUser(user));
+    }
+
     const roles =
       actor.role === 'SUPERADMIN'
         ? (['ADMIN', 'TRAINER'] as const)

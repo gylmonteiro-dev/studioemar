@@ -17,6 +17,7 @@ import {
   redeemCreditRequestSchema,
   timeSlotSchema,
   userSchema,
+  listOperatorsQuerySchema,
 } from './index.js';
 
 describe('loginRequestSchema', () => {
@@ -322,6 +323,23 @@ describe('occupancyDashboardSchema', () => {
       byWeekday: [{ weekday: 'THU', occupancyPercent: 67 }],
     });
     assert.equal(dashboard.metrics.freeSpots, 2);
+  });
+});
+
+describe('listOperatorsQuerySchema', () => {
+  it('aceita teaching e omite o parâmetro', () => {
+    assert.equal(
+      listOperatorsQuerySchema.parse({ for: 'teaching' }).for,
+      'teaching',
+    );
+    assert.equal(listOperatorsQuerySchema.parse({}).for, undefined);
+  });
+
+  it('rejeita outro valor', () => {
+    assert.equal(
+      listOperatorsQuerySchema.safeParse({ for: 'management' }).success,
+      false,
+    );
   });
 });
 

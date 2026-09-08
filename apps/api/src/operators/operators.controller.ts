@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   createOperatorRequestSchema,
+  listOperatorsQuerySchema,
   updateOperatorRequestSchema,
   type CreateOperatorRequest,
+  type ListOperatorsQuery,
   type UpdateOperatorRequest,
 } from '@studioemar/shared';
 import type { AuthUser } from '../auth/auth.types';
@@ -20,9 +22,13 @@ export class OperatorsController {
   constructor(private readonly operators: OperatorsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Listar operadores gerenciáveis' })
-  list(@CurrentUser() user: AuthUser) {
-    return this.operators.list(user);
+  @ApiOperation({ summary: 'Listar operadores gerenciáveis ou treinadores elegíveis' })
+  list(
+    @CurrentUser() user: AuthUser,
+    @Query(new ZodValidationPipe(listOperatorsQuerySchema))
+    query: ListOperatorsQuery,
+  ) {
+    return this.operators.list(user, query.for);
   }
 
   @Post()
