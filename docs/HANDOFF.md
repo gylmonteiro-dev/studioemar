@@ -12,9 +12,11 @@ o cadastro de aluno com agenda regular, a grade contínua,
 as listagens/dashboard por janela (folga de 12 semanas),
 a home do aluno por semana, a reposição só com crédito e
 o prazo de 4h / validade de 30 dias a partir da aula
-estão em `main` e na VPS (`IMAGE_TAG=63f2c41`, 2026-09-08).
-O Caddy não foi alterado. As imagens `d062228` permanecem no
-host para rollback.
+estão em `main` e na VPS (`IMAGE_TAG=16d8c03`, 2026-09-08),
+com exclusão de aluno (RN-027) e o cadastro de horário
+iniciando dias desmarcados e limite 4. O Caddy não foi
+alterado. Imagens anteriores (`b599ff5`, `63f2c41`, `d062228`)
+permanecem no host para rollback.
 
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
@@ -48,6 +50,7 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
   `/treinador/agenda-recorrente` redirecionam para Ajustes
 - Turmas recorrentes exigem identificação, tipo de aula,
   dias de segunda a domingo, intervalo, capacidade e treinador.
+  O formulário inicia com os dias desmarcados e limite 4.
   A grade é contínua: gera uma folga de 12 semanas e materializa
   qualquer semana futura ao listar `GET /time-slots?from&to`.
   Sem `from`/`to`, a listagem e o dashboard devolvem só a folga
@@ -247,10 +250,13 @@ HTTP redireciona para HTTPS; health, CORS, login, dashboard,
 listagem de alunos e endpoints do aluno foram validados.
 O Genius Certify continuou respondendo após a mudança.
 
-Dados atuais são fictícios e descartáveis. Treinador:
-`Elissandro <elissandro@mail.com>`. As senhas aleatórias foram
-exibidas somente no deploy e não estão no Git. O reset do
-volume `studio_postgres_data` precisa de autorização explícita.
+Dados da homologação foram limpos em 2026-09-08 (backup
+`studioemar-20260908-150529.sql.gz`). Restou só o SUPERADMIN
+`Administrador <admin@nexusgenius.com.br>`; a senha não está
+no Git. Não há TRAINER, aluno, plano, tipo de aula nem turma.
+O próximo cadastro começa pelo hub Ajustes e por Acessos.
+Não executar o seed de homologação nem resetar o volume sem
+autorização explícita.
 
 Backup diário às 03:00 UTC em
 `/opt/studioemar/infrastructure/backups`, retenção de 14 dias.
@@ -264,16 +270,17 @@ diretamente `docker compose`.
 ## Ajustes locais após homologação
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
-do cliente. `main` contém identificação de turmas, catálogo
-de tipos de aula, planos (RN-026), hub Ajustes, cadastro de
-aluno com agenda regular, grade contínua, listagens/dashboard
-por janela, home do aluno por semana, reposição só com crédito
-(fora do horário regular) e RN-012/RN-013 (4h; 30 dias a partir
-da aula cancelada).
+do cliente. `main` e a VPS (`16d8c03`) contêm identificação
+de turmas, catálogo de tipos de aula, planos (RN-026), hub
+Ajustes, cadastro de aluno com agenda regular, grade contínua,
+listagens/dashboard por janela, home do aluno por semana,
+reposição só com crédito (fora do horário regular),
+RN-012/RN-013 (4h; 30 dias a partir da aula cancelada),
+exclusão de aluno (RN-027) e o formulário de horário com dias
+desmarcados e limite 4.
 
 A semana da agenda e da home (aluno e treinador) usa
-`GET /health.now`. Essa fatia está em `main` e na VPS
-(`63f2c41`).
+`GET /health.now`.
 
 Fazer os próximos ajustes primeiro apenas localmente. Não
 alterar a VPS, o Caddy nem os dados de homologação sem pedido
@@ -287,18 +294,24 @@ pnpm build:web
 pnpm test:e2e
 ```
 
-Na última validação local, `pnpm test`, `pnpm lint`, `pnpm build:api`
-e `pnpm test:e2e` (28) passaram com home por semana, reposição
-condicionada a crédito e RN-012/RN-013. Encerrar `pnpm dev:web`
-antes de `pnpm build:web` ou de relançar o e2e.
+Na última validação local da fatia de créditos/home, `pnpm test`,
+`pnpm lint`, `pnpm build:api` e `pnpm test:e2e` (28) passaram.
+Encerrar `pnpm dev:web` antes de `pnpm build:web` ou de
+relançar o e2e.
 
-Deploy na VPS em 2026-09-08: backup
-`studioemar-20260908-141505.sql.gz`, `git pull --ff-only`,
-rebuild api/web com `IMAGE_TAG=63f2c41`, sete migrations
-aplicadas, schema up to date. Validado: health `{ status, now }`,
-HTTPS, CORS, login 200, Swagger 200. Caddy intacto. Login dos
-quatro papéis na homologação depende das senhas exibidas no
-seed original e não foi refeito neste deploy.
+Deploys na VPS em 2026-09-08 (Caddy intacto; schema up to date):
+
+- `63f2c41` — produto até créditos/home; backup
+  `studioemar-20260908-141505.sql.gz`
+- `b599ff5` — exclusão de aluno (RN-027)
+- limpeza do banco (backup `studioemar-20260908-150529.sql.gz`):
+  só SUPERADMIN
+- `16d8c03` — dias desmarcados e limite 4 no cadastro de horário;
+  backup `studioemar-20260908-150936.sql.gz`
+
+Validado após o último rebuild: health `{ status, now }`, HTTPS,
+site e login 200. Não há mais os quatro papéis de demonstração
+na VPS; o login de homologação é o SUPERADMIN.
 
 As migrations abaixo estão aplicadas no banco local e na VPS:
 
@@ -310,10 +323,11 @@ As migrations abaixo estão aplicadas no banco local e na VPS:
 - `20260908160000_student_regular_slots`
 - `20260908180000_timeslot_studio_hour_unique`
 
-As aulas, reservas, créditos, waitlist e turmas de demonstração
-foram removidos, preservando os cinco usuários, senhas, plano e
-vínculos. Depois da limpeza foi cadastrada uma turma manual para
-teste. Não executar o seed para preservar esse estado.
+No banco **local**, as aulas, reservas, créditos, waitlist e
+turmas de demonstração foram removidos, preservando os cinco
+usuários, senhas, plano e vínculos. Depois da limpeza foi
+cadastrada uma turma manual para teste. Não executar o seed
+para preservar esse estado. A VPS não usa esses usuários.
 
 `pnpm format:check` ainda aponta arquivos antigos; não formatar
 o repositório inteiro como efeito colateral.
@@ -351,21 +365,22 @@ Checklist para publicar na VPS (somente com autorização):
    ```
 
    A API aplica `prisma migrate deploy` no entrypoint. As sete
-   migrations acima já estão aplicadas na VPS (`63f2c41`).
+   migrations acima já estão aplicadas na VPS (`16d8c03`).
+   Atualize `IMAGE_TAG` no `.env` da VPS para o SHA curto do
+   commit publicado.
 
 6. Validar: `GET https://api.studioemar.com.br/health`
-   (`status` e, após o merge desta fatia, `now`); HTTPS; CORS;
-   login dos quatro papéis; Ajustes (horários, tipos, planos)
-   como ADMIN; TRAINER sem configuração global; agendas e home
-   na semana do relógio do servidor; cadastro de aluno (CPF e
-   horários do plano); cancelamento com 4h; créditos com dias
-   restantes; reposição desabilitada sem crédito.
+   (`status` e `now`); HTTPS; CORS; login SUPERADMIN;
+   Ajustes (horários com dias vazios e limite 4, tipos, planos);
+   Acessos para criar TRAINER; cadastro de aluno; exclusão de
+   aluno; agendas e home na semana do relógio do servidor.
 
 Não alterar o Caddyfile compartilhado neste deploy. Preservar
 os blocos do Studio em `/opt/genius-certify/proxy/Caddyfile`.
 
-As imagens em execução foram construídas no commit `63f2c41`.
-As imagens `d062228` ainda existem no host para rollback.
+As imagens em execução foram construídas no commit `16d8c03`.
+Imagens `b599ff5`, `63f2c41` e `d062228` ainda existem no host
+para rollback.
 
 ## Não fazer ainda
 
@@ -382,7 +397,7 @@ As imagens `d062228` ainda existem no host para rollback.
 
 - Sem mailer de recuperação.
 - Configurar backup off-site antes do uso definitivo.
-- Após aceite do cliente, autorizar reset do banco fictício e
-  criar o primeiro treinador real.
+- Homologação limpa: cadastrar TRAINER, tipos, horários, planos
+  e alunos pela UI. Não reseedar.
 - Imagem da API tem ~810 MB: o CLI do Prisma e as engines
   respondem pela maior parte. Reduzir só se a VPS apertar.
