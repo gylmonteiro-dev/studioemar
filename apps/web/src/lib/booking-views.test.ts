@@ -70,6 +70,27 @@ describe('viewsForStudent', () => {
       ['booking-hoje', 'booking-seg'],
     );
   });
+
+  it('esconde o cancelado quando a mesma aula já foi remarcada', () => {
+    const views = viewsForStudent(
+      [
+        ...bookings,
+        {
+          id: 'booking-seg-nova',
+          studentId: joao,
+          timeSlotId: 'slot-mon-18',
+          kind: 'REGULAR',
+          status: 'CONFIRMED',
+        },
+      ],
+      slots,
+      joao,
+    );
+    assert.deepEqual(
+      views.map((item) => item.booking.id),
+      ['booking-hoje', 'booking-seg-nova'],
+    );
+  });
 });
 
 describe('upcomingConfirmed', () => {

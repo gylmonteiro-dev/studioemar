@@ -10,7 +10,17 @@ export const joao: User = {
   role: 'STUDENT',
   planId: 'plan-3x',
   mustSetPassword: false,
-  regularSlots: [],
+  regularSlots: [
+    {
+      studioHourId: 'hour-1',
+      weekday: 'MON',
+      name: 'Strength',
+      startTime: '18:00',
+      endTime: '19:00',
+      classType: 'Strength',
+      trainerId: 'user-carlos',
+    },
+  ],
 };
 
 export const carlos: User = {
@@ -130,11 +140,14 @@ export type ApiMocks = {
   loginError?: { status: number; body: unknown };
   now?: string;
   credits?: typeof joaoCredits;
+  bookings?: typeof joaoBookings;
 };
 
 export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
   const user = mocks.user ?? joao;
   let createdStudent: User | null = null;
+  const bookings = (mocks.bookings ?? joaoBookings).map((row) => ({ ...row }));
+  const slots = timeSlots.map((row) => ({ ...row }));
   await page.route(/:3001\//, async (route) => {
     const request = route.request();
     const method = request.method();
@@ -185,11 +198,11 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
     }
 
     if (method === 'GET' && path === '/me/bookings') {
-      return json(200, user.role === 'STUDENT' ? joaoBookings : []);
+      return json(200, user.role === 'STUDENT' ? bookings : []);
     }
 
     if (method === 'GET' && path === '/time-slots') {
-      return json(200, timeSlots);
+      return json(200, slots);
     }
 
     if (method === 'GET' && path === '/me/credits') {
@@ -384,7 +397,7 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
 
     const studentBookings = /^\/students\/([^/]+)\/bookings$/.exec(path);
     if (method === 'GET' && studentBookings) {
-      return json(200, studentBookings[1] === joao.id ? joaoBookings : []);
+      return json(200, studentBookings[1] === joao.id ? bookings : []);
     }
 
     const studentCredits = /^\/students\/([^/]+)\/credits$/.exec(path);
@@ -392,10 +405,43 @@ export async function mockApi(page: Page, mocks: ApiMocks = {}): Promise<void> {
       return json(200, studentCredits[1] === joao.id ? joaoCredits : []);
     }
 
+    if (method === 'POST' && path === '/bookings') {
+      const body = JSON.parse(request.postData() ?? '{}') as {
+        timeSlotId?: string;
+      };
+      const created = {
+        id: 'booking-remarcado',
+        studentId: user.id,
+        timeSlotId: body.timeSlotId ?? slots[0]?.id,
+        kind: 'REGULAR' as const,
+        status: 'CONFIRMED' as const,
+      };
+      bookings.push(created);
+      const slot = slots.find((item) => item.id === created.timeSlotId);
+      if (slot) {
+        slot.enrolledCount += 1;
+        if (slot.enrolledCount >= slot.capacity) {
+          slot.status = 'FULL';
+        }
+      }
+      return json(201, created);
+    }
+
     const cancel = /^\/bookings\/([^/]+)\/cancellations$/.exec(path);
     if (method === 'POST' && cancel) {
       const bookingId = cancel[1];
       const generatedCredit = bookingId === 'booking-seg-com-credito';
+      const booking = bookings.find((item) => item.id === bookingId);
+      if (booking) {
+        booking.status = 'CANCELLED';
+        const slot = slots.find((item) => item.id === booking.timeSlotId);
+        if (slot && slot.enrolledCount > 0) {
+          slot.enrolledCount -= 1;
+          if (slot.status === 'FULL') {
+            slot.status = 'OPEN';
+          }
+        }
+      }
       return json(200, {
         id: `cancel-${bookingId}`,
         bookingId,

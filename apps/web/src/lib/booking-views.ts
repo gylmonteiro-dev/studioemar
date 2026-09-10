@@ -14,7 +14,7 @@ export type BookingView = {
   slot: TimeSlot;
 };
 
-export function viewsForStudent(
+function pairStudentViews(
   bookings: Booking[],
   timeSlots: TimeSlot[],
   studentId?: string,
@@ -29,7 +29,39 @@ export function viewsForStudent(
       }
       return { booking, slot };
     })
-    .filter((item): item is BookingView => item !== null)
+    .filter((item): item is BookingView => item !== null);
+}
+
+export function viewByBookingId(
+  bookings: Booking[],
+  timeSlots: TimeSlot[],
+  bookingId: string,
+  studentId?: string,
+): BookingView | undefined {
+  return pairStudentViews(bookings, timeSlots, studentId).find(
+    (item) => item.booking.id === bookingId,
+  );
+}
+
+export function viewsForStudent(
+  bookings: Booking[],
+  timeSlots: TimeSlot[],
+  studentId?: string,
+): BookingView[] {
+  const views = pairStudentViews(bookings, timeSlots, studentId);
+  const confirmedSlots = new Set(
+    views
+      .filter((item) => item.booking.status === 'CONFIRMED')
+      .map((item) => item.booking.timeSlotId),
+  );
+  return views
+    .filter(
+      (item) =>
+        !(
+          item.booking.status === 'CANCELLED' &&
+          confirmedSlots.has(item.booking.timeSlotId)
+        ),
+    )
     .sort(
       (left, right) =>
         new Date(left.slot.startsAt).getTime() -

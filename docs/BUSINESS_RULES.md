@@ -391,6 +391,10 @@ remarcação:
 
 Reposição em outro dia ou horário continua exigindo crédito (RN-007).
 
+Na agenda do aluno a aula desmarcada aparece como cancelada. Depois
+da remarcação fica só a reserva confirmada, sem o card antigo. O
+aluno confirma o cancelamento e a remarcação em um modal.
+
 A inscrição automática da grade contínua (RN-025) só vale para aula
 nova: quem desmarcou não volta sozinho, só pela remarcação.
 

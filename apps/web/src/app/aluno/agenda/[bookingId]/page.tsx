@@ -12,7 +12,7 @@ import { cancelBooking, createBooking, listMyBookings, listTimeSlots } from '@/l
 import {
   canRebookRegular,
   isEligibleToCredit,
-  viewsForStudent,
+  viewByBookingId,
 } from '@/lib/booking-views';
 import {
   clockTime,
@@ -41,15 +41,21 @@ export default function BookingDetailPage() {
   }, []);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [lateOpen, setLateOpen] = useState(false);
-  const [makeupOpen, setMakeupOpen] = useState(false);
+  const [cancelDone, setCancelDone] = useState<{
+    generatedCredit: boolean;
+  } | null>(null);
+  const [rebookedId, setRebookedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const view = useMemo(() => {
     if (!student || !data) {
       return undefined;
     }
-    return viewsForStudent(data.bookings, data.timeSlots, student.id).find(
-      (item) => item.booking.id === params.bookingId,
+    return viewByBookingId(
+      data.bookings,
+      data.timeSlots,
+      params.bookingId,
+      student.id,
     );
   }, [student, data, params.bookingId]);
 
@@ -66,13 +72,8 @@ export default function BookingDetailPage() {
       const result = await cancelBooking(view.booking.id);
       setSheetOpen(false);
       setLateOpen(false);
-      if (result.generatedCredit) {
-        toast('Treino desmarcado. Você ganhou 1 crédito de reposição.');
-        setMakeupOpen(true);
-        return;
-      }
-      toast('Treino desmarcado. Sem crédito de reposição.');
-      router.replace('/aluno/agenda');
+      await reload();
+      setCancelDone({ generatedCredit: result.generatedCredit });
     } catch (caught) {
       toast(
         caught instanceof Error ? caught.message : 'Não foi possível cancelar',
@@ -98,17 +99,18 @@ export default function BookingDetailPage() {
           busy={busy}
           sheetOpen={sheetOpen}
           lateOpen={lateOpen}
-          makeupOpen={makeupOpen}
+          cancelDone={cancelDone}
+          rebooked={rebookedId !== null}
           onSheet={setSheetOpen}
           onLate={setLateOpen}
-          onMakeup={setMakeupOpen}
+          onCancelDone={() => setCancelDone(null)}
           onConfirm={confirmCancel}
           onRebook={async () => {
             setBusy(true);
             try {
-              await createBooking({ timeSlotId: view.slot.id });
-              toast('Aula remarcada na sua turma.');
-              reload();
+              const created = await createBooking({ timeSlotId: view.slot.id });
+              await reload();
+              setRebookedId(created.id);
             } catch (caught) {
               toast(
                 caught instanceof Error
@@ -119,11 +121,19 @@ export default function BookingDetailPage() {
               setBusy(false);
             }
           }}
+          onRebookDone={() => {
+            router.replace(
+              rebookedId
+                ? `/aluno/agenda/${rebookedId}`
+                : '/aluno/agenda',
+            );
+          }}
           onScheduleNow={() => {
+            setCancelDone(null);
             router.replace('/aluno/horarios');
           }}
           onScheduleLater={() => {
-            router.replace('/aluno/agenda');
+            setCancelDone(null);
           }}
         />
       )}
@@ -137,12 +147,14 @@ function BookingDetail({
   busy,
   sheetOpen,
   lateOpen,
-  makeupOpen,
+  cancelDone,
+  rebooked,
   onSheet,
   onLate,
-  onMakeup,
+  onCancelDone,
   onConfirm,
   onRebook,
+  onRebookDone,
   onScheduleNow,
   onScheduleLater,
 }: {
@@ -153,12 +165,14 @@ function BookingDetail({
   busy: boolean;
   sheetOpen: boolean;
   lateOpen: boolean;
-  makeupOpen: boolean;
+  cancelDone: { generatedCredit: boolean } | null;
+  rebooked: boolean;
   onSheet: (open: boolean) => void;
   onLate: (open: boolean) => void;
-  onMakeup: (open: boolean) => void;
+  onCancelDone: () => void;
   onConfirm: () => void;
   onRebook: () => void;
+  onRebookDone: () => void;
   onScheduleNow: () => void;
   onScheduleLater: () => void;
 }) {
@@ -260,7 +274,7 @@ function BookingDetail({
             </Button>
           ) : canRebook ? (
             <Button variant="cta" onClick={onRebook} disabled={busy}>
-              Remarcar
+              Desfazer cancelamento
             </Button>
           ) : (
             <p className="text-sm text-muted-foreground">Esta reserva já foi encerrada.</p>
@@ -325,25 +339,48 @@ function BookingDetail({
       </Modal>
 
       <Modal
-        open={makeupOpen}
-        title="Agendar reposição?"
+        open={cancelDone !== null}
+        title="Treino desmarcado"
         onClose={() => {
-          onMakeup(false);
-          onScheduleLater();
+          if (cancelDone?.generatedCredit) {
+            onScheduleLater();
+            return;
+          }
+          onCancelDone();
         }}
       >
         <p className="mb-6 text-center text-muted-foreground">
-          Você ganhou 1 crédito. Pode marcar a reposição agora ou usar o crédito
-          depois, enquanto ele estiver válido.
+          {cancelDone?.generatedCredit
+            ? 'Treino desmarcado com sucesso. Você ganhou 1 crédito de reposição.'
+            : 'Treino desmarcado com sucesso. Sem crédito de reposição.'}
         </p>
-        <div className="flex flex-col gap-3">
-          <Button variant="cta" className="w-full" onClick={onScheduleNow}>
-            Agendar reposição agora
+        {cancelDone?.generatedCredit ? (
+          <div className="flex flex-col gap-3">
+            <Button variant="cta" className="w-full" onClick={onScheduleNow}>
+              Agendar reposição agora
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={onScheduleLater}>
+              Usar depois
+            </Button>
+          </div>
+        ) : (
+          <Button variant="cta" className="w-full" onClick={onCancelDone}>
+            Ok
           </Button>
-          <Button variant="ghost" className="w-full" onClick={onScheduleLater}>
-            Usar depois
-          </Button>
-        </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={rebooked}
+        title="Aula remarcada"
+        onClose={onRebookDone}
+      >
+        <p className="mb-6 text-center text-muted-foreground">
+          Cancelamento desfeito com sucesso. Você voltou para a sua turma.
+        </p>
+        <Button variant="cta" className="w-full" onClick={onRebookDone}>
+          Ok
+        </Button>
       </Modal>
     </PageCanvas>
   );

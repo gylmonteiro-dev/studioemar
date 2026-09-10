@@ -30,13 +30,28 @@ test.describe('fluxos do aluno', () => {
       page.getByText('Esta aula gerará 1 crédito de reposição.'),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar cancelamento' }).click();
+    await expect(page.getByRole('heading', { name: 'Treino desmarcado' })).toBeVisible();
     await expect(
-      page.getByText('Treino desmarcado. Você ganhou 1 crédito de reposição.'),
+      page.getByText('Treino desmarcado com sucesso. Você ganhou 1 crédito de reposição.'),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Agendar reposição agora' }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Usar depois' })).toBeVisible();
+    await page.getByRole('button', { name: 'Usar depois' }).click();
+    await expect(page.getByText('Cancelado')).toBeVisible();
+    await page.getByRole('button', { name: 'Desfazer cancelamento' }).click();
+    await expect(page.getByRole('heading', { name: 'Aula remarcada' })).toBeVisible();
+    await expect(
+      page.getByText('Cancelamento desfeito com sucesso. Você voltou para a sua turma.'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Ok' }).click();
+    await expect(page).toHaveURL(/\/aluno\/agenda\/booking-remarcado$/);
+    await expect(page.getByText('Confirmado')).toBeVisible();
+    await page.goto('/aluno/agenda');
+    await page.getByRole('button', { name: 'Próxima semana' }).click();
+    await expect(page.getByText('Cancelado')).toHaveCount(0);
+    await expect(page.getByText(/Regular · Confirmado/)).toBeVisible();
   });
 
   test('cancelamento fora do prazo avisa que não gera crédito', async ({
@@ -48,8 +63,9 @@ test.describe('fluxos do aluno', () => {
       page.getByText(/não receberá crédito de reposição/i),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Cancelar mesmo assim' }).click();
+    await expect(page.getByRole('heading', { name: 'Treino desmarcado' })).toBeVisible();
     await expect(
-      page.getByText('Treino desmarcado. Sem crédito de reposição.'),
+      page.getByText('Treino desmarcado com sucesso. Sem crédito de reposição.'),
     ).toBeVisible();
   });
 
