@@ -13,6 +13,7 @@ import {
   canRebookRegular,
   isEligibleToCredit,
   viewByBookingId,
+  type BookingView,
 } from '@/lib/booking-views';
 import {
   clockTime,
@@ -158,7 +159,7 @@ function BookingDetail({
   onScheduleNow,
   onScheduleLater,
 }: {
-  view: NonNullable<ReturnType<typeof viewsForStudent>[number]>;
+  view: BookingView;
   regularSlots: NonNullable<
     ReturnType<typeof useStudent>
   >['regularSlots'];
