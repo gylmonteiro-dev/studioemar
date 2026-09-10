@@ -12,12 +12,12 @@ o cadastro de aluno com agenda regular, a grade contínua,
 as listagens/dashboard por janela (folga de 12 semanas),
 a home do aluno por semana, a reposição só com crédito e
 o prazo de 4h / validade de 30 dias a partir da aula
-estão em `main` e na VPS (`IMAGE_TAG=36a87e8`, 2026-09-08),
+estão em `main` e na VPS (`IMAGE_TAG=accd322`, 2026-09-10),
 com exclusão de aluno (RN-027), o cadastro de horário
 iniciando dias desmarcados e limite 4, e ADMIN/SUPERADMIN
 como treinadores elegíveis no mesmo login. O Caddy não foi
 alterado. Imagens anteriores (`16d8c03`, `b599ff5`, `63f2c41`,
-`d062228`) permanecem no host para rollback.
+`d062228`, `36a87e8`) permanecem no host para rollback.
 
 A fatia dos ajustes pós-homologação acrescenta sessão persistente
 (localStorage), login por e-mail ou CPF (RN-030), agenda semanal na
@@ -344,10 +344,23 @@ Deploys na VPS em 2026-09-08 (Caddy intacto; schema up to date):
 - `36a87e8` — ADMIN/SUPERADMIN como treinadores elegíveis;
   backup `studioemar-20260908-182610.sql.gz`
 
+Deploy em 2026-09-10 (Caddy intacto; sem migration nova):
+
+- `accd322` — ajustes pós-homologação (sessão persistente, login
+  por e-mail ou CPF, remarcação, agenda do aluno, cancelamento da
+  aula, turma com alunos); backup `studioemar-20260910-034047.sql.gz`
+
 Validado após o último rebuild: health `{ status, now }`, HTTPS,
-site e login SUPERADMIN 200. `GET /operators?for=teaching`
-inclui o SUPERADMIN. Não há mais os quatro papéis de
-demonstração na VPS; o login de homologação é o SUPERADMIN.
+site e Swagger 200, `prisma migrate status` up to date e o Genius
+Certify respondendo. `POST /auth/login` aceita `identifier` com
+e-mail ou CPF mascarado e recusa o campo `email` antigo.
+`GET /operators?for=teaching` inclui o SUPERADMIN. Não há mais os
+quatro papéis de demonstração na VPS; o login de homologação é o
+SUPERADMIN.
+
+O rebuild da web na VPS leva cerca de 20 minutos e derruba a sessão
+SSH por timeout. A imagem termina mesmo assim: reconecte e confira
+`docker images studioemar/web` antes de repetir o build.
 
 As migrations abaixo estão aplicadas no banco local e na VPS:
 
