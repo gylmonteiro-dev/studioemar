@@ -418,7 +418,7 @@ export async function injectSession(page: Page, user: User): Promise<void> {
     user,
   };
   await page.addInitScript((value) => {
-    sessionStorage.setItem('studioemar.session', JSON.stringify(value));
+    localStorage.setItem('studioemar.session', JSON.stringify(value));
   }, session);
 }
 

@@ -20,6 +20,7 @@ import {
   type AuthSession,
   type Booking,
   type BookingParticipant,
+  type CreateBookingRequest,
   type Cancellation,
   type ClassType,
   type CreateClassTypeRequest,
@@ -101,6 +102,12 @@ export function getMe(): Promise<User> {
 
 export function listMyBookings(): Promise<Booking[]> {
   return apiRequest('/me/bookings').then((data) => bookingsSchema.parse(data));
+}
+
+export function createBooking(body: CreateBookingRequest): Promise<Booking> {
+  return apiRequest('/bookings', { method: 'POST', body }).then((data) =>
+    bookingSchema.parse(data),
+  );
 }
 
 export function cancelBooking(id: string): Promise<Cancellation> {
@@ -235,8 +242,22 @@ export function updateStudioHour(
   );
 }
 
-export function deleteStudioHour(id: string): Promise<void> {
-  return apiRequest(`/studio-hours/${id}`, { method: 'DELETE' });
+export function deleteStudioHour(
+  id: string,
+  confirmWithEnrolled = false,
+): Promise<void> {
+  const query = confirmWithEnrolled ? '?confirmWithEnrolled=true' : '';
+  return apiRequest(`/studio-hours/${id}${query}`, { method: 'DELETE' });
+}
+
+export function cancelTimeSlot(
+  id: string,
+  grantsCredit: boolean,
+): Promise<TimeSlot> {
+  return apiRequest(`/time-slots/${id}/cancellations`, {
+    method: 'POST',
+    body: { grantsCredit },
+  }).then((data) => timeSlotSchema.parse(data));
 }
 
 export function listClosures(): Promise<StudioClosure[]> {

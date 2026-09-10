@@ -320,9 +320,12 @@ futuras canceladas, sem crédito), quando o horário é excluído da
 grade (aulas futuras geradas saem, reservas canceladas) ou quando
 há fechamento do estúdio (RN-014 / RN-019).
 
-O admin pode incluir um horário pontual. Alterar dias ou intervalo
-da turma exige que as aulas futuras estejam sem inscritos.
-Excluir uma ocorrência pontual continua exigindo a aula vazia.
+O admin pode incluir um horário pontual. Alterar dias/intervalo ou
+excluir a turma é permitido mesmo com alunos: sem confirmação a API
+responde 409 com o total de matriculados e de reservas futuras; com
+`confirmWithEnrolled` as aulas futuras são canceladas sem crédito e a
+grade é regerada. Excluir uma ocorrência pontual continua exigindo a
+aula vazia.
 
 Turmas podem funcionar em paralelo no mesmo horário. Se os dias
 e os intervalos coincidirem, o sistema apenas alerta; o cadastro
@@ -364,6 +367,78 @@ reservas confirmadas voltam para a turma.
 
 Para um aluno que deixou o estúdio, use a inativação: as
 aulas futuras saem da agenda e o histórico permanece.
+
+---
+
+## RN-028 — Remarcação da aula regular
+
+Status: ACEITO
+
+O aluno pode remarcar a mesma aula que desmarcou, desde que ela
+ainda não tenha começado e a turma tenha vaga. A reserva volta como
+REGULAR e não consome crédito, porque o dia e o horário já são os da
+turma em que ele está matriculado (RN-001).
+
+O crédito gerado no cancelamento (RN-004 / RN-012) acompanha a
+remarcação:
+
+- crédito disponível: é anulado, porque a aula foi recuperada;
+- crédito já usado em outra reposição: a remarcação é recusada;
+- cancelamento sem crédito (fora do prazo): remarca normalmente.
+
+Reposição em outro dia ou horário continua exigindo crédito (RN-007).
+
+A inscrição automática da grade contínua (RN-025) só vale para aula
+nova: quem desmarcou não volta sozinho, só pela remarcação.
+
+---
+
+## RN-029 — Alteração da agenda do aluno
+
+Status: ACEITO
+
+ADMIN e SUPERADMIN podem trocar o plano e os dias/horários de um
+aluno já cadastrado. Valem as regras do cadastro (RN-021): a
+quantidade de dias segue o plano, sem repetir dia da semana, e cada
+turma escolhida precisa ter vaga.
+
+Ao salvar, as aulas futuras são reorganizadas:
+
+- reservas futuras que saíram da nova agenda são canceladas sem
+  crédito, como na inativação (RN-027);
+- o aluno é inscrito nas aulas futuras das novas turmas com vaga;
+- o histórico e as reposições (MAKEUP) não são alterados.
+
+TRAINER puro não altera plano nem horários.
+
+---
+
+## RN-030 — Login por e-mail ou CPF
+
+Status: ACEITO
+
+O login aceita e-mail ou CPF, com ou sem máscara, junto da senha. O
+CPF é o mesmo do cadastro do aluno (único). Operadores sem CPF entram
+pelo e-mail.
+
+A falha devolve a mesma mensagem genérica, sem revelar se a conta
+existe. Primeiro acesso e recuperação de senha continuam pelo e-mail.
+
+---
+
+## RN-031 — Cancelamento da aula pelo professor
+
+Status: ACEITO
+
+O professor da turma, o ADMIN e o SUPERADMIN podem cancelar uma aula
+específica. A ocorrência fica indisponível (`CLOSED`) e ninguém pode
+marcar naquele dia e horário. A aula não é apagada: a grade contínua
+a recriaria (RN-025).
+
+Se já houver alunos marcados, o sistema avisa quantos são e permite
+confirmar mesmo assim, escolhendo se o cancelamento gera crédito de
+reposição para eles. O crédito segue a origem e a validade de
+RN-017 e RN-013.
 
 ---
 

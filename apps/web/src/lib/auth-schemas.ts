@@ -1,7 +1,25 @@
+import { isValidCpf } from '@studioemar/shared';
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z.string().email('Informe um e-mail válido'),
+  identifier: z
+    .string()
+    .trim()
+    .min(1, 'Informe o e-mail ou o CPF')
+    .superRefine((value, ctx) => {
+      if (value.includes('@')) {
+        if (!z.string().email().safeParse(value).success) {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Informe um e-mail válido',
+          });
+        }
+        return;
+      }
+      if (!isValidCpf(value)) {
+        ctx.addIssue({ code: 'custom', message: 'Informe um CPF válido' });
+      }
+    }),
   password: z.string().min(1, 'Informe a senha'),
 });
 export type LoginValues = z.infer<typeof loginSchema>;

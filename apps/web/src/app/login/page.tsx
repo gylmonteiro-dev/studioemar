@@ -8,21 +8,28 @@ import { ApiError } from '@/lib/api-client';
 import { loginSchema, type LoginValues } from '@/lib/auth-schemas';
 import { homePathForUser } from '@/lib/auth-routing';
 import { applyAuthSession } from '@/lib/session';
+import { formatCpf } from '@/lib/format';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
+
+function looksLikeCpfInput(value: string): boolean {
+  return value.length > 0 && !/[a-zA-Z@]/.test(value);
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const {
+    control,
     register,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { identifier: '', password: '' },
   });
 
   async function onSubmit(values: LoginValues) {
@@ -35,7 +42,7 @@ export default function LoginPage() {
         setError('password', { message: caught.message });
         return;
       }
-      setError('email', {
+      setError('identifier', {
         message:
           caught instanceof Error ? caught.message : 'Não foi possível entrar',
       });
@@ -48,14 +55,27 @@ export default function LoginPage() {
       description="Acesse sua conta para continuar."
     >
       <form className="flex flex-col gap-5" onSubmit={handleSubmit(onSubmit)}>
-        <Input
-          label="E-mail"
-          type="email"
-          autoComplete="email"
-          placeholder="seu@email.com"
-          tone="dark"
-          error={errors.email?.message}
-          {...register('email')}
+        <Controller
+          name="identifier"
+          control={control}
+          render={({ field }) => (
+            <Input
+              label="E-mail ou CPF"
+              type="text"
+              autoComplete="username"
+              placeholder="seu@email.com ou 000.000.000-00"
+              tone="dark"
+              inputMode={looksLikeCpfInput(field.value) ? 'numeric' : 'email'}
+              error={errors.identifier?.message}
+              value={
+                looksLikeCpfInput(field.value)
+                  ? formatCpf(field.value)
+                  : field.value
+              }
+              onChange={(event) => field.onChange(event.target.value)}
+              onBlur={field.onBlur}
+            />
+          )}
         />
         <div className="flex flex-col gap-2">
           <Input

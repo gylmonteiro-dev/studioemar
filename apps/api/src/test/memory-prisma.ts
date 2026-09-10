@@ -148,6 +148,7 @@ function matchScalar(value: unknown, expected: unknown): boolean {
       gte?: Date;
       lte?: Date;
       in?: unknown[];
+      notIn?: unknown[];
       not?: unknown;
     };
     const hasDate =
@@ -175,6 +176,9 @@ function matchScalar(value: unknown, expected: unknown): boolean {
     }
     if (Array.isArray(filter.in)) {
       return filter.in.includes(value);
+    }
+    if (Array.isArray(filter.notIn)) {
+      return !filter.notIn.includes(value);
     }
     if ('not' in filter) {
       return value !== filter.not;
@@ -312,14 +316,31 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
   }
 
   function includeBooking(row: MemoryBooking, include?: Where) {
+    const cancellation = include?.cancellation
+      ? (store.cancellations.find((item) => item.bookingId === row.id) ?? null)
+      : undefined;
+    const cancellationInclude =
+      include?.cancellation && typeof include.cancellation === 'object'
+        ? include.cancellation
+        : undefined;
     return {
       ...row,
       timeSlot: include?.timeSlot
         ? store.timeSlots.find((slot) => slot.id === row.timeSlotId)
         : undefined,
-      cancellation: include?.cancellation
-        ? (store.cancellations.find((item) => item.bookingId === row.id) ?? null)
-        : undefined,
+      cancellation:
+        cancellation === undefined
+          ? undefined
+          : cancellation && cancellationInclude?.include?.credit
+            ? {
+                ...cancellation,
+                credit: cancellation.creditId
+                  ? (store.credits.find(
+                      (item) => item.id === cancellation.creditId,
+                    ) ?? null)
+                  : null,
+              }
+            : cancellation,
       student: include?.student
         ? store.users.find((user) => user.id === row.studentId)
         : undefined,
@@ -519,8 +540,9 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         const row = store.bookings.find((item) => matches(item, args.where));
         return row ? includeBooking(row, args.include) : null;
       },
-      async findFirst(args: { where?: Where } = {}) {
-        return store.bookings.find((row) => matches(row, args.where)) ?? null;
+      async findFirst(args: { where?: Where; include?: Where } = {}) {
+        const row = store.bookings.find((item) => matches(item, args.where));
+        return row ? includeBooking(row, args.include) : null;
       },
       async create(args: {
         data: Pick<MemoryBooking, 'studentId' | 'timeSlotId' | 'kind' | 'status'> & {
@@ -544,6 +566,9 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         }
         Object.assign(row, args.data);
         return row;
+      },
+      async count(args: { where?: Where } = {}) {
+        return store.bookings.filter((row) => matches(row, args.where)).length;
       },
       async deleteMany(args: { where?: Where } = {}) {
         const kept = store.bookings.filter((row) => !matches(row, args.where));
@@ -804,10 +829,19 @@ export function createMemoryPrisma(seed: Partial<MemoryStore> = {}): {
         store.studentRegularSlots.push(row);
         return row;
       },
-      async findMany(args: { where?: Where } = {}) {
-        return store.studentRegularSlots.filter((row) =>
-          matches(row, args.where),
-        );
+      async findMany(args: { where?: Where; include?: Where } = {}) {
+        return store.studentRegularSlots
+          .filter((row) => matches(row, args.where))
+          .map((row) =>
+            args.include?.studioHour
+              ? {
+                  ...row,
+                  studioHour: store.studioHours.find(
+                    (hour) => hour.id === row.studioHourId,
+                  ),
+                }
+              : row,
+          );
       },
       async deleteMany(args: { where?: Where } = {}) {
         const kept = store.studentRegularSlots.filter(

@@ -10,6 +10,8 @@ import {
   recoverAcceptedSchema,
   type AuthSession,
   type FirstAccessRequest,
+  isValidCpf,
+  normalizeCpf,
   type LoginRequest,
   type RecoverRequest,
   type ResetPasswordRequest,
@@ -39,7 +41,7 @@ export class AuthService {
   ) {}
 
   async login(input: LoginRequest): Promise<AuthSession> {
-    const user = await this.findByEmail(input.email);
+    const user = await this.findByIdentifier(input.identifier);
     if (!user || !user.isActive || user.mustSetPassword || !user.passwordHash) {
       if (user?.mustSetPassword) {
         throw new UnauthorizedException({
@@ -154,6 +156,18 @@ export class AuthService {
       throw new UnauthorizedException('Sessão inválida');
     }
     return user;
+  }
+
+  private async findByIdentifier(identifier: string) {
+    const value = identifier.trim();
+    if (value.includes('@')) {
+      return this.findByEmail(value);
+    }
+    const cpf = normalizeCpf(value);
+    if (!isValidCpf(cpf)) {
+      return null;
+    }
+    return this.prisma.user.findUnique({ where: { cpf } });
   }
 
   private async findByEmail(email: string) {

@@ -24,16 +24,26 @@ describe('loginRequestSchema', () => {
   it('aceita e-mail e senha', () => {
     assert.deepEqual(
       loginRequestSchema.parse({
-        email: 'joao@studioemar.local',
+        identifier: 'joao@studioemar.local',
         password: 'studioemar',
       }),
-      { email: 'joao@studioemar.local', password: 'studioemar' },
+      { identifier: 'joao@studioemar.local', password: 'studioemar' },
     );
   });
 
-  it('rejeita e-mail inválido', () => {
+  it('aceita CPF válido e senha', () => {
+    assert.deepEqual(
+      loginRequestSchema.parse({
+        identifier: '529.982.247-25',
+        password: 'studioemar',
+      }),
+      { identifier: '529.982.247-25', password: 'studioemar' },
+    );
+  });
+
+  it('rejeita identificador inválido', () => {
     const result = loginRequestSchema.safeParse({
-      email: 'joao',
+      identifier: 'joao',
       password: 'x',
     });
     assert.equal(result.success, false);

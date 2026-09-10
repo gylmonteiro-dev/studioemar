@@ -22,7 +22,7 @@ paths:
 
   /auth/login:
     post:
-      summary: Login com e-mail e senha
+      summary: Login com e-mail ou CPF e senha
       operationId: login
       requestBody:
         required: true
@@ -435,6 +435,30 @@ paths:
         '409':
           description: Há alunos inscritos
 
+  /time-slots/{id}/cancellations:
+    post:
+      summary: Cancelar a ocorrência e deixar o horário indisponível
+      operationId: cancelTimeSlot
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelTimeSlotRequest'
+      responses:
+        '200':
+          description: Aula fechada (CLOSED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeSlot'
+        '409':
+          description: Aula já indisponível
+
   /time-slots/{id}/bookings:
     get:
       summary: Participantes do horário (treinador)
@@ -647,6 +671,28 @@ paths:
                 items:
                   $ref: '#/components/schemas/Booking'
 
+  /bookings:
+    post:
+      summary: Remarcar aula regular desmarcada (RN-028)
+      operationId: createBooking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Reserva REGULAR recriada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '409':
+          description: Sem vaga, crédito já usado ou horário inválido
+
   /bookings/{id}/cancellations:
     post:
       summary: Cancelar uma reserva
@@ -802,11 +848,11 @@ components:
 
     LoginRequest:
       type: object
-      required: [email, password]
+      required: [identifier, password]
       properties:
-        email:
+        identifier:
           type: string
-          format: email
+          description: E-mail ou CPF (com ou sem máscara)
         password:
           type: string
 
@@ -966,9 +1012,28 @@ components:
 
     UpdateStudentRequest:
       type: object
-      required: [isActive]
       properties:
         isActive:
+          type: boolean
+        planId:
+          type: string
+        regularSlots:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegularSlotSelection'
+
+    CreateBookingRequest:
+      type: object
+      required: [timeSlotId]
+      properties:
+        timeSlotId:
+          type: string
+
+    CancelTimeSlotRequest:
+      type: object
+      required: [grantsCredit]
+      properties:
+        grantsCredit:
           type: boolean
 
     CreateOperatorRequest:
@@ -1211,6 +1276,8 @@ components:
           type: string
         trainerId:
           type: string
+        confirmWithEnrolled:
+          type: boolean
 
     CreateTimeSlotRequest:
       type: object

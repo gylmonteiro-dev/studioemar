@@ -16,8 +16,10 @@ import {
   createStudioClosureRequestSchema,
   createStudioHourRequestSchema,
   createTimeSlotRequestSchema,
+  cancelTimeSlotRequestSchema,
   updateStudioHourRequestSchema,
   updateTimeSlotRequestSchema,
+  type CancelTimeSlotRequest,
   type AddRecurringSlotRequest,
   type CreateClassTypeRequest,
   type CreateStudioClosureRequest,
@@ -86,6 +88,21 @@ export class SchedulesController {
     await this.schedules.deleteTimeSlot(id);
   }
 
+  @Post('time-slots/:id/cancellations')
+  @Roles('TRAINER')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Cancelar a ocorrência e deixar o horário indisponível',
+  })
+  cancelOccurrence(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(cancelTimeSlotRequestSchema))
+    body: CancelTimeSlotRequest,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.schedules.cancelOccurrence(id, user, body);
+  }
+
   @Get('time-slots/:id/bookings')
   @Roles('TRAINER')
   @ApiOperation({ summary: 'Participantes do horário (treinador)' })
@@ -151,8 +168,14 @@ export class SchedulesController {
   @ApiOperation({
     summary: 'Excluir horário/turma do estúdio e aulas futuras geradas',
   })
-  async deleteStudioHour(@Param('id') id: string) {
-    await this.schedules.deleteStudioHour(id);
+  async deleteStudioHour(
+    @Param('id') id: string,
+    @Query('confirmWithEnrolled') confirmWithEnrolled?: string,
+  ) {
+    await this.schedules.deleteStudioHour(
+      id,
+      confirmWithEnrolled === 'true',
+    );
   }
 
   @Get('recurring-slots')

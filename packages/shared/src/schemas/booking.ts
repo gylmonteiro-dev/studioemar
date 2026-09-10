@@ -16,6 +16,11 @@ export const bookingSchema = z.object({
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
+export const createBookingRequestSchema = z.object({
+  timeSlotId: idSchema,
+});
+export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
+
 export const cancellationSchema = z.object({
   id: idSchema,
   bookingId: idSchema,

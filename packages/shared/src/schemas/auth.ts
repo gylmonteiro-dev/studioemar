@@ -1,8 +1,23 @@
 import { z } from 'zod';
+import { isValidCpf } from '../rules/cpf.js';
 import { userSchema } from './user.js';
 
 export const loginRequestSchema = z.object({
-  email: z.string().email(),
+  identifier: z
+    .string()
+    .trim()
+    .min(1, 'Informe o e-mail ou o CPF')
+    .superRefine((value, ctx) => {
+      if (value.includes('@')) {
+        if (!z.string().email().safeParse(value).success) {
+          ctx.addIssue({ code: 'custom', message: 'Informe um e-mail válido' });
+        }
+        return;
+      }
+      if (!isValidCpf(value)) {
+        ctx.addIssue({ code: 'custom', message: 'Informe um CPF válido' });
+      }
+    }),
   password: z.string().min(1),
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;

@@ -10,6 +10,7 @@ import { SelectField } from '@/components/ui/select-field';
 import { useToast } from '@/components/ui/toast';
 import { canManageAccess } from '@/lib/auth-routing';
 import { WEEKDAY_LABEL, WEEKDAY_NAME } from '@/lib/format';
+import { ApiError } from '@/lib/api-client';
 import {
   createStudioHour,
   deleteStudioHour,
@@ -92,6 +93,12 @@ export function StudioHoursPanel() {
     values: StudioValues;
     matches: StudioHour[];
   } | null>(null);
+  const [enrolledConfirm, setEnrolledConfirm] = useState<{
+    kind: 'save' | 'delete';
+    hourId?: string;
+    values?: StudioValues;
+    message: string;
+  } | null>(null);
 
   const trainers = useMemo(() => {
     const items = [...(data?.operators ?? [])];
@@ -156,11 +163,16 @@ export function StudioHoursPanel() {
     }
   }
 
-  async function saveStudioHour(values: StudioValues, warned: boolean) {
+  async function saveStudioHour(
+    values: StudioValues,
+    warned: boolean,
+    confirmWithEnrolled = false,
+  ) {
     const payload = {
       ...values,
       startTime: clockValue(values.startTime),
       endTime: clockValue(values.endTime),
+      confirmWithEnrolled: confirmWithEnrolled || undefined,
     };
     try {
       if (editingId) {
@@ -175,9 +187,22 @@ export function StudioHoursPanel() {
         );
       }
       setPendingOverlap(null);
+      setEnrolledConfirm(null);
       cancelEdit();
       reload();
     } catch (caught) {
+      if (
+        caught instanceof ApiError &&
+        caught.code === 'ENROLLED_STUDENTS' &&
+        !confirmWithEnrolled
+      ) {
+        setEnrolledConfirm({
+          kind: 'save',
+          values,
+          message: caught.message,
+        });
+        return;
+      }
       studioForm.setError('startTime', {
         message: caught instanceof Error ? caught.message : 'Não foi possível salvar',
       });
@@ -361,6 +386,17 @@ export function StudioHoursPanel() {
                         }
                         reload();
                       } catch (caught) {
+                        if (
+                          caught instanceof ApiError &&
+                          caught.code === 'ENROLLED_STUDENTS'
+                        ) {
+                          setEnrolledConfirm({
+                            kind: 'delete',
+                            hourId: hour.id,
+                            message: caught.message,
+                          });
+                          return;
+                        }
                         toast(
                           caught instanceof Error
                             ? caught.message
@@ -413,6 +449,59 @@ export function StudioHoursPanel() {
               }}
             >
               {editingId ? 'Salvar mesmo assim' : 'Criar mesmo assim'}
+            </Button>
+          </div>
+        </Modal>
+
+        <Modal
+          open={enrolledConfirm !== null}
+          title="Alunos nesta turma"
+          onClose={() => setEnrolledConfirm(null)}
+        >
+          <p className="text-muted-foreground">
+            {enrolledConfirm?.message ??
+              'Existem alunos matriculados em aulas futuras para este horário.'}{' '}
+            Confirmar reorganiza ou cancela as reservas futuras, sem crédito.
+          </p>
+          <div className="mt-6 flex gap-3">
+            <Button
+              variant="ghost"
+              className="flex-1"
+              onClick={() => setEnrolledConfirm(null)}
+            >
+              Voltar
+            </Button>
+            <Button
+              variant="danger"
+              className="flex-1"
+              onClick={async () => {
+                if (!enrolledConfirm) {
+                  return;
+                }
+                if (enrolledConfirm.kind === 'delete' && enrolledConfirm.hourId) {
+                  try {
+                    await deleteStudioHour(enrolledConfirm.hourId, true);
+                    toast('Horário excluído.');
+                    if (editingId === enrolledConfirm.hourId) {
+                      cancelEdit();
+                    }
+                    setEnrolledConfirm(null);
+                    reload();
+                  } catch (caught) {
+                    toast(
+                      caught instanceof Error
+                        ? caught.message
+                        : 'Não foi possível excluir',
+                    );
+                  }
+                  return;
+                }
+                if (enrolledConfirm.values) {
+                  await saveStudioHour(enrolledConfirm.values, true, true);
+                }
+              }}
+            >
+              Confirmar mesmo assim
             </Button>
           </div>
         </Modal>

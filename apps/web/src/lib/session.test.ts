@@ -37,7 +37,7 @@ class MemoryStorage implements Storage {
 
 const storage = new MemoryStorage();
 Object.defineProperty(globalThis, 'window', {
-  value: { sessionStorage: storage },
+  value: { localStorage: storage },
   configurable: true,
 });
 
@@ -54,7 +54,7 @@ describe('session', () => {
     storage.clear();
   });
 
-  it('grava e lê a sessão JWT (ADR-015)', () => {
+  it('grava e lê a sessão JWT (ADR-015, localStorage)', () => {
     setSession({
       accessToken: 'access',
       refreshToken: 'refresh',

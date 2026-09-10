@@ -13,38 +13,48 @@ test.describe('login e páginas públicas', () => {
     await expect(
       page.getByRole('heading', { name: 'Bem-vindo ao Studio EMAR' }),
     ).toBeVisible();
-    await expect(page.getByLabel('E-mail')).toBeVisible();
+    await expect(page.getByLabel('E-mail ou CPF')).toBeVisible();
     await expect(page.getByLabel('Senha')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Recuperar senha' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Primeiro acesso' })).toBeVisible();
     await expect(page.getByText('Sua conta é criada pelo Studio.')).toBeVisible();
   });
 
-  test('valida e-mail inválido no cliente', async ({ page }) => {
+  test('valida identificador inválido no cliente', async ({ page }) => {
     await openPublicPage(page, '/login');
     await page.locator('form').evaluate((form) => {
       form.setAttribute('novalidate', '');
     });
-    await page.getByLabel('E-mail').fill('joao');
+    await page.getByLabel('E-mail ou CPF').fill('joao');
     await page.getByLabel('Senha').fill('studioemar');
     await page.getByRole('button', { name: 'Entrar' }).click();
-    await expect(page.getByText('Informe um e-mail válido')).toBeVisible();
+    await expect(page.getByText('Informe um CPF válido')).toBeVisible();
   });
 
   test('aluno entra e vai para /aluno', async ({ page }) => {
     await mockApi(page, { loginUser: joao });
     await openPublicPage(page, '/login');
-    await page.getByLabel('E-mail').fill('joao@studioemar.local');
+    await page.getByLabel('E-mail ou CPF').fill('joao@studioemar.local');
     await page.getByLabel('Senha').fill('studioemar');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page).toHaveURL(/\/aluno$/);
     await expect(page.getByRole('heading', { name: /Olá, João/ })).toBeVisible();
   });
 
+  test('aluno entra com CPF mascarado', async ({ page }) => {
+    await mockApi(page, { loginUser: joao });
+    await openPublicPage(page, '/login');
+    await page.getByLabel('E-mail ou CPF').fill('52998224725');
+    await expect(page.getByLabel('E-mail ou CPF')).toHaveValue('529.982.247-25');
+    await page.getByLabel('Senha').fill('studioemar');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page).toHaveURL(/\/aluno$/);
+  });
+
   test('treinador entra e vai para /treinador', async ({ page }) => {
     await mockApi(page, { loginUser: carlos, user: carlos });
     await openPublicPage(page, '/login');
-    await page.getByLabel('E-mail').fill('carlos@studioemar.local');
+    await page.getByLabel('E-mail ou CPF').fill('carlos@studioemar.local');
     await page.getByLabel('Senha').fill('studioemar');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await expect(page).toHaveURL(/\/treinador$/);

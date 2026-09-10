@@ -21,10 +21,10 @@ export class AuthController {
   @Public()
   @Post('auth/login')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Login com e-mail e senha' })
+  @ApiOperation({ summary: 'Login com e-mail ou CPF e senha' })
   login(
     @Body(new ZodValidationPipe(loginRequestSchema))
-    body: { email: string; password: string },
+    body: { identifier: string; password: string },
   ) {
     return this.auth.login(body);
   }

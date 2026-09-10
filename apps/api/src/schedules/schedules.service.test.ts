@@ -370,6 +370,48 @@ describe('SchedulesService', () => {
     assert.ok(store.bookings.every((booking) => booking.kind === 'REGULAR'));
   });
 
+  it('não reinscreve aluno que já cancelou aquela ocorrência', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [
+        carlos,
+        {
+          id: 'user-ana',
+          name: 'Ana',
+          email: 'ana@studioemar.local',
+          role: 'STUDENT',
+          planId: 'plan-3x',
+          mustSetPassword: true,
+          passwordHash: null,
+        },
+      ],
+      classTypes,
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['MON'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    store.studentRegularSlots.push({
+      id: 'regular-1',
+      studentId: 'user-ana',
+      studioHourId: hour.id,
+      weekday: 'MON',
+    });
+    await schedules.listTimeSlots();
+    for (const booking of store.bookings) {
+      booking.status = 'CANCELLED';
+    }
+    const before = store.bookings.length;
+    await schedules.listTimeSlots();
+    assert.equal(store.bookings.length, before);
+    assert.ok(store.bookings.every((booking) => booking.status === 'CANCELLED'));
+  });
+
   it('não inscreve aluno inativo nas aulas novas', async () => {
     const { prisma, store } = createMemoryPrisma({
       users: [
@@ -434,7 +476,7 @@ describe('SchedulesService', () => {
       status: 'CONFIRMED',
     });
     first.enrolledCount = 1;
-    await schedules.deleteStudioHour(hour.id);
+    await schedules.deleteStudioHour(hour.id, true);
     assert.equal(store.studioHours.length, 0);
     assert.equal(store.bookings[0]?.status, 'CANCELLED');
     assert.equal(store.cancellations.length, 1);
@@ -543,5 +585,82 @@ describe('SchedulesService', () => {
     const before = store.bookings.length;
     await schedules.listTimeSlots();
     assert.equal(store.bookings.length, before);
+  });
+
+  it('recusa excluir turma com alunos sem confirmação', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      classTypes,
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const hour = await schedules.createStudioHour({
+      name: 'Manhã funcional',
+      weekdays: ['FRI'],
+      startTime: '07:30',
+      endTime: '08:30',
+      capacity: 6,
+      classType: 'Funcional',
+      trainerId: 'user-carlos',
+    });
+    store.studentRegularSlots.push({
+      id: 'regular-1',
+      studentId: 'user-joao',
+      studioHourId: hour.id,
+      weekday: 'FRI',
+    });
+    await assert.rejects(
+      () => schedules.deleteStudioHour(hour.id),
+      ConflictException,
+    );
+  });
+
+  it('cancela a ocorrência e deixa o horário CLOSED', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      timeSlots: [slotToday],
+      bookings: [
+        {
+          id: 'booking-1',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-today-18',
+          kind: 'REGULAR',
+          status: 'CONFIRMED',
+        },
+      ],
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    const closed = await schedules.cancelOccurrence(
+      'slot-today-18',
+      { id: 'user-carlos', email: carlos.email, role: 'TRAINER' },
+      { grantsCredit: true },
+    );
+    assert.equal(closed.status, 'CLOSED');
+    assert.equal(store.bookings[0]?.status, 'CANCELLED');
+    assert.equal(store.credits[0]?.source, 'TRAINER_CANCELLATION');
+    assert.equal(store.timeSlots[0]?.enrolledCount, 1);
+  });
+
+  it('cancela a ocorrência sem gerar crédito', async () => {
+    const { prisma, store } = createMemoryPrisma({
+      users: [carlos],
+      timeSlots: [slotToday],
+      bookings: [
+        {
+          id: 'booking-1',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-today-18',
+          kind: 'REGULAR',
+          status: 'CONFIRMED',
+        },
+      ],
+    });
+    const schedules = new SchedulesService(prisma, fixedClock(NOW) as Clock);
+    await schedules.cancelOccurrence(
+      'slot-today-18',
+      { id: 'user-carlos', email: carlos.email, role: 'ADMIN' },
+      { grantsCredit: false },
+    );
+    assert.equal(store.credits.length, 0);
+    assert.equal(store.timeSlots[0]?.status, 'CLOSED');
   });
 });

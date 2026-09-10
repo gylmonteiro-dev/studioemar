@@ -78,3 +78,19 @@ export function isRegularTrainingSlot(
     regularSlots,
   );
 }
+
+export function canRebookRegular(
+  booking: Booking,
+  slot: TimeSlot,
+  regularSlots: readonly StudentRegularSlot[],
+  now = getClientNow(),
+): boolean {
+  return (
+    booking.kind === 'REGULAR' &&
+    booking.status === 'CANCELLED' &&
+    slot.status === 'OPEN' &&
+    slot.enrolledCount < slot.capacity &&
+    new Date(slot.startsAt).getTime() > now.getTime() &&
+    isRegularTrainingSlot(slot, regularSlots)
+  );
+}

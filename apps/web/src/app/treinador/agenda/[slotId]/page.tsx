@@ -11,6 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
 import {
   cancelBooking,
+  cancelTimeSlot,
   deleteTimeSlot,
   getTimeSlot,
   listSlotBookings,
@@ -41,9 +42,15 @@ export default function TreinadorSlotPage() {
     return { slot, participants, waitlist, students };
   }, [slotId]);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelClass, setCancelClass] = useState(false);
+  const [grantsCredit, setGrantsCredit] = useState(true);
   const [busy, setBusy] = useState(false);
   const [capacity, setCapacity] = useState('');
   const canManage = Boolean(trainer && canManageAccess(trainer.role));
+  const canCancelClass = Boolean(
+    trainer &&
+      (canManageAccess(trainer.role) || trainer.id === data?.slot.trainerId),
+  );
 
   if (!trainer) {
     return null;
@@ -166,6 +173,25 @@ export default function TreinadorSlotPage() {
             </Card>
           ) : null}
 
+          {canCancelClass && slot.status !== 'CLOSED' ? (
+            <Card className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Cancelar esta aula deixa o horário indisponível para novas
+                marcações.
+              </p>
+              <Button
+                variant="danger"
+                disabled={busy}
+                onClick={() => {
+                  setGrantsCredit(true);
+                  setCancelClass(true);
+                }}
+              >
+                Cancelar aula
+              </Button>
+            </Card>
+          ) : null}
+
           <section className="flex flex-col gap-3">
             <h2 className="text-xl font-semibold text-foreground">Alunos</h2>
             {participants.length === 0 ? (
@@ -211,6 +237,72 @@ export default function TreinadorSlotPage() {
               })
             )}
           </section>
+
+          <Modal
+            open={cancelClass}
+            title="Cancelar esta aula"
+            onClose={() => setCancelClass(false)}
+          >
+            {slot.enrolledCount > 0 ? (
+              <p className="text-muted-foreground">
+                Já existem {slot.enrolledCount}{' '}
+                {slot.enrolledCount === 1 ? 'aluno marcado' : 'alunos marcados'}{' '}
+                neste horário. Você pode confirmar o cancelamento mesmo assim.
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                Ninguém está marcado. A aula ficará indisponível neste dia e
+                horário.
+              </p>
+            )}
+            {slot.enrolledCount > 0 ? (
+              <label className="mt-4 flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-accent"
+                  checked={grantsCredit}
+                  onChange={(event) => setGrantsCredit(event.target.checked)}
+                />
+                Gerar crédito de reposição para os alunos
+              </label>
+            ) : null}
+            <div className="mt-6 flex gap-3">
+              <Button
+                variant="ghost"
+                className="flex-1"
+                onClick={() => setCancelClass(false)}
+              >
+                Voltar
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await cancelTimeSlot(
+                      slot.id,
+                      slot.enrolledCount > 0 ? grantsCredit : false,
+                    );
+                    toast('Aula cancelada e indisponível.');
+                    setCancelClass(false);
+                    reload();
+                  } catch (caught) {
+                    toast(
+                      caught instanceof Error
+                        ? caught.message
+                        : 'Não foi possível cancelar',
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Confirmar cancelamento
+              </Button>
+            </div>
+          </Modal>
 
           <Modal
             open={cancelId !== null}

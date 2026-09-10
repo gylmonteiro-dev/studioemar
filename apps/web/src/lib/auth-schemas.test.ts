@@ -3,14 +3,21 @@ import { describe, it } from 'node:test';
 import { firstAccessSchema, loginSchema, recoverSchema } from './auth-schemas';
 
 describe('auth-schemas', () => {
-  it('login exige e-mail e senha', () => {
+  it('login aceita e-mail ou CPF', () => {
     assert.equal(
-      loginSchema.safeParse({ email: 'joao', password: 'x' }).success,
+      loginSchema.safeParse({ identifier: 'joao', password: 'x' }).success,
       false,
     );
     assert.equal(
       loginSchema.safeParse({
-        email: 'joao@studioemar.local',
+        identifier: 'joao@studioemar.local',
+        password: 'studioemar',
+      }).success,
+      true,
+    );
+    assert.equal(
+      loginSchema.safeParse({
+        identifier: '529.982.247-25',
         password: 'studioemar',
       }).success,
       true,

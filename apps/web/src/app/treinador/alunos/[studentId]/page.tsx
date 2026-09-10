@@ -1,6 +1,8 @@
 'use client';
 
 import { PageCanvas } from '@/components/layout/page-canvas';
+import { WeekSwitcher } from '@/components/student/week-switcher';
+import { StudentScheduleForm } from '@/components/trainer/student-schedule-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,6 +11,7 @@ import { useToast } from '@/components/ui/toast';
 import {
   annulCredit,
   deleteStudent,
+  getServerNow,
   getStudent,
   listOperators,
   listPlans,
@@ -21,7 +24,16 @@ import {
 import { canManageAccess } from '@/lib/auth-routing';
 import { viewsForStudent } from '@/lib/booking-views';
 import { creditSourceLabel, creditStatusLabel } from '@/lib/credit-copy';
-import { clockTime, formatCpf, formatDateLong, WEEKDAY_NAME } from '@/lib/format';
+import {
+  addDays,
+  calendarDate,
+  clockTime,
+  formatCpf,
+  formatDateLong,
+  isInWeek,
+  startOfWeekMonday,
+  WEEKDAY_NAME,
+} from '@/lib/format';
 import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
 import Link from 'next/link';
@@ -33,19 +45,27 @@ export default function TreinadorAlunoDetalhePage() {
   const router = useRouter();
   const { studentId } = useParams<{ studentId: string }>();
   const { toast } = useToast();
+  const [weekOffset, setWeekOffset] = useState(0);
   const { data, error, loading, reload } = useAsync(async () => {
+    const now = await getServerNow();
+    const weekStart = addDays(
+      startOfWeekMonday(now.toISOString()),
+      weekOffset * 7,
+    );
+    const from = calendarDate(weekStart.toISOString());
+    const to = calendarDate(addDays(weekStart, 6).toISOString());
     const [student, plans, bookings, credits, timeSlots, operators] = await Promise.all([
       getStudent(studentId),
       listPlans(),
       listStudentBookings(studentId),
       listStudentCredits(studentId),
-      listTimeSlots(),
+      listTimeSlots({ from, to }),
       trainer && canManageAccess(trainer.role)
         ? listOperators({ for: 'teaching' })
         : Promise.resolve([]),
     ]);
-    return { student, plans, bookings, credits, timeSlots, operators };
-  }, [studentId, trainer?.role]);
+    return { student, plans, bookings, credits, timeSlots, operators, weekStart };
+  }, [studentId, trainer?.role, weekOffset]);
   const [annulId, setAnnulId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -80,9 +100,12 @@ export default function TreinadorAlunoDetalhePage() {
     );
   }
 
-  const { student, plans, bookings, credits, timeSlots, operators } = data;
+  const { student, plans, bookings, credits, timeSlots, operators, weekStart } =
+    data;
   const plan = plans.find((item) => item.id === student.planId);
-  const views = viewsForStudent(bookings, timeSlots, student.id);
+  const views = viewsForStudent(bookings, timeSlots, student.id).filter((item) =>
+    isInWeek(item.slot.startsAt, weekStart),
+  );
   const studentCredits = credits.slice().sort(
     (left, right) =>
       new Date(right.generatedAt).getTime() - new Date(left.generatedAt).getTime(),
@@ -186,6 +209,14 @@ export default function TreinadorAlunoDetalhePage() {
       ) : null}
 
       {canManageAccess(trainer.role) ? (
+        <StudentScheduleForm
+          student={student}
+          plans={plans}
+          onSaved={reload}
+        />
+      ) : null}
+
+      {canManageAccess(trainer.role) ? (
         <Card className="flex max-w-xl flex-col gap-4 p-4">
           <h2 className="text-xl font-semibold text-foreground">
             Professores vinculados
@@ -237,9 +268,20 @@ export default function TreinadorAlunoDetalhePage() {
       ) : null}
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl font-semibold text-foreground">Agenda</h2>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-xl font-semibold text-foreground">Agenda</h2>
+          <WeekSwitcher
+            weekStart={weekStart}
+            onPrev={() => {
+              setWeekOffset((offset) => offset - 1);
+            }}
+            onNext={() => {
+              setWeekOffset((offset) => offset + 1);
+            }}
+          />
+        </div>
         {views.length === 0 ? (
-          <p className="text-muted-foreground">Nenhuma reserva.</p>
+          <p className="text-muted-foreground">Nenhum treino nesta semana.</p>
         ) : (
           views.map((item) => (
             <Card key={item.booking.id} className="flex items-center justify-between p-4">

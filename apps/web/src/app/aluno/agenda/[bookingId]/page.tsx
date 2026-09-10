@@ -8,8 +8,12 @@ import { Card } from '@/components/ui/card';
 import { PageLoadState } from '@/components/ui/load-state';
 import { Modal } from '@/components/ui/modal';
 import { CANCELLATION_CREDIT_DEADLINE_HOURS } from '@studioemar/shared';
-import { cancelBooking, listMyBookings, listTimeSlots } from '@/lib/api';
-import { isEligibleToCredit, viewsForStudent } from '@/lib/booking-views';
+import { cancelBooking, createBooking, listMyBookings, listTimeSlots } from '@/lib/api';
+import {
+  canRebookRegular,
+  isEligibleToCredit,
+  viewsForStudent,
+} from '@/lib/booking-views';
 import {
   clockTime,
   formatDateHeading,
@@ -28,7 +32,7 @@ export default function BookingDetailPage() {
   const router = useRouter();
   const { toast } = useToast();
   const student = useStudent();
-  const { data, error, loading } = useAsync(async () => {
+  const { data, error, loading, reload } = useAsync(async () => {
     const [bookings, timeSlots] = await Promise.all([
       listMyBookings(),
       listTimeSlots(),
@@ -90,6 +94,7 @@ export default function BookingDetailPage() {
       ) : (
         <BookingDetail
           view={view}
+          regularSlots={student.regularSlots ?? []}
           busy={busy}
           sheetOpen={sheetOpen}
           lateOpen={lateOpen}
@@ -98,6 +103,22 @@ export default function BookingDetailPage() {
           onLate={setLateOpen}
           onMakeup={setMakeupOpen}
           onConfirm={confirmCancel}
+          onRebook={async () => {
+            setBusy(true);
+            try {
+              await createBooking({ timeSlotId: view.slot.id });
+              toast('Aula remarcada na sua turma.');
+              reload();
+            } catch (caught) {
+              toast(
+                caught instanceof Error
+                  ? caught.message
+                  : 'Não foi possível remarcar',
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
           onScheduleNow={() => {
             router.replace('/aluno/horarios');
           }}
@@ -112,6 +133,7 @@ export default function BookingDetailPage() {
 
 function BookingDetail({
   view,
+  regularSlots,
   busy,
   sheetOpen,
   lateOpen,
@@ -120,10 +142,14 @@ function BookingDetail({
   onLate,
   onMakeup,
   onConfirm,
+  onRebook,
   onScheduleNow,
   onScheduleLater,
 }: {
   view: NonNullable<ReturnType<typeof viewsForStudent>[number]>;
+  regularSlots: NonNullable<
+    ReturnType<typeof useStudent>
+  >['regularSlots'];
   busy: boolean;
   sheetOpen: boolean;
   lateOpen: boolean;
@@ -132,12 +158,14 @@ function BookingDetail({
   onLate: (open: boolean) => void;
   onMakeup: (open: boolean) => void;
   onConfirm: () => void;
+  onRebook: () => void;
   onScheduleNow: () => void;
   onScheduleLater: () => void;
 }) {
   const { booking, slot } = view;
   const eligible = isEligibleToCredit(slot.startsAt);
   const canCancel = booking.status === 'CONFIRMED';
+  const canRebook = canRebookRegular(booking, slot, regularSlots);
 
   function requestCancel() {
     if (eligible) {
@@ -229,6 +257,10 @@ function BookingDetail({
           {canCancel ? (
             <Button variant="ghost" onClick={requestCancel} disabled={busy}>
               Desmarcar treino
+            </Button>
+          ) : canRebook ? (
+            <Button variant="cta" onClick={onRebook} disabled={busy}>
+              Remarcar
             </Button>
           ) : (
             <p className="text-sm text-muted-foreground">Esta reserva já foi encerrada.</p>

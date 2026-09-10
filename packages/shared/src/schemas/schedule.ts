@@ -161,6 +161,7 @@ export const updateStudioHourRequestSchema = z
     capacity: z.number().int().positive().optional(),
     classType: classTypeNameSchema.optional(),
     trainerId: idSchema.optional(),
+    confirmWithEnrolled: z.boolean().optional(),
   })
   .transform((values) => ({
     ...values,
@@ -213,3 +214,8 @@ export const updateTimeSlotRequestSchema = z
     trainerId: idSchema.optional(),
   });
 export type UpdateTimeSlotRequest = z.infer<typeof updateTimeSlotRequestSchema>;
+
+export const cancelTimeSlotRequestSchema = z.object({
+  grantsCredit: z.boolean(),
+});
+export type CancelTimeSlotRequest = z.infer<typeof cancelTimeSlotRequestSchema>;

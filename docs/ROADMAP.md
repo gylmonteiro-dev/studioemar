@@ -196,7 +196,7 @@ e-mail de recuperação, ligar o frontend (FASE 6).
 
 STATUS: CONCLUÍDA E MERGEADA EM MAIN
 
-Web consome a API Nest com JWT no sessionStorage (ADR-014 / ADR-015).
+Web consome a API Nest com JWT no localStorage (ADR-014 / ADR-015).
 GET /dashboard (TRAINER/ADMIN). Sem join na waitlist e sem e-mail
 de recuperação.
 

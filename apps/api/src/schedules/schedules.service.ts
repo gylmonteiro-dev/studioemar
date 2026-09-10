@@ -1,15 +1,18 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
   bookingParticipantSchema,
+  canActAsRole,
   creditExpiresAt,
   isOperatorRole,
   normalizeClassTypeName,
   type AddRecurringSlotRequest,
+  type CancelTimeSlotRequest,
   type CreateClassTypeRequest,
   type CreateStudioClosureRequest,
   type CreateStudioHourRequest,
@@ -55,6 +58,7 @@ type DbClient = Pick<
   | 'waitlistEntry'
   | 'booking'
   | 'cancellation'
+  | 'credit'
   | 'studentRegularSlot'
   | 'user'
 >;
@@ -227,6 +231,70 @@ export class SchedulesService {
     });
   }
 
+  async cancelOccurrence(
+    id: string,
+    actor: AuthUser,
+    input: CancelTimeSlotRequest,
+  ) {
+    const slot = await this.prisma.timeSlot.findUnique({ where: { id } });
+    if (!slot) {
+      throw new NotFoundException('Horário não encontrado');
+    }
+    if (
+      actor.role === 'TRAINER' &&
+      slot.trainerId !== actor.id &&
+      !canActAsRole(actor.role, ['ADMIN'])
+    ) {
+      throw new ForbiddenException('Sem permissão para cancelar esta aula');
+    }
+    if (slot.status === 'CLOSED') {
+      throw new ConflictException('Esta aula já está indisponível');
+    }
+
+    const now = this.clock.now();
+    return this.prisma.$transaction(async (tx) => {
+      const confirmed = await tx.booking.findMany({
+        where: { timeSlotId: slot.id, status: 'CONFIRMED' },
+        include: { timeSlot: true },
+      });
+      for (const booking of confirmed) {
+        let creditId: string | undefined;
+        if (input.grantsCredit) {
+          const credit = await tx.credit.create({
+            data: {
+              studentId: booking.studentId,
+              source: 'TRAINER_CANCELLATION',
+              generatedAt: now,
+              originBookingId: booking.id,
+              expiresAt: creditExpiresAt(booking.timeSlot.startsAt),
+              status: 'AVAILABLE',
+            },
+          });
+          creditId = credit.id;
+        }
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: { status: 'CANCELLED' },
+        });
+        await tx.cancellation.create({
+          data: {
+            bookingId: booking.id,
+            cancelledAt: now,
+            cancelledBy: 'TRAINER',
+            generatedCredit: input.grantsCredit,
+            creditId,
+          },
+        });
+      }
+      const next = applySeatChange(slot, -confirmed.length);
+      const updated = await tx.timeSlot.update({
+        where: { id: slot.id },
+        data: { enrolledCount: next.enrolledCount, status: 'CLOSED' },
+      });
+      return toTimeSlot(updated);
+    });
+  }
+
   async listClassTypes() {
     const types = await this.prisma.classType.findMany({
       orderBy: { name: 'asc' },
@@ -303,9 +371,16 @@ export class SchedulesService {
       endTime !== hour.endTime ||
       weekdays.join() !== hour.weekdays.join();
 
+    if (scheduleChanged) {
+      await this.assertCanMutateEnrolledHour(id, input.confirmWithEnrolled);
+    }
+
     return this.prisma.$transaction(async (tx) => {
       if (scheduleChanged) {
-        await this.clearFutureGeneratedSlots(tx, id, { requireEmpty: true });
+        await this.clearFutureGeneratedSlots(tx, id, {
+          requireEmpty: false,
+          cancelBookings: true,
+        });
       }
 
       const updated = await tx.studioHour.update({
@@ -324,6 +399,15 @@ export class SchedulesService {
       });
 
       if (scheduleChanged) {
+        await tx.studentRegularSlot.deleteMany({
+          where: {
+            studioHourId: id,
+            weekday: { notIn: weekdays },
+          },
+        });
+      }
+
+      if (scheduleChanged) {
         await this.ensureGeneratedRange(
           tx,
           calendarDate(this.clock.now()),
@@ -337,11 +421,12 @@ export class SchedulesService {
     });
   }
 
-  async deleteStudioHour(id: string) {
+  async deleteStudioHour(id: string, confirmWithEnrolled = false) {
     const hour = await this.prisma.studioHour.findUnique({ where: { id } });
     if (!hour) {
       throw new NotFoundException('Horário do estúdio não encontrado');
     }
+    await this.assertCanMutateEnrolledHour(id, confirmWithEnrolled);
     await this.prisma.$transaction(async (tx) => {
       await this.clearFutureGeneratedSlots(tx, id, {
         requireEmpty: false,
@@ -621,14 +706,14 @@ export class SchedulesService {
         .filter((student) => student.isActive !== false)
         .map((student) => student.id),
     );
-    const confirmed = await tx.booking.findMany({
-      where: { timeSlotId: slot.id, status: 'CONFIRMED' },
+    const existing = await tx.booking.findMany({
+      where: { timeSlotId: slot.id },
     });
-    const alreadyIn = new Set(confirmed.map((booking) => booking.studentId));
+    const alreadyTouched = new Set(existing.map((booking) => booking.studentId));
 
     let current = { ...slot };
     for (const studentId of activeIds) {
-      if (alreadyIn.has(studentId) || !isSlotBookable(current)) {
+      if (alreadyTouched.has(studentId) || !isSlotBookable(current)) {
         continue;
       }
       await tx.booking.create({
@@ -679,6 +764,38 @@ export class SchedulesService {
           enrolledCount: next.enrolledCount,
           status: slot.status === 'CLOSED' ? 'CLOSED' : next.status,
         },
+      });
+    }
+  }
+
+  private async assertCanMutateEnrolledHour(
+    studioHourId: string,
+    confirmWithEnrolled?: boolean,
+  ) {
+    const now = this.clock.now();
+    const futureSlots = await this.prisma.timeSlot.findMany({
+      where: { studioHourId, startsAt: { gt: now } },
+    });
+    const futureBookings = await this.prisma.booking.count({
+      where: {
+        status: 'CONFIRMED',
+        timeSlotId: { in: futureSlots.map((slot) => slot.id) },
+      },
+    });
+    const regularStudents = await this.prisma.studentRegularSlot.findMany({
+      where: { studioHourId },
+    });
+    const regularCount = new Set(regularStudents.map((row) => row.studentId))
+      .size;
+    if (
+      (futureBookings > 0 || regularCount > 0) &&
+      !confirmWithEnrolled
+    ) {
+      throw new ConflictException({
+        code: 'ENROLLED_STUDENTS',
+        message: `Há ${regularCount} aluno(s) matriculado(s) e ${futureBookings} reserva(s) futura(s) nesta turma.`,
+        futureBookings,
+        regularStudents: regularCount,
       });
     }
   }

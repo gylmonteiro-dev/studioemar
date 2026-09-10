@@ -195,3 +195,119 @@ describe('BookingsService.cancel', () => {
     );
   });
 });
+
+describe('BookingsService.rebookRegular', () => {
+  const hour = {
+    id: 'hour-manha',
+    name: 'Manhã 1',
+    weekdays: ['MON'],
+    startTime: '18:00',
+    endTime: '19:00',
+    capacity: 6,
+    classType: 'AULA',
+    trainerId: 'user-carlos',
+  };
+
+  function remarcService(seed: Partial<MemoryStore> = {}) {
+    return service({
+      studioHours: [hour],
+      studentRegularSlots: [
+        {
+          id: 'regular-joao',
+          studentId: 'user-joao',
+          studioHourId: hour.id,
+          weekday: 'MON',
+        },
+      ],
+      ...seed,
+    });
+  }
+
+  it('remarca aula regular sem crédito e anula o crédito disponível', async () => {
+    const { bookings, store } = remarcService();
+    await bookings.cancel('booking-seg-com-credito', {
+      id: 'user-joao',
+      email: joao.email,
+      role: 'STUDENT',
+    });
+    const created = await bookings.rebookRegular('user-joao', {
+      timeSlotId: 'slot-mon-18',
+    });
+    assert.equal(created.kind, 'REGULAR');
+    assert.equal(created.status, 'CONFIRMED');
+    assert.equal(store.credits[0]?.status, 'ANNULLED');
+    assert.equal(
+      store.timeSlots.find((slot) => slot.id === 'slot-mon-18')?.enrolledCount,
+      2,
+    );
+  });
+
+  it('recusa remarcação se o crédito da aula já foi usado', async () => {
+    const { bookings, store } = remarcService();
+    await bookings.cancel('booking-seg-com-credito', {
+      id: 'user-joao',
+      email: joao.email,
+      role: 'STUDENT',
+    });
+    const credit = store.credits[0];
+    if (credit) {
+      credit.status = 'USED';
+    }
+    await assert.rejects(
+      () => bookings.rebookRegular('user-joao', { timeSlotId: 'slot-mon-18' }),
+      ConflictException,
+    );
+  });
+
+  it('remarca sem crédito quando o cancelamento não gerou crédito', async () => {
+    const { bookings, store } = remarcService({
+      bookings: [
+        {
+          id: 'booking-seg-cancelada',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-mon-18',
+          kind: 'REGULAR',
+          status: 'CANCELLED',
+        },
+      ],
+      cancellations: [
+        {
+          id: 'cancel-1',
+          bookingId: 'booking-seg-cancelada',
+          cancelledAt: new Date(NOW),
+          cancelledBy: 'STUDENT',
+          generatedCredit: false,
+          creditId: null,
+        },
+      ],
+    });
+    const created = await bookings.rebookRegular('user-joao', {
+      timeSlotId: 'slot-mon-18',
+    });
+    assert.equal(created.status, 'CONFIRMED');
+    assert.equal(store.credits.length, 0);
+    assert.equal(
+      store.timeSlots.find((slot) => slot.id === 'slot-mon-18')?.enrolledCount,
+      3,
+    );
+  });
+
+  it('recusa remarcação sem vaga', async () => {
+    const { bookings } = remarcService({
+      timeSlots: [{ ...slotMonday, enrolledCount: 6, status: 'FULL' }],
+      bookings: [
+        {
+          id: 'booking-seg-cancelada',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-mon-18',
+          kind: 'REGULAR',
+          status: 'CANCELLED',
+        },
+      ],
+    });
+    await assert.rejects(
+      () => bookings.rebookRegular('user-joao', { timeSlotId: 'slot-mon-18' }),
+      ConflictException,
+    );
+  });
+});

@@ -85,9 +85,25 @@ export type UpdateStudentTrainersRequest = z.infer<
   typeof updateStudentTrainersRequestSchema
 >;
 
-export const updateStudentRequestSchema = z.object({
-  isActive: z.boolean(),
-});
+export const updateStudentRequestSchema = z
+  .object({
+    isActive: z.boolean().optional(),
+    planId: idSchema.optional(),
+    regularSlots: z.array(regularSlotSelectionSchema).min(1).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'Informe ao menos uma alteração',
+  })
+  .refine(
+    (value) =>
+      !value.regularSlots ||
+      new Set(value.regularSlots.map((slot) => slot.weekday)).size ===
+        value.regularSlots.length,
+    {
+      message: 'Escolha dias da semana distintos',
+      path: ['regularSlots'],
+    },
+  );
 export type UpdateStudentRequest = z.infer<typeof updateStudentRequestSchema>;
 
 export const listOperatorsQuerySchema = z.object({

@@ -144,7 +144,7 @@ test.describe('fluxos do treinador', () => {
     await page.getByRole('button', { name: 'Criar conta' }).click();
     await expect(page.getByRole('heading', { name: 'Ana Souza' })).toBeVisible();
     await expect(page.getByText('CPF 529.982.247-25')).toBeVisible();
-    await expect(page.getByText('Segunda · Manhã 1')).toBeVisible();
+    await expect(page.getByText('Segunda · Manhã 1', { exact: true })).toBeVisible();
     await expect(page.getByText('Aguardando primeiro acesso')).toBeVisible();
   });
 
@@ -159,6 +159,16 @@ test.describe('fluxos do treinador', () => {
     await page.getByRole('button', { name: 'Excluir cadastro' }).click();
     await expect(page.getByText('Cadastro excluído.')).toBeVisible();
     await expect(page).toHaveURL(/\/treinador\/alunos$/);
+  });
+
+  test('ficha do aluno mostra a agenda da semana', async ({ page }) => {
+    await mockApi(page, { user: marina });
+    await injectSession(page, marina);
+    await page.goto('/treinador/alunos/user-joao');
+    await expect(page.getByRole('heading', { name: 'João' })).toBeVisible();
+    await expect(page.getByText('31 – 06 SET')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Próxima semana' })).toBeVisible();
+    await expect(page.getByText('Nenhum treino nesta semana.')).toHaveCount(0);
   });
 
   test('treinador não vê o botão de excluir aluno', async ({ page }) => {

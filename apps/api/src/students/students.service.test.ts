@@ -487,6 +487,84 @@ describe('StudentsService', () => {
     );
   });
 
+  it('reorganiza reservas futuras ao trocar o horário regular', async () => {
+    const hourTarde = {
+      ...hourManha,
+      id: 'hour-tarde',
+      name: 'Tarde 1',
+      weekdays: ['TUE'],
+      startTime: '18:00',
+      endTime: '19:00',
+    };
+    const { students, store } = createStudents({
+      plans: [
+        plan,
+        { id: 'plan-1x', name: '1X POR SEMANA', weeklyFrequency: 1 },
+      ],
+      studioHours: [hourManha, hourTarde],
+      timeSlots: [
+        slot('slot-mon', '2026-09-07', 1),
+        slot('slot-tue', '2026-09-08', 2),
+      ],
+      bookings: [
+        {
+          id: 'booking-mon',
+          studentId: 'user-joao',
+          timeSlotId: 'slot-mon',
+          kind: 'REGULAR',
+          status: 'CONFIRMED',
+        },
+      ],
+      studentRegularSlots: [
+        {
+          id: 'regular-joao',
+          studentId: 'user-joao',
+          studioHourId: 'hour-manha',
+          weekday: 'MON',
+        },
+      ],
+    });
+    store.timeSlots.find((item) => item.id === 'slot-tue')!.studioHourId =
+      'hour-tarde';
+    store.timeSlots.find((item) => item.id === 'slot-tue')!.startsAt =
+      saoPauloDateTime('2026-09-08', '18:00');
+    store.timeSlots.find((item) => item.id === 'slot-tue')!.endsAt =
+      saoPauloDateTime('2026-09-08', '19:00');
+    const updated = await students.updateStudent(
+      'user-joao',
+      {
+        planId: 'plan-1x',
+        regularSlots: [{ studioHourId: 'hour-tarde', weekday: 'TUE' }],
+      },
+      admin,
+    );
+    assert.equal(updated.planId, 'plan-1x');
+    assert.equal(updated.regularSlots[0]?.weekday, 'TUE');
+    assert.equal(
+      store.bookings.find((item) => item.id === 'booking-mon')?.status,
+      'CANCELLED',
+    );
+    assert.ok(
+      store.bookings.some(
+        (item) =>
+          item.timeSlotId === 'slot-tue' && item.status === 'CONFIRMED',
+      ),
+    );
+  });
+
+  it('recusa alteração de horário pelo TRAINER', async () => {
+    const { students } = createStudents();
+    await assert.rejects(
+      () =>
+        students.updateStudent(
+          'user-joao',
+          { regularSlots: [regularSlots[0]] },
+          carlos,
+        ),
+      ForbiddenException,
+    );
+  });
+
   it('recusa exclusão de aluno pelo TRAINER', async () => {
     const { students } = createStudents();
     await assert.rejects(

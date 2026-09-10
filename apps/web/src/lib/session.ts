@@ -18,7 +18,7 @@ export function getSession(): Session | null {
     return null;
   }
 
-  const raw = window.sessionStorage.getItem(SESSION_KEY);
+  const raw = window.localStorage.getItem(SESSION_KEY);
   if (!raw) {
     return null;
   }
@@ -35,7 +35,7 @@ export function getSession(): Session | null {
 }
 
 export function setSession(session: Session): void {
-  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
 export function applyAuthSession(auth: AuthSession): Session {
@@ -61,5 +61,5 @@ export function clearSession(): void {
   if (!canUseStorage()) {
     return;
   }
-  window.sessionStorage.removeItem(SESSION_KEY);
+  window.localStorage.removeItem(SESSION_KEY);
 }

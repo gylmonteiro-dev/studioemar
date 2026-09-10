@@ -100,7 +100,9 @@ export class StudentsController {
   }
 
   @Patch('students/:id')
-  @ApiOperation({ summary: 'Ativar ou inativar aluno' })
+  @ApiOperation({
+    summary: 'Ativar, inativar ou reorganizar plano e horários do aluno',
+  })
   updateStudent(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateStudentRequestSchema))

@@ -348,9 +348,15 @@ export class StudentsService {
     await this.access.assertCanAccess(actor, studentId);
     const user = await this.prisma.user.findUnique({
       where: { id: studentId },
+      include: { studentRegularSlots: true },
     });
     if (!user || user.role !== 'STUDENT') {
       throw new NotFoundException('Aluno não encontrado');
+    }
+
+    const scheduleChange = input.planId !== undefined || input.regularSlots;
+    if (scheduleChange && !canActAsRole(actor.role, ['ADMIN'])) {
+      throw new ForbiddenException('Sem permissão para alterar plano ou horários');
     }
 
     const nextActive = input.isActive ?? user.isActive;
@@ -358,10 +364,17 @@ export class StudentsService {
       await this.cancelFutureBookings(studentId);
     }
 
-    await this.prisma.user.update({
-      where: { id: studentId },
-      data: { isActive: nextActive },
-    });
+    if (scheduleChange && nextActive !== false) {
+      await this.reorganizeRegularSchedule(studentId, user, input);
+    } else {
+      await this.prisma.user.update({
+        where: { id: studentId },
+        data: {
+          isActive: nextActive,
+          ...(input.planId ? { planId: input.planId } : {}),
+        },
+      });
+    }
 
     if (!user.isActive && nextActive === true) {
       await this.schedules.ensureLookAhead();
@@ -458,6 +471,133 @@ export class StudentsService {
     });
   }
 
+  private async reorganizeRegularSchedule(
+    studentId: string,
+    user: {
+      planId: string | null;
+      isActive: boolean;
+      studentRegularSlots: Array<{ studioHourId: string; weekday: Weekday }>;
+    },
+    input: UpdateStudentRequest,
+  ) {
+    const planId = input.planId ?? user.planId;
+    if (!planId) {
+      throw new BadRequestException('Informe o plano');
+    }
+    const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+    if (!plan) {
+      throw new NotFoundException('Plano não encontrado');
+    }
+
+    const selections = input.regularSlots ?? user.studentRegularSlots;
+    if (selections.length !== plan.weeklyFrequency) {
+      throw new BadRequestException(
+        `Escolha ${plan.weeklyFrequency} ${plan.weeklyFrequency === 1 ? 'dia' : 'dias'} conforme o plano`,
+      );
+    }
+
+    await this.schedules.ensureLookAhead();
+    const now = this.clock.now();
+    const toBook = await this.resolveRegularBookings(
+      selections,
+      plan.sessionMinutes,
+      now,
+      studentId,
+    );
+
+    const keep = new Set(
+      selections.map((slot) => `${slot.studioHourId}:${slot.weekday}`),
+    );
+    const current = await this.prisma.booking.findMany({
+      where: { studentId, status: 'CONFIRMED', kind: 'REGULAR' },
+      include: { timeSlot: true },
+    });
+    const toCancel = current.filter((row) => {
+      const slot = row.timeSlot;
+      if (!slot || slot.startsAt <= now) {
+        return false;
+      }
+      const weekday = weekdayFromCalendarDate(calendarDate(slot.startsAt));
+      return !keep.has(`${slot.studioHourId}:${weekday}`);
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: studentId },
+        data: {
+          planId: plan.id,
+          isActive: input.isActive ?? user.isActive,
+        },
+      });
+      await tx.studentRegularSlot.deleteMany({ where: { studentId } });
+      for (const slot of selections) {
+        await tx.studentRegularSlot.create({
+          data: {
+            studentId,
+            studioHourId: slot.studioHourId,
+            weekday: slot.weekday,
+          },
+        });
+      }
+      for (const row of toCancel) {
+        const slot = row.timeSlot;
+        if (!slot) {
+          continue;
+        }
+        await tx.booking.update({
+          where: { id: row.id },
+          data: { status: 'CANCELLED' },
+        });
+        await tx.cancellation.create({
+          data: {
+            bookingId: row.id,
+            cancelledAt: now,
+            cancelledBy: 'TRAINER',
+            generatedCredit: false,
+            creditId: null,
+          },
+        });
+        const latest = await tx.timeSlot.findUniqueOrThrow({
+          where: { id: slot.id },
+        });
+        await tx.timeSlot.update({
+          where: { id: slot.id },
+          data: applySeatChange(latest, -1),
+        });
+      }
+      if (input.isActive === false || user.isActive === false) {
+        return;
+      }
+      const confirmed = await tx.booking.findMany({
+        where: { studentId, status: 'CONFIRMED' },
+      });
+      const alreadyIn = new Set(confirmed.map((row) => row.timeSlotId));
+      for (const slot of toBook) {
+        if (alreadyIn.has(slot.id) || !isSlotBookable(slot)) {
+          continue;
+        }
+        const latest = await tx.timeSlot.findUniqueOrThrow({
+          where: { id: slot.id },
+        });
+        if (!isSlotBookable(latest)) {
+          continue;
+        }
+        await tx.booking.create({
+          data: {
+            studentId,
+            timeSlotId: slot.id,
+            kind: 'REGULAR',
+            status: 'CONFIRMED',
+          },
+        });
+        await tx.timeSlot.update({
+          where: { id: slot.id },
+          data: applySeatChange(latest, 1),
+        });
+      }
+    });
+  }
+
   private toStudent(user: StudentRow) {
     return toUser(
       user,
@@ -470,6 +610,7 @@ export class StudentsService {
     selections: RegularSlotSelection[],
     sessionMinutes: number,
     now: Date,
+    excludeStudentId?: string,
   ) {
     const hourIds = [...new Set(selections.map((slot) => slot.studioHourId))];
     const hours = await this.prisma.studioHour.findMany({
@@ -509,7 +650,29 @@ export class StudentsService {
         selection.studioHourId,
         selection.weekday,
       );
-      if (remainingSpotsForRegularPair(pairSlots) === null) {
+      const ownIds = excludeStudentId
+        ? new Set(
+            (
+              await this.prisma.booking.findMany({
+                where: {
+                  studentId: excludeStudentId,
+                  status: 'CONFIRMED',
+                  timeSlotId: { in: pairSlots.map((slot) => slot.id) },
+                },
+              })
+            ).map((row) => row.timeSlotId),
+          )
+        : new Set<string>();
+      const adjusted = pairSlots.map((slot) =>
+        ownIds.has(slot.id)
+          ? {
+              ...slot,
+              enrolledCount: Math.max(0, slot.enrolledCount - 1),
+              status: 'OPEN' as const,
+            }
+          : slot,
+      );
+      if (remainingSpotsForRegularPair(adjusted) === null) {
         throw new ConflictException(
           'Há horário sem vaga disponível. Atualize a seleção.',
         );

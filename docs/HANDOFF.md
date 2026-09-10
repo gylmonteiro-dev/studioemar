@@ -19,10 +19,18 @@ como treinadores elegíveis no mesmo login. O Caddy não foi
 alterado. Imagens anteriores (`16d8c03`, `b599ff5`, `63f2c41`,
 `d062228`) permanecem no host para rollback.
 
+A fatia dos ajustes pós-homologação acrescenta sessão persistente
+(localStorage), login por e-mail ou CPF (RN-030), agenda semanal na
+ficha do aluno, remarcação da aula regular sem crédito (RN-028),
+edição de plano/horários do aluno com reorganização das reservas
+(RN-029), cancelamento da aula pelo professor com aviso e escolha de
+crédito (RN-031) e edição/exclusão de turma com alunos mediante
+confirmação (RN-025 revisada).
+
 Não trabalhar diretamente na main. Criar uma branch nova a
 partir dela para os próximos ajustes.
 
-RN-017 a RN-027 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
+RN-017 a RN-031 aceitas. Papéis: SUPERADMIN, ADMIN, TRAINER
 e STUDENT. SUPERADMIN herda ADMIN e TRAINER; ADMIN herda
 TRAINER; STUDENT permanece isolado (ADR-009). Prisma em
 apps/api; passwordHash só no banco (ADR-013). JWT no JSON
@@ -97,6 +105,24 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - RN-012: antecedência de 4 horas. RN-013: validade de 30 dias
   a partir do início da aula cancelada. A área de créditos
   destaca os que vencem primeiro e os dias restantes.
+- Remarcação (RN-028): `POST /bookings` com `{ timeSlotId }`. Só a
+  aula regular que o próprio aluno desmarcou, se ainda houver vaga.
+  Não usa crédito; anula o crédito daquela aula se estiver
+  disponível e recusa se ele já foi usado em outra reposição. O
+  botão Remarcar aparece no detalhe da reserva cancelada.
+- Agenda do aluno (RN-029): `PATCH /students/:id` aceita `planId` e
+  `regularSlots` (ADMIN/SUPERADMIN). Cancela as reservas futuras que
+  saíram da agenda, sem crédito, e inscreve nas turmas novas com
+  vaga. O formulário fica na ficha do aluno.
+- Login (RN-030): `POST /auth/login` recebe `identifier` (e-mail ou
+  CPF, com ou sem máscara) e `password`.
+- Cancelar aula (RN-031): `POST /time-slots/:id/cancellations` com
+  `{ grantsCredit }`. Fecha a ocorrência (`CLOSED`), cancela as
+  reservas e gera crédito só se pedido. TRAINER cancela a aula que
+  ministra; ADMIN/SUPERADMIN, qualquer uma.
+- Turma com alunos: `PATCH`/`DELETE /studio-hours/:id` respondem 409
+  `ENROLLED_STUDENTS` com os totais; `confirmWithEnrolled` confirma
+  e cancela as aulas futuras sem crédito.
 - Testes: `pnpm test` (shared + API + web unitário)
 - E2E: `pnpm test:e2e` (Playwright, Chromium, API mockada)
 - Stack de produção em containers (FASE 8)
@@ -155,8 +181,9 @@ http://localhost:3000 — senha `studioemar`:
 - Cancelar `booking-seg-com-credito` = com crédito
 - Swagger: http://localhost:3001/docs
 
-Sessão: access + refresh em `sessionStorage`
-(`studioemar.session`). Logout só limpa o storage local.
+Sessão: access + refresh em `localStorage`
+(`studioemar.session`). Logout só limpa o storage local. Fechar o
+navegador ou trocar de aplicativo não desloga (ADR-015 revisado).
 
 Se a :3000 falhar com `.next` (ENOENT), reiniciar
 `pnpm dev:web`. Se a :3001 estiver com processo antigo,
