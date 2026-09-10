@@ -195,6 +195,12 @@ function matches(row: Record<string, unknown>, where?: Where): boolean {
     if (key === 'AND' && Array.isArray(expected)) {
       return expected.every((clause) => matches(row, clause as Where));
     }
+    if (key === 'NOT') {
+      if (Array.isArray(expected)) {
+        return expected.every((clause) => !matches(row, clause as Where));
+      }
+      return !matches(row, expected as Where);
+    }
     if (key === 'planId_weekday_time' && expected && typeof expected === 'object') {
       const compound = expected as { planId: string; weekday: string; time: string };
       return (

@@ -20,6 +20,7 @@ export class DashboardService {
     const timeSlots = await this.prisma.timeSlot.findMany({
       where: {
         startsAt: civilRangeBounds(calendarDate(now), lookAheadEndDate(now)),
+        NOT: { status: 'CLOSED', studioHourId: null },
         ...(trainerId ? { trainerId } : {}),
       },
     });

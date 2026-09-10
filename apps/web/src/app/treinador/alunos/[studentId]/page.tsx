@@ -3,6 +3,7 @@
 import { PageCanvas } from '@/components/layout/page-canvas';
 import { WeekSwitcher } from '@/components/student/week-switcher';
 import { StudentScheduleForm } from '@/components/trainer/student-schedule-form';
+import { AccordionSection } from '@/components/ui/accordion-section';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -70,6 +71,10 @@ export default function TreinadorAlunoDetalhePage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [trainerIds, setTrainerIds] = useState<string[]>([]);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    'agenda-regular': true,
+    agenda: true,
+  });
 
   useEffect(() => {
     if (data?.student) {
@@ -110,6 +115,10 @@ export default function TreinadorAlunoDetalhePage() {
     (left, right) =>
       new Date(right.generatedAt).getTime() - new Date(left.generatedAt).getTime(),
   );
+
+  function toggleSection(id: string) {
+    setOpenSections((current) => ({ ...current, [id]: !current[id] }));
+  }
 
   async function confirmAnnul() {
     if (!annulId) {
@@ -189,10 +198,16 @@ export default function TreinadorAlunoDetalhePage() {
         </div>
       </section>
 
-      {student.regularSlots.length > 0 ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xl font-semibold text-foreground">Agenda regular</h2>
-          {student.regularSlots.map((slot) => (
+      <AccordionSection
+        id="agenda-regular"
+        title="Agenda regular"
+        open={Boolean(openSections['agenda-regular'])}
+        onToggle={() => toggleSection('agenda-regular')}
+      >
+        {student.regularSlots.length === 0 ? (
+          <p className="text-muted-foreground">Nenhum horário regular.</p>
+        ) : (
+          student.regularSlots.map((slot) => (
             <Card
               key={`${slot.studioHourId}-${slot.weekday}`}
               className="p-4"
@@ -204,23 +219,113 @@ export default function TreinadorAlunoDetalhePage() {
                 {slot.startTime}–{slot.endTime} · {slot.classType}
               </p>
             </Card>
-          ))}
-        </section>
-      ) : null}
+          ))
+        )}
+      </AccordionSection>
 
-      {canManageAccess(trainer.role) ? (
-        <StudentScheduleForm
-          student={student}
-          plans={plans}
-          onSaved={reload}
+      <AccordionSection
+        id="agenda"
+        title="Agenda"
+        open={Boolean(openSections.agenda)}
+        onToggle={() => toggleSection('agenda')}
+      >
+        <WeekSwitcher
+          weekStart={weekStart}
+          onPrev={() => {
+            setWeekOffset((offset) => offset - 1);
+          }}
+          onNext={() => {
+            setWeekOffset((offset) => offset + 1);
+          }}
         />
-      ) : null}
+        {views.length === 0 ? (
+          <p className="text-muted-foreground">Nenhum treino nesta semana.</p>
+        ) : (
+          views.map((item) => (
+            <Card key={item.booking.id} className="flex items-center justify-between p-4">
+              <div>
+                <p className="font-semibold text-foreground">{item.slot.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatDateLong(item.slot.startsAt)} · {clockTime(item.slot.startsAt)}
+                </p>
+              </div>
+              <Badge
+                variant={item.booking.status === 'CONFIRMED' ? 'success' : 'danger'}
+              >
+                {item.booking.status === 'CONFIRMED' ? 'Confirmado' : 'Cancelado'}
+              </Badge>
+            </Card>
+          ))
+        )}
+      </AccordionSection>
 
       {canManageAccess(trainer.role) ? (
-        <Card className="flex max-w-xl flex-col gap-4 p-4">
-          <h2 className="text-xl font-semibold text-foreground">
-            Professores vinculados
-          </h2>
+        <AccordionSection
+          id="plano"
+          title="Plano e horários"
+          open={Boolean(openSections.plano)}
+          onToggle={() => toggleSection('plano')}
+        >
+          <StudentScheduleForm
+            student={student}
+            plans={plans}
+            onSaved={reload}
+          />
+        </AccordionSection>
+      ) : null}
+
+      <AccordionSection
+        id="creditos"
+        title="Créditos"
+        open={Boolean(openSections.creditos)}
+        onToggle={() => toggleSection('creditos')}
+      >
+        {studentCredits.length === 0 ? (
+          <p className="text-muted-foreground">Nenhum crédito.</p>
+        ) : (
+          studentCredits.map((credit) => (
+            <Card
+              key={credit.id}
+              className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between"
+            >
+              <div>
+                <p className="font-semibold text-foreground">
+                  {creditSourceLabel(credit.source)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Validade {formatDateLong(credit.expiresAt)}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge
+                  variant={
+                    credit.status === 'AVAILABLE'
+                      ? 'success'
+                      : credit.status === 'ANNULLED'
+                        ? 'danger'
+                        : 'default'
+                  }
+                >
+                  {creditStatusLabel(credit.status)}
+                </Badge>
+                {credit.status === 'AVAILABLE' ? (
+                  <Button variant="danger" onClick={() => setAnnulId(credit.id)}>
+                    Anular
+                  </Button>
+                ) : null}
+              </div>
+            </Card>
+          ))
+        )}
+      </AccordionSection>
+
+      {canManageAccess(trainer.role) ? (
+        <AccordionSection
+          id="professores"
+          title="Professores vinculados"
+          open={Boolean(openSections.professores)}
+          onToggle={() => toggleSection('professores')}
+        >
           {operators
             .filter((operator) => operator.isActive)
             .map((operator) => (
@@ -264,83 +369,8 @@ export default function TreinadorAlunoDetalhePage() {
           >
             Salvar vínculos
           </Button>
-        </Card>
+        </AccordionSection>
       ) : null}
-
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-xl font-semibold text-foreground">Agenda</h2>
-          <WeekSwitcher
-            weekStart={weekStart}
-            onPrev={() => {
-              setWeekOffset((offset) => offset - 1);
-            }}
-            onNext={() => {
-              setWeekOffset((offset) => offset + 1);
-            }}
-          />
-        </div>
-        {views.length === 0 ? (
-          <p className="text-muted-foreground">Nenhum treino nesta semana.</p>
-        ) : (
-          views.map((item) => (
-            <Card key={item.booking.id} className="flex items-center justify-between p-4">
-              <div>
-                <p className="font-semibold text-foreground">{item.slot.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatDateLong(item.slot.startsAt)} · {clockTime(item.slot.startsAt)}
-                </p>
-              </div>
-              <Badge
-                variant={item.booking.status === 'CONFIRMED' ? 'success' : 'danger'}
-              >
-                {item.booking.status === 'CONFIRMED' ? 'Confirmado' : 'Cancelado'}
-              </Badge>
-            </Card>
-          ))
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xl font-semibold text-foreground">Créditos</h2>
-        {studentCredits.length === 0 ? (
-          <p className="text-muted-foreground">Nenhum crédito.</p>
-        ) : (
-          studentCredits.map((credit) => (
-            <Card
-              key={credit.id}
-              className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between"
-            >
-              <div>
-                <p className="font-semibold text-foreground">
-                  {creditSourceLabel(credit.source)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Validade {formatDateLong(credit.expiresAt)}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge
-                  variant={
-                    credit.status === 'AVAILABLE'
-                      ? 'success'
-                      : credit.status === 'ANNULLED'
-                        ? 'danger'
-                        : 'default'
-                  }
-                >
-                  {creditStatusLabel(credit.status)}
-                </Badge>
-                {credit.status === 'AVAILABLE' ? (
-                  <Button variant="danger" onClick={() => setAnnulId(credit.id)}>
-                    Anular
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
-          ))
-        )}
-      </section>
 
       <Modal open={annulId !== null} title="Anular crédito" onClose={() => setAnnulId(null)}>
         <p className="text-muted-foreground">

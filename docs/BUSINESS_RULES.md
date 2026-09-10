@@ -316,9 +316,12 @@ regular ativa são inscritos nas aulas novas. Sem intervalo,
 12 semanas à frente), não o histórico persistido.
 
 A ocorrência some da agenda quando o aluno é inativado (reservas
-futuras canceladas, sem crédito), quando o horário é excluído da
-grade (aulas futuras geradas saem, reservas canceladas) ou quando
-há fechamento do estúdio (RN-014 / RN-019).
+futuras canceladas, sem crédito) ou quando o horário é excluído da
+grade: o dia ainda não iniciado e as recorrências futuras saem da
+agenda de aluno, professor e admin, sem card de cancelado ou
+fechado. As reservas ficam canceladas no histórico. Fechamento do
+estúdio (RN-014 / RN-019) e cancelamento de uma ocorrência (RN-031)
+continuam visíveis como indisponíveis.
 
 O admin pode incluir um horário pontual. Alterar dias/intervalo ou
 excluir a turma é permitido mesmo com alunos: sem confirmação a API

@@ -89,6 +89,7 @@ export class SchedulesService {
     const slots = await this.prisma.timeSlot.findMany({
       where: {
         startsAt: civilRangeBounds(from, to),
+        NOT: { status: 'CLOSED', studioHourId: null },
         ...(actor?.role === 'TRAINER' ? { trainerId: actor.id } : {}),
       },
       orderBy: { startsAt: 'asc' },

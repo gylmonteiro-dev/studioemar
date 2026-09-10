@@ -484,6 +484,15 @@ describe('SchedulesService', () => {
       store.timeSlots.some((slot) => slot.studioHourId === hour.id),
       false,
     );
+    const listed = await schedules.listTimeSlots();
+    assert.equal(
+      listed.some((slot) => slot.id === first.id),
+      false,
+    );
+    assert.equal(
+      store.timeSlots.find((slot) => slot.id === first.id)?.status,
+      'CLOSED',
+    );
   });
 
   it('grava tipo de aula em maiúsculas e recusa nome duplicado', async () => {
@@ -617,7 +626,7 @@ describe('SchedulesService', () => {
   it('cancela a ocorrência e deixa o horário CLOSED', async () => {
     const { prisma, store } = createMemoryPrisma({
       users: [carlos],
-      timeSlots: [slotToday],
+      timeSlots: [{ ...slotToday, studioHourId: 'hour-1' }],
       bookings: [
         {
           id: 'booking-1',
@@ -638,6 +647,11 @@ describe('SchedulesService', () => {
     assert.equal(store.bookings[0]?.status, 'CANCELLED');
     assert.equal(store.credits[0]?.source, 'TRAINER_CANCELLATION');
     assert.equal(store.timeSlots[0]?.enrolledCount, 1);
+    const listed = await schedules.listTimeSlots();
+    assert.equal(
+      listed.find((slot) => slot.id === 'slot-today-18')?.status,
+      'CLOSED',
+    );
   });
 
   it('cancela a ocorrência sem gerar crédito', async () => {

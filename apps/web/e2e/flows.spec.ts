@@ -166,9 +166,16 @@ test.describe('fluxos do treinador', () => {
     await injectSession(page, marina);
     await page.goto('/treinador/alunos/user-joao');
     await expect(page.getByRole('heading', { name: 'João' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Agenda regular' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Agenda', exact: true })).toBeVisible();
     await expect(page.getByText('31 – 06 SET')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Próxima semana' })).toBeVisible();
     await expect(page.getByText('Nenhum treino nesta semana.')).toHaveCount(0);
+    await expect(page.getByLabel('Aula 1')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Plano e horários' }).click();
+    await page.getByRole('button', { name: 'Editar plano e horários' }).click();
+    await expect(page.getByLabel('Plano', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Aula 1')).toBeVisible();
   });
 
   test('treinador não vê o botão de excluir aluno', async ({ page }) => {

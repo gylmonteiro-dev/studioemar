@@ -69,4 +69,26 @@ describe('DashboardService', () => {
       33,
     );
   });
+
+  it('ignora aula fechada de turma já excluída', async () => {
+    const { prisma } = createMemoryPrisma({
+      timeSlots: [
+        slotToday,
+        {
+          ...slotToday,
+          id: 'slot-orphan',
+          studioHourId: null,
+          status: 'CLOSED',
+          enrolledCount: 0,
+        },
+      ],
+    });
+    const dashboard = new DashboardService(prisma, fixedClock(NOW) as Clock);
+    const result = await dashboard.occupancy();
+    assert.equal(result.metrics.occupancyPercent, 33);
+    assert.equal(
+      result.byHour.find((item) => item.hour === '18:00')?.occupancyPercent,
+      33,
+    );
+  });
 });
