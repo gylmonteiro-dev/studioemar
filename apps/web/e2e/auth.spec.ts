@@ -11,7 +11,7 @@ test.describe('login e páginas públicas', () => {
   test('renderiza o formulário e os atalhos de conta', async ({ page }) => {
     await openPublicPage(page, '/login');
     await expect(
-      page.getByRole('heading', { name: 'Bem-vindo ao Studio EMAR' }),
+      page.getByRole('heading', { name: 'Bem-vindo ao Studio EMar' }),
     ).toBeVisible();
     await expect(page.getByLabel('E-mail ou CPF')).toBeVisible();
     await expect(page.getByLabel('Senha')).toBeVisible();

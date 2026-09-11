@@ -51,7 +51,7 @@ export default function LoginPage() {
 
   return (
     <AuthPanel
-      title="Bem-vindo ao Studio EMAR"
+      title="Bem-vindo ao Studio EMar"
       description="Acesse sua conta para continuar."
     >
       <form className="flex flex-col gap-5" onSubmit={handleSubmit(onSubmit)}>

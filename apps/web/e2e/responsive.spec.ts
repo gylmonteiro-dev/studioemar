@@ -19,7 +19,7 @@ test.describe('responsividade', () => {
       });
       await page.goto('/login');
       await expect(
-        page.getByRole('heading', { name: 'Bem-vindo ao Studio EMAR' }),
+        page.getByRole('heading', { name: 'Bem-vindo ao Studio EMar' }),
       ).toBeVisible();
       await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible();
       expect(await noHorizontalOverflow(page)).toBeTruthy();
