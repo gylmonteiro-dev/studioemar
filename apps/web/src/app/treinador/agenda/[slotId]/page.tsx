@@ -12,7 +12,6 @@ import { useToast } from '@/components/ui/toast';
 import {
   cancelBooking,
   cancelTimeSlot,
-  deleteTimeSlot,
   getTimeSlot,
   listSlotBookings,
   listStudents,
@@ -24,12 +23,11 @@ import { clockTime, formatDateHeading, spotsLeft } from '@/lib/format';
 import { useTrainer } from '@/lib/trainer-context';
 import { useAsync } from '@/lib/use-async';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
 export default function TreinadorSlotPage() {
   const trainer = useTrainer();
-  const router = useRouter();
   const { slotId } = useParams<{ slotId: string }>();
   const { toast } = useToast();
   const { data, error, loading, reload } = useAsync(async () => {
@@ -149,27 +147,6 @@ export default function TreinadorSlotPage() {
               >
                 Salvar limite
               </Button>
-              <Button
-                variant="danger"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  try {
-                    await deleteTimeSlot(slot.id);
-                    toast('Horário excluído.');
-                    router.push('/treinador/agenda');
-                  } catch (caught) {
-                    toast(
-                      caught instanceof Error
-                        ? caught.message
-                        : 'Não foi possível excluir',
-                    );
-                    setBusy(false);
-                  }
-                }}
-              >
-                Excluir horário
-              </Button>
             </Card>
           ) : null}
 
@@ -187,7 +164,7 @@ export default function TreinadorSlotPage() {
                   setCancelClass(true);
                 }}
               >
-                Cancelar aula
+                Cancelar esta aula
               </Button>
             </Card>
           ) : null}
@@ -211,7 +188,7 @@ export default function TreinadorSlotPage() {
                   </div>
                   {booking.status === 'CONFIRMED' && slot.status !== 'CLOSED' ? (
                     <Button variant="danger" onClick={() => setCancelId(booking.id)}>
-                      Cancelar aula
+                      Cancelar reserva do aluno
                     </Button>
                   ) : null}
                 </Card>
@@ -306,7 +283,7 @@ export default function TreinadorSlotPage() {
 
           <Modal
             open={cancelId !== null}
-            title="Cancelar aula do aluno"
+            title="Cancelar reserva do aluno"
             onClose={() => setCancelId(null)}
           >
             <p className="text-muted-foreground">

@@ -119,7 +119,9 @@ apps/api; passwordHash só no banco (ADR-013). JWT no JSON
 - Cancelar aula (RN-031): `POST /time-slots/:id/cancellations` com
   `{ grantsCredit }`. Fecha a ocorrência (`CLOSED`), cancela as
   reservas e gera crédito só se pedido. TRAINER cancela a aula que
-  ministra; ADMIN/SUPERADMIN, qualquer uma.
+  ministra; ADMIN/SUPERADMIN, qualquer uma. Na agenda há um único
+  botão (Cancelar esta aula); apagar turma recorrente é só em
+  Ajustes. Cancelar a reserva de um aluno é ação à parte.
 - Turma com alunos: `PATCH`/`DELETE /studio-hours/:id` respondem 409
   `ENROLLED_STUDENTS` com os totais; `confirmWithEnrolled` confirma
   e cancela as aulas futuras sem crédito.
@@ -300,6 +302,15 @@ Operação, atualização, homologação e reset documentados em
 diretamente `docker compose`.
 
 ## Ajustes locais após homologação
+
+Branch `feat/unificar-cancelar-aula`. Na ficha do horário da
+agenda saiu **Excluir horário**; fica só **Cancelar esta aula**
+(RN-031: a ocorrência vai para `CLOSED`, a grade não recria
+aquele dia). **Cancelar reserva do aluno** é ação à parte e
+não fecha o horário. Apagar a turma recorrente continua só
+em Ajustes (`DELETE /studio-hours/:id`). A API
+`DELETE /time-slots/:id` permanece (aula pontual vazia),
+mas não aparece mais na agenda.
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
 do cliente. `main` e a VPS (`36a87e8`) contêm identificação

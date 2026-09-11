@@ -327,8 +327,9 @@ O admin pode incluir um horário pontual. Alterar dias/intervalo ou
 excluir a turma é permitido mesmo com alunos: sem confirmação a API
 responde 409 com o total de matriculados e de reservas futuras; com
 `confirmWithEnrolled` as aulas futuras são canceladas sem crédito e a
-grade é regerada. Excluir uma ocorrência pontual continua exigindo a
-aula vazia.
+grade é regerada. Apagar a turma (recorrente) é só em Ajustes. Na
+agenda, o professor não exclui a ocorrência: cancela aquele dia
+(RN-031). A API ainda aceita apagar uma ocorrência pontual vazia.
 
 Turmas podem funcionar em paralelo no mesmo horário. Se os dias
 e os intervalos coincidirem, o sistema apenas alerta; o cadastro
@@ -437,10 +438,11 @@ existe. Primeiro acesso e recuperação de senha continuam pelo e-mail.
 
 Status: ACEITO
 
-O professor da turma, o ADMIN e o SUPERADMIN podem cancelar uma aula
-específica. A ocorrência fica indisponível (`CLOSED`) e ninguém pode
-marcar naquele dia e horário. A aula não é apagada: a grade contínua
-a recriaria (RN-025).
+O professor da turma, o ADMIN e o SUPERADMIN cancelam uma aula
+específica pela agenda, num único botão. A ocorrência fica
+indisponível (`CLOSED`) e ninguém pode marcar naquele dia e horário.
+A aula não é apagada: a grade contínua a recriaria (RN-025). Cancelar
+a reserva de um aluno é outra ação e não fecha o horário.
 
 Se já houver alunos marcados, o sistema avisa quantos são e permite
 confirmar mesmo assim, escolhendo se o cancelamento gera crédito de
