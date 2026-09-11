@@ -20,13 +20,15 @@ type BrandLogoProps = {
   priority?: boolean;
 };
 
-export function BrandLogo({
-  variant = 'wordmark',
+function LogoImage({
+  asset,
   className,
-  priority = false,
-}: BrandLogoProps) {
-  const asset = assets[variant];
-
+  priority,
+}: {
+  asset: (typeof assets)[keyof typeof assets];
+  className?: string;
+  priority: boolean;
+}) {
   return (
     <Image
       src={asset.src}
@@ -37,5 +39,32 @@ export function BrandLogo({
       unoptimized
       className={cn('h-10 w-auto object-contain', className)}
     />
+  );
+}
+
+export function BrandLogo({
+  variant,
+  className,
+  priority = false,
+}: BrandLogoProps) {
+  if (variant) {
+    return (
+      <LogoImage asset={assets[variant]} className={className} priority={priority} />
+    );
+  }
+
+  return (
+    <>
+      <LogoImage
+        asset={assets.wordmark}
+        className={cn('hidden dark:block', className)}
+        priority={priority}
+      />
+      <LogoImage
+        asset={assets.mark}
+        className={cn('dark:hidden', className)}
+        priority={priority}
+      />
+    </>
   );
 }

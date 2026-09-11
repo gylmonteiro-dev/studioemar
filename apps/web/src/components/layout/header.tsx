@@ -18,7 +18,7 @@ export function Header({ homeHref = '/aluno', trailing, className }: HeaderProps
       )}
     >
       <Link href={homeHref} aria-label="Studio EMAR — início" className="flex items-center">
-        <BrandLogo variant="wordmark" className="h-9" />
+        <BrandLogo className="h-9" />
       </Link>
       {trailing}
     </header>
