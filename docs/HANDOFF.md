@@ -12,12 +12,12 @@ o cadastro de aluno com agenda regular, a grade contínua,
 as listagens/dashboard por janela (folga de 12 semanas),
 a home do aluno por semana, a reposição só com crédito e
 o prazo de 4h / validade de 30 dias a partir da aula
-estão em `main` e na VPS (`IMAGE_TAG=48a7e74`, 2026-09-10),
+estão em `main` e na VPS (`IMAGE_TAG=e7e9b07`, 2026-09-10),
 com exclusão de aluno (RN-027), o cadastro de horário
 iniciando dias desmarcados e limite 4, e ADMIN/SUPERADMIN
 como treinadores elegíveis no mesmo login. O Caddy não foi
 alterado. Imagens anteriores (`16d8c03`, `b599ff5`, `63f2c41`,
-`d062228`, `36a87e8`, `accd322`, `d92705d`) permanecem no host para rollback.
+`d062228`, `36a87e8`, `accd322`, `d92705d`, `48a7e74`) permanecem no host para rollback.
 
 A fatia dos ajustes pós-homologação acrescenta sessão persistente
 (localStorage), login por e-mail ou CPF (RN-030), agenda semanal na
@@ -303,17 +303,19 @@ diretamente `docker compose`.
 
 ## Ajustes locais após homologação
 
-Branch `feat/unificar-cancelar-aula`. Na ficha do horário da
-agenda saiu **Excluir horário**; fica só **Cancelar esta aula**
-(RN-031: a ocorrência vai para `CLOSED`, a grade não recria
-aquele dia). **Cancelar reserva do aluno** é ação à parte e
-não fecha o horário. Apagar a turma recorrente continua só
-em Ajustes (`DELETE /studio-hours/:id`). A API
-`DELETE /time-slots/:id` permanece (aula pontual vazia),
-mas não aparece mais na agenda.
+A fatia `feat/unificar-cancelar-aula` está em `main` e na VPS
+(`e7e9b07`). Na ficha do horário da agenda saiu **Excluir
+horário**; fica só **Cancelar esta aula** (RN-031: a ocorrência
+vai para `CLOSED`, a grade não recria aquele dia). **Cancelar
+reserva do aluno** é ação à parte e não fecha o horário. Apagar
+a turma recorrente continua só em Ajustes
+(`DELETE /studio-hours/:id`). A API `DELETE /time-slots/:id`
+permanece (aula pontual vazia), mas não aparece mais na agenda.
+O header usa `logo-mark.svg` no tema claro e o wordmark no
+escuro. O título do login é **Studio EMar**.
 
 Começar a próxima conversa lendo este arquivo e os feedbacks
-do cliente. `main` e a VPS (`36a87e8`) contêm identificação
+do cliente. `main` e a VPS (`e7e9b07`) contêm identificação
 de turmas, catálogo de tipos de aula, planos (RN-026), hub
 Ajustes, cadastro de aluno com agenda regular, grade contínua,
 listagens/dashboard por janela, home do aluno por semana,
@@ -366,6 +368,10 @@ Deploy em 2026-09-10 (Caddy intacto; sem migration nova):
 - `48a7e74` — cancelar/remarcar na agenda do aluno com modal de
   sucesso e sem duplicar o card cancelado; backup
   `studioemar-20260910-212711.sql.gz`
+- `e7e9b07` — unificar cancelar aula na agenda do treinador,
+  marca no header no tema claro e **Studio EMar** no login;
+  backup `studioemar-20260911-005413.sql.gz`. Rebuild só da
+  web; API reetiquetada a partir de `48a7e74` (sem migration).
 
 Validado após o último rebuild: health `{ status, now }`, HTTPS,
 site e Swagger 200, `prisma migrate status` up to date e o Genius
@@ -446,9 +452,10 @@ Checklist para publicar na VPS (somente com autorização):
 Não alterar o Caddyfile compartilhado neste deploy. Preservar
 os blocos do Studio em `/opt/genius-certify/proxy/Caddyfile`.
 
-As imagens em execução foram construídas no commit `36a87e8`.
-Imagens `16d8c03`, `b599ff5`, `63f2c41` e `d062228` ainda
-existem no host para rollback.
+As imagens em execução foram construídas no commit `e7e9b07`
+(web nova; API é a de `48a7e74` com a mesma tag). Imagens
+`48a7e74`, `d92705d`, `accd322` e `36a87e8` ainda existem no
+host para rollback.
 
 ## Não fazer ainda
 
